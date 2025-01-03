@@ -1,5 +1,5 @@
 from mescal.study_manager import StudyManager
-from mescal.mock.data_set import MockDataSet
+from mescal.mock.mock_data_set import MockDataSet
 
 
 mock_study_manager = StudyManager.factory_from_scenarios(

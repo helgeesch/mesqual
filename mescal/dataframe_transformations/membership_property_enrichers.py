@@ -1,12 +1,10 @@
-from dataclasses import dataclass
-import pandas as pd
-from typing import Optional, List
 from enum import Enum
 
+import pandas as pd
+
 from mescal.data_sets import DataSet
-from mescal.flag.flag import Flagtype
-from mescal.utils.logging import get_logger
 from mescal.utils.multi_key_utils.common_base_key_finder import CommonBaseKeyFinder
+from mescal.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
@@ -18,6 +16,14 @@ class MembershipTagging(Enum):
 
 
 class MembershipPropertyEnricher:
+    """Enriches a DataFrame with properties from related objects based on membership columns.
+
+    For example, a generator DataFrame might have a 'node' column that links to objects
+    in a node DataFrame. This enricher will add all properties from the node DataFrame
+    to the generator DataFrame based on these relationships. Multiple membership columns
+    are supported (e.g., node, company, fuel_type), and NaN memberships are preserved.
+    Properties can optionally be prefixed/suffixed with the membership name.
+    """
     def append_properties(
             self,
             target_df: pd.DataFrame,
@@ -37,7 +43,7 @@ class MembershipPropertyEnricher:
 
         return result_df
 
-    def identify_membership_columns(self, column_names: List[str], dataset: DataSet) -> List[str]:
+    def identify_membership_columns(self, column_names: list[str], dataset: DataSet) -> list[str]:
         return [
             col for col in column_names
             if dataset.flag_index.column_name_in_model_describes_membership(col)
@@ -91,6 +97,15 @@ class MembershipPropertyEnricher:
 
 
 class DirectionalMembershipPropertyEnricher:
+    """
+    Enriches a DataFrame with properties from related objects for directional relationships.
+
+    Handles cases where objects have from/to relationships, like in network structures.
+    For example, a line DataFrame might have 'node_from' and 'node_to' columns linking
+    to the node DataFrame. This enricher adds properties from related objects with
+    appropriate directional tags. Properties can optionally be prefixed/suffixed with
+    the base membership name.
+    """
     def __init__(
             self,
             from_tag: str = "_from",
@@ -98,7 +113,7 @@ class DirectionalMembershipPropertyEnricher:
     ):
         self._from_tag = from_tag
         self._to_tag = to_tag
-        self._tag_finder = CommonBaseKeyFinder([from_tag, to_tag])
+        self._tag_finder = CommonBaseKeyFinder(from_tag, to_tag)
 
     def append_properties(
             self,
@@ -119,7 +134,7 @@ class DirectionalMembershipPropertyEnricher:
 
         return result_df
 
-    def identify_from_to_columns(self, column_names: List[str], dataset: DataSet) -> List[str]:
+    def identify_from_to_columns(self, column_names: list[str], dataset: DataSet) -> list[str]:
         potential_columns = self._tag_finder.get_keys_for_which_all_association_tags_appear(column_names)
         return [
             col for col in potential_columns
@@ -168,7 +183,7 @@ class DirectionalMembershipPropertyEnricher:
 
         return result_df
 
-    def _get_full_column_name(self, base_column: str, tag: str, df_columns: List[str]) -> str:
+    def _get_full_column_name(self, base_column: str, tag: str, df_columns: list[str]) -> str:
         test_suffix = f"{base_column}{tag}"
         return test_suffix if test_suffix in df_columns else f"{tag}{base_column}"
 

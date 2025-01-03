@@ -1,7 +1,7 @@
 import pandas as pd
 
 from mescal.utils.pandas_utils.set_new_column import set_column
-from mescal.utils.dual_key_utils.dual_key_finder import DualKeyFinder
+from mescal.utils.multi_key_utils.common_base_key_finder import CommonBaseKeyFinder
 
 
 class UpDownNetAppender:
@@ -21,7 +21,7 @@ class UpDownNetAppender:
         self._down_identifier = down_identifier
         self._net_col_suffix = net_col_suffix if net_col_suffix else ''
         self._net_col_prefix = net_col_prefix if net_col_prefix else ''
-        self._dual_key_finder = DualKeyFinder(up_identifier, down_identifier)
+        self._common_base_key_finder = CommonBaseKeyFinder(up_identifier, down_identifier)
 
     def append_net_columns_from_up_down_columns(
             self,
@@ -32,7 +32,7 @@ class UpDownNetAppender:
         down_id = self._down_identifier
 
         _col_names = ts_df_with_up_down_columns.columns.get_level_values(0).unique()
-        up_down_columns = self._dual_key_finder.get_keys_for_which_both_identifiers_appear(_col_names)
+        up_down_columns = self._common_base_key_finder.get_keys_for_which_all_association_tags_appear(_col_names)
 
         for c in up_down_columns:
             up_col = f'{c}{up_id}'

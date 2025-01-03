@@ -1,0 +1,4 @@
+node,region,lat,lon
+A,RA,0,0
+B,RA,1,1
+C,RB,1,-1
