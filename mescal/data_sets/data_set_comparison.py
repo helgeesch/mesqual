@@ -6,11 +6,11 @@ import pandas as pd
 
 from mescal.data_sets.data_set import DataSet
 from mescal.data_sets.data_set_collection import DataSetCollection, DataSetConcatCollection, DataSetType
-from mescal.flag.flag import Flagtype
+from mescal.typevars import Flagtype, DataSetConfigType
 from mescal.utils.pandas_utils.is_numeric import pd_is_numeric
 
 
-class DataSetComparison(Generic[DataSetType], DataSetCollection[DataSetType]):
+class DataSetComparison(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
     """
     Takes two DataSets (variation and reference) and fetch method will return the delta between the two (var-ref).
     """
@@ -19,12 +19,18 @@ class DataSetComparison(Generic[DataSetType], DataSetCollection[DataSetType]):
             variation_data_set: DataSet,
             reference_data_set: DataSet,
             name: str = None,
-            attributes: dict = None
+            attributes: dict = None,
+            config: DataSetConfigType = None,
     ):
         if name is None:
             name = variation_data_set.name + ' vs ' + reference_data_set.name
 
-        super().__init__([reference_data_set, variation_data_set], name=name, attributes=attributes)
+        super().__init__(
+            [reference_data_set, variation_data_set],
+            name=name,
+            attributes=attributes,
+            config=config
+        )
 
         self.variation_data_set = variation_data_set
         self.reference_data_set = reference_data_set
@@ -41,5 +47,8 @@ class DataSetComparison(Generic[DataSetType], DataSetCollection[DataSetType]):
         raise NotImplementedError
 
 
-class DataSetConcatCollectionOfComparisons(DataSetConcatCollection[DataSetComparison]):
+class DataSetConcatCollectionOfComparisons(
+    Generic[DataSetType, DataSetConfigType],
+    DataSetConcatCollection[DataSetComparison, DataSet]
+):
     data_set_type = DataSetComparison

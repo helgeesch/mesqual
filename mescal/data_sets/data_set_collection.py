@@ -1,26 +1,23 @@
 from __future__ import annotations
-
 from abc import ABC, abstractmethod
-from typing import Iterator, Callable, TypeVar, Generic, Type, Iterable, TYPE_CHECKING
+from typing import Iterator, Callable, Generic, Type, Iterable, TYPE_CHECKING
 
 import pandas as pd
 
 from mescal.data_sets.data_set import DataSet
-from mescal.flag.flag import Flagtype
 from mescal.flag.flag_index import FlagIndex
 from mescal.utils.pandas_utils.is_numeric import pd_is_numeric
 from mescal.utils.logging import get_logger
 from mescal.utils.pandas_utils.combine_df import combine_dfs
 from mescal.utils.set_aggregations import nested_union
 from mescal.utils.intersect_dicts import get_intersection_of_dicts
+from mescal.typevars import DataSetType, DataSetConfigType, Flagtype
 
 if TYPE_CHECKING:
     from mescal.kpis.kpi_base import KPIFactory
     from mescal.databases.data_base import DataBase
 
 logger = get_logger(__name__)
-
-DataSetType = TypeVar('DataSetType', bound=DataSet)
 
 
 def _never_skip_ds_condition(ds: DataSet) -> bool:
@@ -31,7 +28,7 @@ def skip_ds_if_flag_not_accepted_condition(flag: Flagtype) -> Callable[[DataSet]
     return lambda ds: not ds.flag_is_accepted(flag)
 
 
-class DataSetCollection(Generic[DataSetType], DataSet, ABC):
+class DataSetCollection(Generic[DataSetType, DataSetConfigType], DataSet[DataSetConfigType], ABC):
     """
     Abstract class to collect multiple DataSet instances
     and handle them according to a specific logic.
@@ -50,6 +47,7 @@ class DataSetCollection(Generic[DataSetType], DataSet, ABC):
             flag_index: FlagIndex = None,
             attributes: dict = None,
             data_base: DataBase = None,
+            config: DataSetConfigType = None
     ):
         super().__init__(
             name=name,
@@ -57,13 +55,19 @@ class DataSetCollection(Generic[DataSetType], DataSet, ABC):
             flag_index=flag_index,
             attributes=attributes,
             data_base=data_base,
+            config=config,
         )
         data_sets = data_sets if data_sets else []
         self.data_sets: dict[str, DataSetType] = {ds.name: ds for ds in data_sets}
-        if flag_index is None:
+
+    @property
+    def flag_index(self) -> FlagIndex:
+        from mescal.flag.flag_index import EmptyFlagIndex
+        if (self._flag_index is None) or isinstance(self._flag_index, EmptyFlagIndex):
             from mescal.utils.check_all_same import all_same_object
-            if all_same_object(ds.flag_index for ds in self.data_set_iterator) and len(data_sets):
-                self._flag_index = self.get_data_set().flag_index
+            if all_same_object(ds.flag_index for ds in self.data_set_iterator) and len(self.data_sets):
+                return self.get_data_set().flag_index
+        return self._flag_index
 
     @property
     def attributes(self) -> pd.Series:
@@ -144,7 +148,7 @@ class DataSetCollection(Generic[DataSetType], DataSet, ABC):
             )
 
 
-class DataSetLinkCollection(Generic[DataSetType], DataSetCollection[DataSetType]):
+class DataSetLinkCollection(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
     """
     Links multiple DataSet instances so:
         - the parent DataSet accepts flags of all child DataSets.
@@ -159,6 +163,7 @@ class DataSetLinkCollection(Generic[DataSetType], DataSetCollection[DataSetType]
             flag_index: FlagIndex = None,
             attributes: dict = None,
             data_base: DataBase = None,
+            config: DataSetConfigType = None,
     ):
         super().__init__(
             data_sets=data_sets,
@@ -167,6 +172,7 @@ class DataSetLinkCollection(Generic[DataSetType], DataSetCollection[DataSetType]
             flag_index=flag_index,
             attributes=attributes,
             data_base=data_base,
+            config=config,
         )
         self._warn_if_flags_overlap()
 
@@ -194,7 +200,7 @@ class DataSetLinkCollection(Generic[DataSetType], DataSetCollection[DataSetType]
             )
 
 
-class DataSetMergeCollection(Generic[DataSetType], DataSetCollection[DataSetType]):
+class DataSetMergeCollection(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
     """
     Fetch method will merge fragmented DataSets for same flag, e.g.:
         - fragmented simulation runs, e.g. CW1, CW2, CW3, CWn.
@@ -208,7 +214,8 @@ class DataSetMergeCollection(Generic[DataSetType], DataSetCollection[DataSetType
             flag_index: FlagIndex = None,
             attributes: dict = None,
             data_base: DataBase = None,
-            keep_first: bool = True
+            config: DataSetConfigType = None,
+            keep_first: bool = True,
     ):
         super().__init__(
             data_sets=data_sets,
@@ -217,6 +224,7 @@ class DataSetMergeCollection(Generic[DataSetType], DataSetCollection[DataSetType
             flag_index=flag_index,
             attributes=attributes,
             data_base=data_base,
+            config=config,
         )
         self.keep_first = keep_first
 
@@ -247,7 +255,7 @@ class DataSetMergeCollection(Generic[DataSetType], DataSetCollection[DataSetType
         return df
 
 
-class DataSetConcatCollection(Generic[DataSetType], DataSetCollection[DataSetType]):
+class DataSetConcatCollection(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
     """
     Fetch method will return a concatenation of all sub-DataSets with an additional Index-level.
     """
@@ -259,6 +267,7 @@ class DataSetConcatCollection(Generic[DataSetType], DataSetCollection[DataSetTyp
             flag_index: FlagIndex = None,
             attributes: dict = None,
             data_base: DataBase = None,
+            config: DataSetConfigType = None,
             default_concat_axis: int = 1,
             concat_top: bool = True,
             concat_level_name: str = None,
@@ -270,6 +279,7 @@ class DataSetConcatCollection(Generic[DataSetType], DataSetCollection[DataSetTyp
             flag_index=flag_index,
             attributes=attributes,
             data_base=data_base,
+            config=config,
         )
         super().__init__(data_sets=data_sets, name=name)
         self.default_concat_axis = default_concat_axis
@@ -344,7 +354,7 @@ class DataSetConcatCollection(Generic[DataSetType], DataSetCollection[DataSetTyp
         return df
 
 
-class DataSetSumCollection(Generic[DataSetType], DataSetCollection[DataSetType]):
+class DataSetSumCollection(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
     def _fetch(self, flag: Flagtype, **kwargs) -> pd.Series | pd.DataFrame:
         data: list[pd.Series | pd.DataFrame] = []
         for ds in self.data_set_iterator:

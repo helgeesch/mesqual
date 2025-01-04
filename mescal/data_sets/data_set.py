@@ -1,19 +1,20 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Union, Type, Iterable
+from typing import TYPE_CHECKING, Union, Type, Iterable, Generic
 from abc import ABC, abstractmethod
 
 import pandas as pd
 
 from mescal.databases.data_base import DataBase
 from mescal.utils.string_conventions import to_lower_snake
-from mescal.flag.flag import Flagtype
 from mescal.flag.flag_index import EmptyFlagIndex, FlagIndex
 from mescal.utils.logging import get_logger
+from mescal.typevars import DataSetConfigType, Flagtype
 
 if TYPE_CHECKING:
     from mescal.kpis.kpi_collection import KPICollection
     from mescal.kpis.kpi_base import KPI, KPIFactory
+
 
 logger = get_logger(__name__)
 
@@ -57,7 +58,7 @@ def ensure_unique_indices(method):
     return _remove_duplicate_indices_if_there_are_any
 
 
-class DataSet(ABC):
+class DataSet(Generic[DataSetConfigType], ABC):
     def __init__(
             self,
             name: str = None,
@@ -65,12 +66,14 @@ class DataSet(ABC):
             flag_index: FlagIndex = None,
             attributes: dict = None,
             data_base: DataBase = None,
+            config: DataSetConfigType = None
     ):
         self.name = name if name is not None else self._get_random_name()
-        self._flag_index = flag_index if flag_index is not None else EmptyFlagIndex()
+        self._flag_index = flag_index or EmptyFlagIndex()
         self._parent_data_set = parent_data_set
         self._attributes: dict = attributes if attributes is not None else dict()
         self._data_base = data_base
+        self._config = config
 
         from mescal.kpis.kpi_collection import KPICollection
         self.kpi_collection: KPICollection = KPICollection()
@@ -224,3 +227,24 @@ class DataSet(ABC):
                 f"No aggregation performed."
             )
         return data
+
+    @classmethod
+    def get_config_type(cls) -> Type[DataSetConfigType]:
+        raise NotImplementedError("Subclasses must implement get_config_type")
+
+    @property
+    def config(self) -> DataSetConfigType:
+        from mescal.data_sets.data_set_config import DataSetConfigManager
+        return DataSetConfigManager.get_effective_config(self.__class__, self._config)
+
+    def set_config(self, config: DataSetConfigType) -> None:
+        self._config = config
+
+    def set_config_kwargs(self, **kwargs) -> None:
+        for key, value in kwargs.items():
+            setattr(self._config, key, value)
+
+    @classmethod
+    def set_class_config(cls, config: DataSetConfigType) -> None:
+        from mescal.data_sets.data_set_config import DataSetConfigManager
+        DataSetConfigManager.set_class_config(cls, config)

@@ -1,4 +1,4 @@
-from typing import TypeVar, Iterable, Hashable, Set
+from typing import TypeVar, Iterable, Hashable
 
 T = TypeVar('T', bound=Hashable)
 

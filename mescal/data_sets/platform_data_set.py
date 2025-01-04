@@ -1,17 +1,14 @@
 from __future__ import annotations
-
-from typing import TypeVar, Generic, Type, Any
+from typing import Type, Any, Generic
 from abc import ABC
 from dataclasses import dataclass
 import inspect
 
 from mescal.data_sets.data_set import DataSet
 from mescal.data_sets.data_set_collection import DataSetLinkCollection
-from mescal.flag.flag import Flagtype
+from mescal.typevars import Flagtype, DataSetType, DataSetConfigType
 from mescal.flag.flag_index import FlagIndex
 from mescal.databases.data_base import DataBase
-
-T = TypeVar('T', bound=DataSet)
 
 
 @dataclass
@@ -44,7 +41,7 @@ class InterpreterSignature:
         )
 
 
-class PlatformDataSet(DataSetLinkCollection[T], ABC):
+class PlatformDataSet(Generic[DataSetType, DataSetConfigType], DataSetLinkCollection[DataSetType, DataSetConfigType], ABC):
     """
     Base class for managing platform-specific data interpreters in a type-safe way.
 
@@ -54,15 +51,15 @@ class PlatformDataSet(DataSetLinkCollection[T], ABC):
 
     Type Parameters
     --------------
-    T : TypeVar
+    DataSetType : TypeVar
         Must be a subclass of DataSet. Defines the type of interpreters that can be
         registered with this platform dataset.
 
     Attributes
     ----------
-    _interpreter_registry : list[Type[T]]
+    _interpreter_registry : list[Type[DataSetType]]
         List of registered interpreter classes, ordered by registration time (newest first)
-    _child_data_set_type : Type[T]
+    _child_data_set_type : Type[DataSetType]
         Base type for all interpreters that can be registered with this platform
 
     Usage
@@ -105,8 +102,8 @@ class PlatformDataSet(DataSetLinkCollection[T], ABC):
       initialization
     """
 
-    _interpreter_registry: list[Type[T]] = []
-    _child_data_set_type: Type[T]
+    _interpreter_registry: list[Type[DataSetType]] = []
+    _child_data_set_type: Type[DataSetType]
 
     def __init__(
             self,
@@ -114,31 +111,33 @@ class PlatformDataSet(DataSetLinkCollection[T], ABC):
             flag_index: FlagIndex = None,
             attributes: dict = None,
             data_base: DataBase = None,
+            config: DataSetConfigType = None,
             **kwargs
     ):
-        interpreter_args = self._prepare_interpreter_initialization_args(kwargs)
-        data_sets = self._initialize_registered_interpreters(interpreter_args)
-
         super().__init__(
-            data_sets=data_sets,
+            data_sets=[],
             name=name,
             flag_index=flag_index,
             attributes=attributes,
             data_base=data_base,
+            config=config,
         )
+        interpreter_args = self._prepare_interpreter_initialization_args(kwargs)
+        data_sets = self._initialize_registered_interpreters(interpreter_args)
+        self.add_data_sets(data_sets)
 
     @classmethod
-    def register_interpreter(cls, interpreter: Type[T]) -> Type[T]:
+    def register_interpreter(cls, interpreter: Type[DataSetType]) -> Type[DataSetType]:
         cls._validate_interpreter_type(interpreter)
         cls._validate_interpreter_not_registered(interpreter)
         cls._add_interpreter_to_registry(interpreter)
         return interpreter
 
     @classmethod
-    def get_registered_interpreters(cls) -> list[Type[T]]:
+    def get_registered_interpreters(cls) -> list[Type[DataSetType]]:
         return cls._interpreter_registry.copy()
 
-    def get_interpreter_instance(self, interpreter_type: Type[T]) -> T:
+    def get_interpreter_instance(self, interpreter_type: Type[DataSetType]) -> DataSetType:
         interpreter = self._find_interpreter_instance(interpreter_type)
         if interpreter is None:
             raise ValueError(
@@ -146,7 +145,7 @@ class PlatformDataSet(DataSetLinkCollection[T], ABC):
             )
         return interpreter
 
-    def get_flags_by_interpreter(self) -> dict[Type[T], set[Flagtype]]:
+    def get_flags_by_interpreter(self) -> dict[Type[DataSetType], set[Flagtype]]:
         return {
             type(interpreter): interpreter.accepted_flags
             for interpreter in self.data_sets.values()
@@ -159,29 +158,29 @@ class PlatformDataSet(DataSetLinkCollection[T], ABC):
             for arg, default in zip(interpreter_signature.args, interpreter_signature.defaults)
         }
 
-    def _initialize_registered_interpreters(self, interpreter_args: dict) -> list[T]:
+    def _initialize_registered_interpreters(self, interpreter_args: dict) -> list[DataSetType]:
         return [
             interpreter(**interpreter_args, parent_data_set=self)
             for interpreter in self._interpreter_registry
         ]
 
     @classmethod
-    def _validate_interpreter_type(cls, interpreter: Type[T]) -> None:
+    def _validate_interpreter_type(cls, interpreter: Type[DataSetType]) -> None:
         if not issubclass(interpreter, cls._child_data_set_type):
             raise TypeError(
                 f'Interpreter must be subclass of {cls._child_data_set_type.__name__}'
             )
 
     @classmethod
-    def _validate_interpreter_not_registered(cls, interpreter: Type[T]) -> None:
+    def _validate_interpreter_not_registered(cls, interpreter: Type[DataSetType]) -> None:
         if interpreter in cls._interpreter_registry:
             raise ValueError(f'Interpreter {interpreter.__name__} already registered')
 
     @classmethod
-    def _add_interpreter_to_registry(cls, interpreter: Type[T]) -> None:
+    def _add_interpreter_to_registry(cls, interpreter: Type[DataSetType]) -> None:
         cls._interpreter_registry.insert(0, interpreter)
 
-    def _find_interpreter_instance(self, interpreter_type: Type[T]) -> T | None:
+    def _find_interpreter_instance(self, interpreter_type: Type[DataSetType]) -> DataSetType | None:
         for interpreter in self.data_sets.values():
             if isinstance(interpreter, interpreter_type):
                 return interpreter

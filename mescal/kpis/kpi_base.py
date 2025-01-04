@@ -1,26 +1,22 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Generic, TypeVar, TYPE_CHECKING
+from typing import Generic, TYPE_CHECKING
 
 import pandas as pd
 import numpy as np
 
 from mescal.data_sets.data_set import DataSet
 from mescal.data_sets.data_set_comparison import DataSetComparison
+from mescal.typevars import Flagtype, DataSetType, ValueOperationType, KPIType
 from mescal import units
 from mescal.kpis.aggs import (
-    _TwoValueOperation,
     ValueComparison, ValueComparisons,
     ArithmeticOperation, ArithmeticOperations,
 )
 
-if TYPE_CHECKING:
-    from mescal.flag.flag import Flagtype
 
 KPI_VALUE_TYPES = int | float | bool
-DataSetType = TypeVar('DataSetType', bound=DataSet)
-ValueOperationType = TypeVar('ValueOperationType', bound=_TwoValueOperation)
 
 
 class KPI(ABC):
@@ -102,9 +98,6 @@ class KPI(ABC):
             def get_kpi(self, data_set: DataSetType) -> KPI:
                 return cls(data_set)
         return _Factory().get_kpi(data_set)
-
-
-KPIType = TypeVar('KPIType', bound=KPI)
 
 
 class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):

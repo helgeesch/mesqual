@@ -8,3 +8,4 @@ from mescal.data_sets.data_set_collection import (
 )
 from mescal.data_sets.data_set_comparison import DataSetComparison, DataSetConcatCollectionOfComparisons
 from mescal.data_sets.platform_data_set import PlatformDataSet
+from mescal.data_sets.data_set_config import DataSetConfig

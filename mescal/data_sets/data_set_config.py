@@ -1,16 +1,13 @@
-from dataclasses import dataclass, field
-from typing import ClassVar, Dict, Type, Optional, Any, TYPE_CHECKING, overload
+from dataclasses import dataclass
+from typing import Dict, Type, Optional, overload
 
-if TYPE_CHECKING:
-    from mescal.data_sets.data_set import DataSet
-
-
-ConfigType = TypeVar('ConfigType', bound='DataSetConfig')
+from mescal.typevars import DataSetConfigType
+from mescal.data_sets.data_set import DataSet
 
 
 @dataclass
 class DataSetConfig:
-    def merge(self: ConfigType, other: Optional[ConfigType]) -> ConfigType:
+    def merge(self: DataSetConfigType, other: Optional[DataSetConfigType]) -> DataSetConfigType:
         if other is None:
             return self
 
@@ -24,12 +21,12 @@ class DataSetConfig:
         return merged_config
 
 
-class ConfigManager:
+class DataSetConfigManager:
     _class_configs: Dict[Type[DataSet], DataSetConfig] = {}
 
     @classmethod
     @overload
-    def set_class_config(cls, dataset_class: Type[DataSet[ConfigType]], config: ConfigType) -> None:
+    def set_class_config(cls, dataset_class: Type[DataSet[DataSetConfigType]], config: DataSetConfigType) -> None:
         ...
 
     @classmethod
@@ -40,9 +37,9 @@ class ConfigManager:
     @overload
     def get_effective_config(
             cls,
-            dataset_class: Type[DataSet[ConfigType]],
-            instance_config: Optional[ConfigType] = None
-    ) -> ConfigType:
+            dataset_class: Type[DataSet[DataSetConfigType]],
+            instance_config: Optional[DataSetConfigType] = None
+    ) -> DataSetConfigType:
         ...
 
     @classmethod
@@ -51,7 +48,7 @@ class ConfigManager:
             dataset_class: Type[DataSet],
             instance_config: Optional[DataSetConfig] = None
     ) -> DataSetConfig:
-        config_type = dataset_class.config_type
+        config_type = dataset_class.get_config_type()
         base_config = config_type()
         class_config = cls._class_configs.get(dataset_class)
 
@@ -61,46 +58,3 @@ class ConfigManager:
             base_config = base_config.merge(instance_config)
 
         return base_config
-
-
-class DataSet:
-    def __init__(self, config: Optional[DataSetConfig] = None):
-        self._config = config
-
-    @property
-    def config(self) -> DataSetConfig:
-        return ConfigManager.get_effective_config(self.__class__, self._config)
-
-
-class TimeSeriesDataSet(DataSet):
-    def __init__(self, config: Optional[DataSetConfig] = None):
-        super().__init__(config)
-
-    def process_data(self, data: Any) -> Any:
-        if self.config.use_datetime_index:
-            # Process with datetime index
-            pass
-        else:
-            # Process with enumerated index
-            pass
-
-
-if __name__ == '__main__':
-    # Set a class-wide config for all TimeSeriesDataSet instances
-    ts_class_config = DataSetConfig(
-        use_datetime_index=False,
-        aggregation_method='sum'
-    )
-    ConfigManager.set_class_config(TimeSeriesDataSet, ts_class_config)
-
-    # Create instance with default class config
-    ts1 = TimeSeriesDataSet()
-    print(f"ts1 config: {ts1.config}")
-
-    # Create instance with custom config that overrides class config
-    ts2 = TimeSeriesDataSet(DataSetConfig(use_datetime_index=True))
-    print(f"ts2 config: {ts2.config}")
-
-    # Create regular DataSet instance (uses base defaults)
-    ds = DataSet()
-    print(f"ds config: {ds.config}")
