@@ -115,6 +115,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
 
         if self._column_subset:
             subset = self._column_subset if isinstance(self._column_subset, list) else [self._column_subset]
+            # TODO: handle what should happen if not all columns are present.
             data = data[subset]
 
         return data
