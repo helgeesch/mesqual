@@ -340,7 +340,7 @@ class DataSetConcatCollection(Generic[DataSetType, DataSetConfigType], DataSetCo
                 if not all(set(df.axes[ax].names) == set(df0.axes[ax].names) for df in dfs.values()):
                     raise NotImplementedError(f'Axes names do not match between dfs.')
 
-            # from src.utils.pandas_utils.standardize_indices import standardize_index
+            # from mescal.utils.pandas_utils.standardize_indices import standardize_index
             # dfs = standardize_index(dfs, axis=axis)
 
         df = pd.concat(dfs, join='outer', axis=axis, names=[self.concat_level_name])

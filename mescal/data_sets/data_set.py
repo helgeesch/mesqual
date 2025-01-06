@@ -12,9 +12,9 @@ from mescal.utils.logging import get_logger
 from mescal.typevars import DataSetConfigType, Flagtype
 
 if TYPE_CHECKING:
+    from mescal.data_sets.data_set_collection import DataSetLinkCollection
     from mescal.kpis.kpi_collection import KPICollection
     from mescal.kpis.kpi_base import KPI, KPIFactory
-
 
 logger = get_logger(__name__)
 
@@ -116,14 +116,15 @@ class DataSet(Generic[DataSetConfigType], ABC):
         self._attributes.update(kwargs)
 
     @property
-    def parent_data_set(self) -> DataSet:
+    def parent_data_set(self) -> 'DataSetLinkCollection':
         if self._parent_data_set is None:
             raise RuntimeError(f"Parent data_set called without / before assignment.")
         return self._parent_data_set
 
     @parent_data_set.setter
-    def parent_data_set(self, parent_data_set: DataSet):
-        if not isinstance(parent_data_set, DataSet):
+    def parent_data_set(self, parent_data_set: 'DataSetLinkCollection'):
+        from mescal.data_sets.data_set_collection import DataSetLinkCollection
+        if not isinstance(parent_data_set, DataSetLinkCollection):
             raise TypeError(f"Parent data_set must be of type DataSet")
         self._parent_data_set = parent_data_set
 
