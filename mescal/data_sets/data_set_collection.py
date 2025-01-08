@@ -15,6 +15,7 @@ from mescal.typevars import DataSetType, DataSetConfigType, Flagtype
 
 if TYPE_CHECKING:
     from mescal.kpis.kpi_base import KPIFactory
+    from mescal.kpis.kpi_collection import KPICollection
     from mescal.databases.data_base import DataBase
 
 logger = get_logger(__name__)
@@ -95,6 +96,10 @@ class DataSetCollection(Generic[DataSetType, DataSetConfigType], DataSet[DataSet
             axis=1,
             names=['data_set']
         )
+
+    def merged_kpi_collection(self) -> 'KPICollection':
+        from mescal.kpis.kpi_collection import KPICollection
+        return KPICollection({kpi for ds in self.data_set_iterator for kpi in ds.kpi_collection})
 
     def add_kpis_to_all_sub_data_sets(self, kpis: Iterable[KPIFactory]):
         for kpi in kpis:

@@ -4,4 +4,4 @@ from mescal.kpis.kpi_base import (
     KPIFactory, ComparisonKPIFactory, ArithmeticOpKPIFactory,
 )
 from mescal.kpis.kpis_from_aggregations import FlagAggKPI, FlagAggKPIFactory
-from mescal.kpis.kpi_collection import KPICollection
+from mescal.kpis.kpi_collection import KPICollection, KPIGroup

@@ -42,8 +42,8 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         self._kpi_name_suffix = kpi_name_suffix
         self._kpi_name = kpi_name
 
-    def get_kpi_info_as_dict(self) -> dict:
-        kpi_info = dict(
+    def get_kpi_attributes(self) -> dict:
+        flag_agg_atts = dict(
             flag=self._flag,
             aggregation=self._aggregation,
             column_subset=self._column_subset,
@@ -51,14 +51,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
             name_prefix=self._kpi_name_prefix,
             name_suffix=self._kpi_name_suffix,
         )
-
-        # for k in list(kpi_info.keys()):
-        #     if kpi_info[k] is None:
-        #         kpi_info.pop(k)
-
-        kpi_info.update(**super().get_kpi_info_as_dict())
-
-        return kpi_info
+        return {**super().get_kpi_attributes(), **flag_agg_atts}
 
     @property
     def name(self) -> str:

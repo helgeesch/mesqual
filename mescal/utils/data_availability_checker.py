@@ -65,15 +65,19 @@ class DataAvailabilityChecker:
         intervals: list[dict] = []
         for i in range(len(change_points) - 1):
             start_date = change_points[i]
-            end_date = (change_points[i + 1] - pd.Timedelta(availability_df.index.freq)) if i < len(
-                change_points) - 2 else change_points[i + 1]
+            if i < len(change_points) - 2:
+                end_date = (change_points[i + 1] - pd.Timedelta(availability_df.index.freq))
+            else:
+                end_date = change_points[i + 1]
 
             intervals.append({
-                "interval": f"{start_date.strftime(date_format)} - {end_date.strftime(date_format)}",
+                "start": start_date,
+                "end": end_date,
                 **availability_df.loc[start_date].to_dict()
             })
 
-        return pd.DataFrame(intervals).set_index("interval")
+        result_df = pd.DataFrame(intervals)
+        return result_df.set_index(["start", "end"])
 
 
 if __name__ == "__main__":

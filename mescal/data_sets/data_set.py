@@ -58,6 +58,16 @@ def ensure_unique_indices(method):
     return _remove_duplicate_indices_if_there_are_any
 
 
+def sort_datetime_index(method):
+    def _sort_datetime_index_if_config_says_so(self: DataSet, flag: Flagtype = None, **kwargs):
+        data = method(self, flag, **kwargs)
+        if self.config.auto_sort_datetime_index:
+            if isinstance(data, (pd.Series, pd.DataFrame)) and isinstance(data.index, pd.DatetimeIndex):
+                data = data.sort_index()
+        return data
+    return _sort_datetime_index_if_config_says_so
+
+
 class DataSet(Generic[DataSetConfigType], ABC):
     def __init__(
             self,
@@ -151,6 +161,7 @@ class DataSet(Generic[DataSetConfigType], ABC):
     @flag_must_be_accepted
     @return_from_db_if_possible
     @ensure_unique_indices
+    @sort_datetime_index
     def fetch(self, flag: Flagtype, **kwargs) -> pd.Series | pd.DataFrame:
         return self._fetch(flag, **kwargs).copy()
 
@@ -231,7 +242,8 @@ class DataSet(Generic[DataSetConfigType], ABC):
 
     @classmethod
     def get_config_type(cls) -> Type[DataSetConfigType]:
-        raise NotImplementedError("Subclasses must implement get_config_type")
+        from mescal.data_sets.data_set_config import DataSetConfig
+        return DataSetConfig
 
     @property
     def config(self) -> DataSetConfigType:

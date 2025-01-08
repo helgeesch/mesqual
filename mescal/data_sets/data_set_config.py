@@ -7,6 +7,8 @@ from mescal.data_sets.data_set import DataSet
 
 @dataclass
 class DataSetConfig:
+    auto_sort_datetime_index: bool = True
+
     def merge(self: DataSetConfigType, other: Optional[DataSetConfigType]) -> DataSetConfigType:
         if other is None:
             return self

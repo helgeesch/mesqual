@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Generic, TYPE_CHECKING
+from typing import Generic
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 from mescal.data_sets.data_set import DataSet
 from mescal.data_sets.data_set_comparison import DataSetComparison
@@ -17,6 +17,16 @@ from mescal.kpis.aggs import (
 
 
 KPI_VALUE_TYPES = int | float | bool
+
+
+def _make_values_immutable(any_dict: dict) -> dict:
+    d = dict()
+    for k, v in any_dict.items():
+        if isinstance(v, (bool, int, float, str)):
+            d[k] = v
+        else:
+            d[k] = str(v)
+    return d
 
 
 class KPI(ABC):
@@ -66,31 +76,66 @@ class KPI(ABC):
         # TODO 15
         return f'{self.value:.2f}'
 
-    def __hash__(self) -> int:
-        return hash(self.name)
-
     def get_kpi_name_with_data_set_name(self, data_set_name_as_suffix: bool = True) -> str:
         if data_set_name_as_suffix:
             return f'{self.name} {self._data_set.name}'
         return f'{self._data_set.name} {self.name}'
 
-    def get_kpi_info_as_dict(self) -> dict:
-        kpi_info = dict(
-            data_set=self._data_set.name,
-            name=self.name,
+    def get_kpi_attributes(self) -> dict:
+        atts = dict(
+            kpi_name=self.name,
+            data_set_name=self._data_set.name,
             unit=self.unit,
-            value=self.value,
         )
-        return kpi_info
+        return atts
 
-    def get_kpi_info_as_series(self) -> pd.Series:
-        kpi_info = dict()
-        for k, v in self.get_kpi_info_as_dict():
-            if any(isinstance(v, i) for i in [int, float, bool, str]):
-                kpi_info[k] = v
+    def get_kpi_as_series(self) -> pd.Series:
+        s = self.get_kpi_attributes_with_immutable_values()
+        s['value'] = self.value
+        return pd.Series(s, name=self.get_kpi_name_with_data_set_name())
+
+    def get_kpi_attributes_with_immutable_values(self) -> dict:
+        return _make_values_immutable(self.get_kpi_attributes())
+
+    def has_attribute_values(self, **kwargs) -> bool:
+        """
+        # TODO: enhance example
+        Example:
+            kpi_name: str = 'Mean BiddingZone.MarketPrice',
+            data_set_name: str = 'base_case',
+            unit: str | Unit = '€/MWh',
+
+        """
+        if not kwargs:
+            return True
+        my_atts = self.get_kpi_attributes()
+        my_atts_im = _make_values_immutable(my_atts)
+        for k, v in kwargs.items():
+            if k in my_atts and (my_atts[k] == v):
+                continue
+            elif k in my_atts_im and (my_atts_im[k] == v):
+                continue
+            elif hasattr(self, k) and (getattr(self, k) == v):
+                continue
+            elif hasattr(self, f'_{k}') and (getattr(self, f'_{k}') == v):
+                continue
             else:
-                kpi_info[k] = str(v)
-        return pd.Series(kpi_info, name=self.get_kpi_name_with_data_set_name())
+                return False
+        return True
+
+    def __hash__(self) -> int:
+        imm = _make_values_immutable(self.get_kpi_attributes())
+        t = ((k, v) for k, v in imm.items())
+        return hash(t)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, KPI):
+            return False
+        if self._data_set == other._data_set:
+            my_atts = _make_values_immutable(self.get_kpi_attributes())
+            other_atts = _make_values_immutable(other.get_kpi_attributes())
+            return my_atts == other_atts
+        return False
 
     @classmethod
     def from_factory(cls, data_set: DataSetType) -> KPI:
@@ -155,19 +200,19 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
         from mescal.utils.string_union import find_difference_and_join
         return find_difference_and_join(var_kpi_name, ref_kpi_name)
 
-    def get_kpi_info_as_dict(self) -> dict:
+    def get_kpi_attributes(self) -> dict:
         from mescal.utils.intersect_dicts import get_intersection_of_dicts
-        kpi_info = dict()
+        value_op_atts = dict()
+        value_op_atts['variation_data_set'] = self._variation_kpi._data_set.name
+        value_op_atts['reference_data_set'] = self._reference_kpi._data_set.name
+        var_kpi_atts = self._variation_kpi.get_kpi_attributes_with_immutable_values()
+        ref_kpi_atts = self._reference_kpi.get_kpi_attributes_with_immutable_values()
+        var_ref_intersection = get_intersection_of_dicts([var_kpi_atts, ref_kpi_atts])
+        value_op_atts.update(**var_ref_intersection)
 
-        var_kpi_info = self._variation_kpi.get_kpi_info_as_dict()
-        ref_kpi_info = self._reference_kpi.get_kpi_info_as_dict()
-        var_ref_intersection = get_intersection_of_dicts([var_kpi_info, ref_kpi_info])
-        kpi_info.update(**var_ref_intersection)
+        value_op_atts.update(value_operation=str(self._value_operation))
 
-        kpi_info.update(value_operation=str(self._value_operation))
-        kpi_info.update(**super().get_kpi_info_as_dict())
-
-        return kpi_info
+        return {**super().get_kpi_attributes(), **value_op_atts}
 
 
 class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComparison]):
