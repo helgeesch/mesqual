@@ -57,7 +57,6 @@ class DataAvailabilityChecker:
 
     def _compress_intervals(self, availability_df: pd.DataFrame) -> pd.DataFrame:
         freq = pd.infer_freq(availability_df.index)
-        date_format = '%Y.%m.%d' if freq and freq in ['D', 'B', 'W', 'M', 'Y'] else '%Y.%m.%d %H:%M'
 
         status_changes = (availability_df != availability_df.shift()).any(axis=1)
         change_points = availability_df.index[status_changes | (availability_df.index == availability_df.index[-1])]
@@ -70,9 +69,16 @@ class DataAvailabilityChecker:
             else:
                 end_date = change_points[i + 1]
 
+            if freq in ['D', 'B', 'W', 'M', 'Y']:
+                _start_date = start_date.date()
+                _end_date = end_date.date()
+            else:
+                _start_date = start_date
+                _end_date = end_date
+
             intervals.append({
-                "start": start_date,
-                "end": end_date,
+                "start": _start_date,
+                "end": _end_date,
                 **availability_df.loc[start_date].to_dict()
             })
 
