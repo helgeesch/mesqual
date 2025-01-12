@@ -1,3 +1,5 @@
+<img src="assets/logo_with_text_no_bg.svg.svg" width="300" height="300" alt="MESCAL Logo">
+
 # mescal
 
 **M**odular **E**nergy **S**cenario **C**omparison **A**nalysis and **L**ibrary
