@@ -37,12 +37,4 @@
   <path d="M220 260 Q280 200 300 150 Q260 190 230 220 Z"
         fill="url(#leafGradient2)" stroke="#2d3436" stroke-width="2"/>
 
-  <!-- Data Points/Lines overlaid on leaves -->
-  <path d="M130 120 Q160 170 180 200"
-        fill="none" stroke="#2d3436" stroke-width="1" stroke-dasharray="2,2"/>
-  <path d="M270 120 Q240 170 220 200"
-        fill="none" stroke="#2d3436" stroke-width="1" stroke-dasharray="2,2"/>
-  <path d="M200 100 Q190 140 195 180"
-        fill="none" stroke="#2d3436" stroke-width="1" stroke-dasharray="2,2"/>
-
 </svg>
