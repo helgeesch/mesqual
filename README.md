@@ -1,8 +1,6 @@
-<img src="assets/logo_with_text_no_bg.svg.svg" width="300" height="300" alt="MESCAL Logo">
+<img src="assets/logo_with_text_no_bg.svg" width="300" height="300" alt="MESCAL Logo">
 
-# mescal
-
-**M**odular **E**nergy **S**cenario **C**omparison **A**nalysis and **L**ibrary
+# **M**odular **E**nergy **S**cenario **C**omparison **A**nalysis and **L**ibrary
 
 A Python framework for energy market data analysis, with a focus on scenario comparison and KPI calculation.
 
