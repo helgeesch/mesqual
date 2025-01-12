@@ -3,6 +3,9 @@ from abc import ABC, abstractmethod
 
 from mescal.data_sets import DataSet
 from mescal.typevars import Flagtype
+from mescal.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class ValidationError(Exception):
@@ -39,7 +42,7 @@ class DataSetValidator(ABC):
             if not validation.validate(data_set):
                 raise ValidationError(validation.get_error_message(data_set))
 
-        print(f"Success! All validations passed for {self.__class__.__name__} on DataSet {data_set.name}")
+        logger.info(f"Success! All validations passed for {self.__class__.__name__} on DataSet {data_set.name}")
 
 
 class ConstraintValidation(Validation):
