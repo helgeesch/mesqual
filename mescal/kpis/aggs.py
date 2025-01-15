@@ -30,9 +30,18 @@ def _ensure_frame_format(pd_object: pd.Series | pd.DataFrame) -> pd.DataFrame:
     return pd_object
 
 
+def _annualized_sum(df: pd.Series | pd.DataFrame) -> float:
+    from mescal.utils.pandas_utils.identify_dt_index_granularity import get_granularity_in_hrs
+    granularity_in_hrs = get_granularity_in_hrs(df.index)
+    tmp = _ensure_frame_format(df).sum(axis=1)
+    num_values = (~tmp.isna()).sum()
+    return tmp.sum() / num_values * granularity_in_hrs * 8760
+
+
 class Aggregations:
     Total = Aggregation('Total', lambda df: _ensure_frame_format(df).sum(axis=1).sum())
     Sum = Aggregation('Sum', lambda df: _ensure_frame_format(df).sum(axis=1).sum())
+    AnnualizedSum = Aggregation('AnnualizedSum', lambda df: _annualized_sum(df))
     Max = Aggregation('Max', lambda df: _ensure_frame_format(df).sum(axis=1).max())
     Mean = Aggregation('Mean', lambda df: _ensure_frame_format(df).sum(axis=1).mean())
     Min = Aggregation('Min', lambda df: _ensure_frame_format(df).sum(axis=1).min())

@@ -10,15 +10,12 @@ class CongestionRentCalculator:
     received_down: pd.Series
     price_node_from: pd.Series
     price_node_to: pd.Series
-    granularity_hrs: float | pd.Series = 1.0
+    granularity_hrs: float = 1.0
 
     def __post_init__(self):
         if isinstance(self.sent_up.index, pd.DatetimeIndex):
-            gran = self.sent_up.index.to_series().diff().shift(-1).apply(lambda x: x.total_seconds() / 3600)
-            gran.iloc[-1] = gran.iloc[-2]
-            self.granularity_hrs = gran
-        elif isinstance(self.granularity_hrs, (float, int)):
-            self.granularity_hrs = pd.Series(self.granularity_hrs, index=self.sent_up.index)
+            from mescal.utils.pandas_utils.identify_dt_index_granularity import get_granularity_in_hrs
+            self.granularity_hrs = get_granularity_in_hrs(self.sent_up.index)
         self.__check_indices()
 
     def __check_indices(self):
@@ -28,8 +25,7 @@ class CongestionRentCalculator:
             self.sent_down,
             self.received_down,
             self.price_node_from,
-            self.price_node_to,
-            self.granularity_hrs
+            self.price_node_to
         ]
         for v in to_check:
             if not ref_index.equals(v.index):

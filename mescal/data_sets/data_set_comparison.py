@@ -35,12 +35,12 @@ class DataSetComparison(Generic[DataSetType, DataSetConfigType], DataSetCollecti
         self.variation_data_set = variation_data_set
         self.reference_data_set = reference_data_set
 
-    def _fetch(self, flag: Flagtype, **kwargs) -> pd.Series | pd.DataFrame:
-        df_var = self.variation_data_set.fetch(flag, **kwargs)
-        df_ref = self.reference_data_set.fetch(flag, **kwargs)
+    def _fetch(self, flag: Flagtype, fill_value: float | int | None = 0, **kwargs) -> pd.Series | pd.DataFrame:
+        df_var: pd.DataFrame = self.variation_data_set.fetch(flag, **kwargs)
+        df_ref: pd.DataFrame = self.reference_data_set.fetch(flag, **kwargs)
 
         if pd_is_numeric(df_var) and pd_is_numeric(df_ref):
-            return df_var.subtract(df_ref)
+            return df_var.subtract(df_ref, fill_value=fill_value)
 
         # TODO: implement other kinds of comparisons (can be an enum)
 
