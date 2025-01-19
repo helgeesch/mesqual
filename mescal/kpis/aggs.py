@@ -61,7 +61,7 @@ class Aggregations:
 
 
 @dataclass
-class _TwoValueOperation:  # TODO: should not be a private class
+class OperationOfTwoValues:  # TODO: should not be a private class
     name: str
     agg: Callable[[KPI_VALUE_TYPES, KPI_VALUE_TYPES], KPI_VALUE_TYPES]
     unit: units.Unit = None
@@ -73,7 +73,7 @@ class _TwoValueOperation:  # TODO: should not be a private class
         return self.name
 
 
-class ValueComparison(_TwoValueOperation):
+class ValueComparison(OperationOfTwoValues):
     pass
 
 
@@ -87,14 +87,14 @@ class ValueComparisons:
     Diff = ValueComparison("Diff", lambda var, ref: var - ref)
 
 
-class ArithmeticOperation(_TwoValueOperation):
+class ArithmeticValueOperation(OperationOfTwoValues):
     pass
 
 
-class ArithmeticOperations:
-    Product = ArithmeticOperation("Product", lambda var, ref: var * ref)
-    Division = ArithmeticOperation("Division", lambda var, ref: var / ref)
-    Share = ArithmeticOperation("Share", lambda var, ref: var / ref * 100, units.perc)
-    Sum = ArithmeticOperation("Sum", lambda var, ref: var + ref)
-    Diff = ArithmeticOperation("Diff", lambda var, ref: var - ref)
-    Delta = ArithmeticOperation("Delta", lambda var, ref: var - ref)
+class ArithmeticValueOperations:
+    Product = ArithmeticValueOperation("Product", lambda var, ref: var * ref)
+    Division = ArithmeticValueOperation("Division", lambda var, ref: var / ref)
+    Share = ArithmeticValueOperation("Share", lambda var, ref: var / ref * 100, units.perc)
+    Sum = ArithmeticValueOperation("Sum", lambda var, ref: var + ref)
+    Diff = ArithmeticValueOperation("Diff", lambda var, ref: var - ref)
+    Delta = ArithmeticValueOperation("Delta", lambda var, ref: var - ref)

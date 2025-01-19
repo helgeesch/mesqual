@@ -12,7 +12,7 @@ from mescal.typevars import Flagtype, DataSetType, ValueOperationType, KPIType
 from mescal import units
 from mescal.kpis.aggs import (
     ValueComparison, ValueComparisons,
-    ArithmeticOperation, ArithmeticOperations,
+    ArithmeticValueOperation, ArithmeticValueOperations,
 )
 
 
@@ -195,7 +195,7 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
         val_op = self._value_operation
 
         _vcs = [ValueComparisons.Increase, ValueComparisons.Decrease, ValueComparisons.Delta, ValueComparisons.Diff]
-        _aos = [ArithmeticOperations.Sum, ArithmeticOperations.Diff, ArithmeticOperations.Delta]
+        _aos = [ArithmeticValueOperations.Sum, ArithmeticValueOperations.Diff, ArithmeticValueOperations.Delta]
         if val_op in _vcs+_aos:
             if ref_kpi_unit == var_kpi_unit:
                 return ref_kpi_unit
@@ -233,7 +233,7 @@ class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComp
     pass
 
 
-class ArithmeticValueOperationKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ArithmeticOperation]):
+class ArithmeticValueOperationKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ArithmeticValueOperation]):
     pass
 
 
@@ -267,7 +267,7 @@ class ComparisonKPIFactory(KPIFactory[DataSetComparison, ValueComparisonKPI]):
     def get_kpi(self, data_set: DataSetComparison) -> ValueComparisonKPI:
 
         if not isinstance(data_set, DataSetComparison):
-            raise TypeError(f'Expected DataSetComparison for {self.__class__.__name__}, got {type(data_set)}.')
+            raise TypeError(f'Expected {DataSetComparison.__name__} for {self.__class__.__name__}, got {type(data_set)}.')
 
         var_kpi = self._kpi_factory.get_kpi(data_set.variation_data_set)
         ref_kpi = self._kpi_factory.get_kpi(data_set.reference_data_set)
@@ -281,7 +281,7 @@ class ArithmeticOpKPIFactory(KPIFactory[DataSet, ArithmeticValueOperationKPI]):
             self,
             var_kpi_factory: KPIFactory,
             ref_kpi_factory: KPIFactory,
-            arithmetic_op: ArithmeticOperation,
+            arithmetic_op: ArithmeticValueOperation,
     ):
         super().__init__()
         self._var_kpi_factory = var_kpi_factory

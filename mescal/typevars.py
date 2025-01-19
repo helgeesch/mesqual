@@ -7,7 +7,7 @@ if TYPE_CHECKING:
     from mescal.data_sets.data_set import DataSet
     from mescal.data_sets.data_set_config import DataSetConfig
     from mescal.kpis.kpi_base import KPI
-    from mescal.kpis.aggs import _TwoValueOperation
+    from mescal.kpis.aggs import OperationOfTwoValues
     from mescal.kpis.kpi_collection import KPICollection
 
 
