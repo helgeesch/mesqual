@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from typing import Iterable, Iterator, TYPE_CHECKING
+from typing import Iterable, Iterator, Generic
 from collections import Counter
 
 import pandas as pd
 
+from mescal.typevars import KPICollectionType
 from mescal.kpis.kpi_base import KPI
 from mescal.utils.pretty_scaling import get_pretty_min_max, get_pretty_order_of_mag, get_pretty_num_of_decimals
 from mescal.utils.intersect_dicts import get_intersection_of_dicts
@@ -13,7 +14,7 @@ from mescal.utils.logging import get_logger
 logger = get_logger(__name__)
 
 
-class KPICollection:
+class KPICollection(Generic[KPICollectionType]):
     def __init__(self, kpis: Iterable[KPI] = None):
         self._kpis: set[KPI] = set()
         if kpis:
@@ -81,12 +82,13 @@ class KPICollection:
     def remove_kpi(self, kpi: KPI):
         self._kpis.remove(kpi)
 
-    def remove_kpis_by_attributes(self, **kwargs):
+    def remove_kpis_by_attributes(self, **kwargs) -> KPICollectionType:
         subset = self.get_kpi_group_by_attributes(**kwargs)
         num = len(subset._kpis)
         for kpi in subset:
             self.remove_kpi(kpi)
         logger.info(f'Removed {num} KPIs from Collection.')
+        return self
 
     def __contains__(self, kpi: KPI) -> bool:
         return kpi in self._kpis
@@ -96,7 +98,7 @@ class KPICollection:
             yield kpi
 
 
-class KPIGroup(KPICollection):
+class KPIGroup(KPICollection['KPIGroup']):
     def __init__(self, kpis: Iterable[KPI] = None):
         super().__init__(kpis)
 
@@ -104,7 +106,7 @@ class KPIGroup(KPICollection):
     def name(self) -> str:
         return ' '.join(self.get_in_common_kpi_attributes())
 
-    def get_unit(self):
+    def get_most_common_unit(self):
         unit_counts = Counter([kpi.unit for kpi in self._kpis])
         most_common = unit_counts.most_common(1)[0][0]
         if len(unit_counts) > 1:

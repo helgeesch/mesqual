@@ -109,6 +109,10 @@ class DataSetCollection(Generic[DataSetType, DataSetConfigType], DataSet[DataSet
         for ds in self.data_set_iterator:
             ds.add_kpi(kpi)
 
+    def clear_kpi_collection_for_all_sub_data_sets(self):
+        for ds in self.data_set_iterator:
+            ds.clear_kpi_collection()
+
     @abstractmethod
     def _fetch(
             self,

@@ -61,7 +61,7 @@ class Aggregations:
 
 
 @dataclass
-class _TwoValueOperation:
+class _TwoValueOperation:  # TODO: should not be a private class
     name: str
     agg: Callable[[KPI_VALUE_TYPES, KPI_VALUE_TYPES], KPI_VALUE_TYPES]
     unit: units.Unit = None

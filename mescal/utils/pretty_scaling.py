@@ -11,7 +11,8 @@ def _all_bool(values: Iterable) -> bool:
 def get_pretty_min_max(
         values: Iterable[float | int | bool],
         lower_percentile: float = 1,
-        upper_percentile: float = 99
+        upper_percentile: float = 99,
+        symmetric_scaling_around_0: bool = False
 ) -> tuple[float, float]:
 
     if _all_bool(values):
@@ -40,7 +41,7 @@ def get_pretty_min_max(
     pretty_min = np.floor(min_val / rounding_interval) * rounding_interval
     pretty_max = np.ceil(max_val / rounding_interval) * rounding_interval
 
-    if symmetric_scaling_around_0_seems_appropriate(values):
+    if symmetric_scaling_around_0:
         abs_max = max([abs(pretty_min), pretty_max])
         pretty_max = abs_max
         pretty_min = -abs_max

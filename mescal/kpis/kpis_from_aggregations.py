@@ -5,14 +5,11 @@ from typing import Hashable, Generic, TYPE_CHECKING
 import pandas as pd
 
 from mescal import units
+from mescal.typevars import DataSetType, Flagtype
 from mescal.utils.pandas_utils.filter import filter_by_model_query
-from mescal.kpis.kpi_base import (
-    DataSetType, KPI, KPIFactory,
-    ComparisonKPIFactory, ArithmeticOpKPIFactory
-)
+from mescal.kpis.kpi_base import KPI, KPIFactory
 
 if TYPE_CHECKING:
-    from mescal.flag.flag import Flagtype
     from mescal.kpis.aggs import Aggregation
 
 

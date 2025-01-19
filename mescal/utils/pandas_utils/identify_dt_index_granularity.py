@@ -18,18 +18,21 @@ def _validate_dt_index(func):
 @_validate_dt_index
 def get_granularity_as_series_of_timedeltas(dt_index: pd.DatetimeIndex) -> pd.Series:
     gran = dt_index.to_series().diff().shift(-1)
-    gran.iloc[-1] = gran.iloc[-2]
+    if len(gran) > 1:
+        gran.iloc[-1] = gran.iloc[-2]
     return gran
 
 
 def get_granularity_as_timedelta(dt_index: pd.DatetimeIndex) -> pd.Timedelta:
     gran = get_granularity_as_series_of_timedeltas(dt_index)
+    if len(dt_index) == 0:
+        return pd.Timedelta(0)
     first_gran = gran.iloc[0]
     if len(gran.unique()) > 1:
-        raise warnings.warn(
+        warnings.warn(
             f'Found multiple granularities in DatetimeIndex. '
             f'Either your Index has gaps, or the index has an inconsistent granularity.'
-            f'Using {first_gran} as the index granularity.'
+            f'Using {first_gran} as the index granularity. Other timedeltas present are: {gran.unique()}'
         )
     return first_gran
 

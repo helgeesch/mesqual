@@ -88,6 +88,10 @@ class RegionalTradeBalanceCalculator:
         ...     agg_region_column=None  # Keep flows at node level
         ... )
     """
+    EXP_VAR = "exp"
+    IMP_VAR = "imp"
+    NET_EXP_VAR = "net_exp"
+    ALL_VARS = [EXP_VAR, IMP_VAR, NET_EXP_VAR]
 
     def __init__(
             self,
@@ -185,9 +189,9 @@ class RegionalTradeBalanceCalculator:
                 imp = raw_flows[(secondary, primary)]
 
                 flows_dict = {
-                    "exp": exp,
-                    "imp": imp,
-                    "net_exp": exp - imp
+                    self.EXP_VAR: exp,
+                    self.IMP_VAR: imp,
+                    self.NET_EXP_VAR: exp - imp
                 }
                 df = pd.concat(
                     {

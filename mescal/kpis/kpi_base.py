@@ -138,17 +138,31 @@ class KPI(ABC):
         return False
 
     @classmethod
-    def from_factory(cls, data_set: DataSetType) -> KPI:
+    def from_factory(cls, data_set: DataSetType) -> KPIType:
         class _Factory(KPIFactory):
-            def get_kpi(self, data_set: DataSetType) -> KPI:
+            def get_kpi(self, data_set: DataSetType) -> KPIType:
                 return cls(data_set)
         return _Factory().get_kpi(data_set)
+
+    @classmethod
+    def get_factory_instance(cls) -> KPIFactory:
+        class FactoryClass(KPIFactory):
+            def get_kpi(self, data_set: DataSetType) -> KPIType:
+                return cls(data_set)
+        return FactoryClass()
 
 
 class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
 
-    def __init__(self, variation_kpi: KPIType, reference_kpi: KPIType, value_operation: ValueOperationType):
-        super().__init__(variation_kpi._data_set)
+    def __init__(
+            self,
+            variation_kpi: KPIType,
+            reference_kpi: KPIType,
+            value_operation: ValueOperationType,
+            data_set: DataSet = None
+    ):
+        data_set = data_set or variation_kpi._data_set
+        super().__init__(data_set)
         self._variation_kpi = variation_kpi
         self._reference_kpi = reference_kpi
         self._value_operation = value_operation
@@ -258,7 +272,8 @@ class ComparisonKPIFactory(KPIFactory[DataSetComparison, ValueComparisonKPI]):
         var_kpi = self._kpi_factory.get_kpi(data_set.variation_data_set)
         ref_kpi = self._kpi_factory.get_kpi(data_set.reference_data_set)
         val_op = self._value_comparison
-        return ValueComparisonKPI(var_kpi, ref_kpi, val_op)
+        val_comp_kpi = ValueComparisonKPI(var_kpi, ref_kpi, val_op, data_set)
+        return val_comp_kpi
 
 
 class ArithmeticOpKPIFactory(KPIFactory[DataSet, ArithmeticValueOperationKPI]):

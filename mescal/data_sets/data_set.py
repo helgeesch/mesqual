@@ -107,6 +107,7 @@ class DataSet(Generic[DataSetConfigType], ABC):
             self.add_kpi(kpi)
 
     def add_kpi(self, kpi: KPI | KPIFactory | Type[KPI]):
+        from mescal.kpis.kpi_base import KPI
         from mescal.kpis.kpis_from_aggregations import KPIFactory
         if isinstance(kpi, KPIFactory):
             kpi = kpi.get_kpi(self)
@@ -116,6 +117,10 @@ class DataSet(Generic[DataSetConfigType], ABC):
 
     def get_kpi_series(self, **kwargs) -> pd.Series:
         return self.kpi_collection.get_kpi_series(**kwargs)
+
+    def clear_kpi_collection(self):
+        from mescal.kpis import KPICollection
+        self.kpi_collection = KPICollection()
 
     @property
     def attributes(self) -> pd.Series:
