@@ -14,5 +14,5 @@ if TYPE_CHECKING:
 DataSetType = TypeVar('DataSetType', bound='DataSet')
 DataSetConfigType = TypeVar('DataSetConfigType', bound='DataSetConfig')
 KPIType = TypeVar('KPIType', bound='KPI')
-ValueOperationType = TypeVar('ValueOperationType', bound='_TwoValueOperation')
+ValueOperationType = TypeVar('ValueOperationType', bound='OperationOfTwoValues')
 KPICollectionType = TypeVar('KPICollectionType', bound='KPICollection')

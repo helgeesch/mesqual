@@ -8,10 +8,12 @@ from mescal import units
 from mescal.typevars import DataSetType, Flagtype
 from mescal.utils.pandas_utils.filter import filter_by_model_query
 from mescal.kpis.kpi_base import KPI, KPIFactory
+from mescal.utils.logging import get_logger
 
 if TYPE_CHECKING:
     from mescal.kpis.aggs import Aggregation
 
+logger = get_logger(__name__)
 
 SPACE = ' '
 
@@ -104,11 +106,51 @@ class FlagAggKPI(Generic[DataSetType], KPI):
             data = filter_by_model_query(data, model_df, self._model_query)
 
         if self._column_subset:
-            subset = self._column_subset if isinstance(self._column_subset, list) else [self._column_subset]
+            subset = self._get_column_subset_as_list()
             # TODO: handle what should happen if not all columns are present.
             data = data[subset]
 
         return data
+
+    def _get_column_subset_as_list(self) -> list[str | int]:
+        return self._column_subset if isinstance(self._column_subset, list) else [self._column_subset]
+
+    def get_attributed_object_name(self) -> str | int:
+        """
+        Only necessary in case one wants to be able to retrieve the attributed object_name for a KPI.
+        For example you'd want this in case you need this info for plotting.
+        """
+        subset = self._get_column_subset_as_list()
+        if len(subset) != 1:
+            raise TypeError(
+                f"It appears you are trying to get the name of the attributed object for KPI {self.name}. "
+                f"However, This method is only valid if you define exactly 1 column in the column_subset. "
+                f"Currently, the column_subset is {self._column_subset}."
+            )
+        column = subset[0]
+        if isinstance(column, tuple):
+            model_flag = self.get_attributed_model_flag()
+            model_df = self._data_set.fetch(model_flag)
+            options = set(column).intersection(model_df.index)
+            if len(options) == 1:
+                return list(options)[0]
+            elif len(options) > 1:
+                selected_object = [i for i in column if i in options][0]
+                logger.warning(
+                    f"Column Subset appears to be a tuple ({column}) with multiple possible primary objects: {options}."
+                    f"We are proceeding with the first one ({selected_object})"
+                )
+                return selected_object
+        else:
+            return column
+
+    def get_attributed_model_flag(self) -> Flagtype:
+        """
+        Only necessary in case one wants to be able to retrieve the attributed model_flag for a KPI.
+        For example you'd want this in case you need this info for plotting.
+        """
+        model_flag = self._data_set.flag_index.get_linked_model_flag(self._flag)
+        return model_flag
 
     def compute(self):
         data = self._fetch_filtered_data(self._data_set)

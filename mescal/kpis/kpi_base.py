@@ -67,14 +67,36 @@ class KPI(ABC):
     def unit(self) -> units.Unit:
         pass
 
+    def get_attributed_object_name(self) -> str | int:
+        """
+        Only necessary in case one wants to be able to retrieve the attributed object_name for a KPI.
+        For example you'd want this in case you need this info for plotting.
+        """
+        raise NotImplementedError
+
+    def get_attributed_model_flag(self) -> Flagtype:
+        """
+        Only necessary in case one wants to be able to retrieve the attributed model_flag for a KPI.
+        For example you'd want this in case you need this info for plotting.
+        """
+        raise NotImplementedError
+
+    def get_attributed_object_info_from_model(self) -> pd.Series:
+        model_flag = self.get_attributed_model_flag()
+        model_df = self._data_set.fetch(model_flag)
+        object_name = self.get_attributed_object_name()
+        if object_name in model_df.index:
+            return model_df.loc[object_name]
+        else:
+            raise KeyError(f"No info found for object '{object_name}' in model_df for flag '{model_flag}'.")
+
     def get_pretty_text_value(
             self,
             decimals: int = None,
             order_of_magnitude: int = None,
             include_unit: bool = True
     ) -> str:
-        # TODO 15
-        return f'{self.value:.2f}'
+        return units.get_pretty_text_value(self.quantity, decimals, order_of_magnitude, include_unit)
 
     def get_kpi_name_with_data_set_name(self, data_set_name_as_suffix: bool = True) -> str:
         if data_set_name_as_suffix:
@@ -132,9 +154,7 @@ class KPI(ABC):
         if not isinstance(other, KPI):
             return False
         if self._data_set == other._data_set:
-            my_atts = _make_values_immutable(self.get_kpi_attributes())
-            other_atts = _make_values_immutable(other.get_kpi_attributes())
-            return my_atts == other_atts
+            return hash(self) == hash(other)
         return False
 
     @classmethod
@@ -230,7 +250,12 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
 
 
 class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComparison]):
-    pass
+
+    def get_attributed_object_name(self) -> str | int:
+        return self._variation_kpi.get_attributed_object_name()
+
+    def get_attributed_model_flag(self) -> Flagtype:
+        return self._variation_kpi.get_attributed_model_flag()
 
 
 class ArithmeticValueOperationKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ArithmeticValueOperation]):
