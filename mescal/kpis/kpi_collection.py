@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Iterable, Iterator, Generic
 from collections import Counter
+from collections import defaultdict
 
 import pandas as pd
 
@@ -106,6 +107,13 @@ class KPIGroup(KPICollection['KPIGroup']):
     def name(self) -> str:
         return ' '.join(self.get_in_common_kpi_attributes())
 
+    def get_this_groupbs_groupby_keys_and_values(self) -> dict[str, str | int]:
+        keys_and_values = dict()
+        self.get_in_common_kpi_attributes()
+        in_common = ...
+        different_keys_for = ...
+
+
     def get_most_common_unit(self):
         unit_counts = Counter([kpi.unit for kpi in self._kpis])
         most_common = unit_counts.most_common(1)[0][0]
@@ -133,6 +141,17 @@ class KPIGroup(KPICollection['KPIGroup']):
     def get_in_common_kpi_attributes(self) -> dict[str, bool | int | float | str]:
         dicts = [kpi.get_kpi_attributes_with_immutable_values() for kpi in self]
         return get_intersection_of_dicts(dicts)
+
+    def get_not_in_common_kpi_attributes_and_value_sets(self) -> dict[str, set[bool | int | float | str]]:
+        dicts = [kpi.get_kpi_attributes_with_immutable_values() for kpi in self]
+        in_common_keys = get_intersection_of_dicts(dicts)
+        all_keys = set([k for d in dicts for k in d.keys()])
+        not_in_common_keys = all_keys.difference(in_common_keys)
+        values = defaultdict(set)
+        for d in dicts:
+            for k in not_in_common_keys:
+                values[k].update(d[k])
+        return values
 
     def get_group_without(self, kpi: KPI) -> 'KPIGroup':
         if kpi not in self._kpis:
