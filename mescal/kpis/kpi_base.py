@@ -109,15 +109,32 @@ class KPI(ABC):
             data_set_name=self._data_set.name,
             unit=self.unit,
         )
+        try:
+            atts['object_name'] = self.get_attributed_object_name()
+        except NotImplementedError:
+            atts['object_name'] = None
+        try:
+            atts['model_flag'] = self.get_attributed_model_flag()
+        except NotImplementedError:
+            atts['model_flag'] = None
         return atts
 
-    def get_kpi_as_series(self) -> pd.Series:
-        s = self.get_kpi_attributes_with_immutable_values()
-        s['value'] = self.value
-        return pd.Series(s, name=self.get_kpi_name_with_data_set_name())
-
-    def get_kpi_attributes_with_immutable_values(self) -> dict:
+    def get_kpi_attributes_as_immutable_values(self) -> dict:
         return _make_values_immutable(self.get_kpi_attributes())
+
+    def get_kpi_as_series(
+            self,
+            pretty_text: bool = False,
+            decimals: int = None,
+            order_of_magnitude: float = None,
+            include_unit: bool = None,
+    ) -> pd.Series:
+        s = self.get_kpi_attributes_as_immutable_values()
+        if not pretty_text:
+            s['value'] = self.value
+        else:
+            s['value'] = self.get_pretty_text_value(decimals, order_of_magnitude, include_unit)
+        return pd.Series(s, name=self.get_kpi_name_with_data_set_name())
 
     def has_attribute_values(self, **kwargs) -> bool:
         """
@@ -126,14 +143,34 @@ class KPI(ABC):
             kpi_name: str = 'Mean BiddingZone.MarketPrice',
             data_set_name: str = 'base_case',
             unit: str | Unit = '€/MWh',
-
+            object_name_not_none = True
         """
         if not kwargs:
             return True
         my_atts = self.get_kpi_attributes()
         my_atts_im = _make_values_immutable(my_atts)
         for k, v in kwargs.items():
-            if k in my_atts and (my_atts[k] == v):
+            _is_none_strings = ['_is_na', '_isna', '_is_nan', '_is_none']
+            _not_none_strings = ['_not_na', '_not_isna', '_not_nan', '_not_none']
+            if ((any(i in k for i in _not_none_strings) and (v is True))
+                    or (any(i in k for i in _is_none_strings) and (v is False))):
+                kk = str(k)
+                for i in _not_none_strings + _is_none_strings:
+                    kk = kk.replace(i, '')
+                if kk in my_atts and (my_atts[kk] is None):
+                    continue
+                if getattr(self, kk, getattr(self, f'_{kk}', None)) is None:
+                    continue
+            if ((any(i in k for i in _not_none_strings) and (v is False))
+                    or (any(i in k for i in _is_none_strings) and (v is True))):
+                kk = str(k)
+                for i in _not_none_strings + _is_none_strings:
+                    kk = kk.replace(i, '')
+                if kk in my_atts and (my_atts[kk] is not None):
+                    continue
+                if getattr(self, kk, getattr(self, f'_{kk}', None)) is not None:
+                    continue
+            elif k in my_atts and (my_atts[k] == v):
                 continue
             elif k in my_atts_im and (my_atts_im[k] == v):
                 continue
@@ -239,8 +276,8 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
         value_op_atts = dict()
         value_op_atts['variation_data_set'] = self._variation_kpi._data_set.name
         value_op_atts['reference_data_set'] = self._reference_kpi._data_set.name
-        var_kpi_atts = self._variation_kpi.get_kpi_attributes_with_immutable_values()
-        ref_kpi_atts = self._reference_kpi.get_kpi_attributes_with_immutable_values()
+        var_kpi_atts = self._variation_kpi.get_kpi_attributes_as_immutable_values()
+        ref_kpi_atts = self._reference_kpi.get_kpi_attributes_as_immutable_values()
         var_ref_intersection = get_intersection_of_dicts([var_kpi_atts, ref_kpi_atts])
         value_op_atts.update(**var_ref_intersection)
 

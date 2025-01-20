@@ -18,6 +18,18 @@ logger = get_logger(__name__)
 SPACE = ' '
 
 
+class MultipleColumnsInSubset(Exception):
+    pass
+
+
+class NoColumnDefined(Exception):
+    pass
+
+
+class MissingColumnsFromSubset(Exception):
+    pass
+
+
 class FlagAggKPI(Generic[DataSetType], KPI):
 
     def __init__(
@@ -107,7 +119,12 @@ class FlagAggKPI(Generic[DataSetType], KPI):
 
         if self._column_subset:
             subset = self._get_column_subset_as_list()
-            # TODO: handle what should happen if not all columns are present.
+            if not set(subset).issubset(data.columns):
+                missing = set(subset).difference(data.columns)
+                raise MissingColumnsFromSubset(
+                    f'Trying to fetch the data for {self.get_kpi_name_with_data_set_name()}, '
+                    f'the following columns were not found in the result_df: {missing}.'
+                )
             data = data[subset]
 
         return data
@@ -120,13 +137,21 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         Only necessary in case one wants to be able to retrieve the attributed object_name for a KPI.
         For example you'd want this in case you need this info for plotting.
         """
-        subset = self._get_column_subset_as_list()
-        if len(subset) != 1:
-            raise TypeError(
-                f"It appears you are trying to get the name of the attributed object for KPI {self.name}. "
-                f"However, This method is only valid if you define exactly 1 column in the column_subset. "
-                f"Currently, the column_subset is {self._column_subset}."
+        if self._column_subset is None:
+            raise NoColumnDefined(
+                f"You are trying to get the attributed_object_name for KPI {self.get_kpi_name_with_data_set_name()}. "
+                f"However, this method is only valid if you define exactly 1 column in the column_subset. "
+                f"Currently, the column_subset is not set at all (None)."
             )
+
+        subset = self._get_column_subset_as_list()
+        if len(subset) > 1:
+            raise MultipleColumnsInSubset(
+                f"You are trying to get the attributed_object_name for KPI {self.get_kpi_name_with_data_set_name()}. "
+                f"However, This method is only valid if you define exactly 1 column in the column_subset. "
+                f"Currently, the column_subset contains multiple columns: {self._column_subset}."
+            )
+
         column = subset[0]
         if isinstance(column, tuple):
             model_flag = self.get_attributed_model_flag()
