@@ -37,7 +37,7 @@ class KPICollection:
             self.add_kpi(kpi)
 
     def add_kpi(self, kpi: KPI):
-        if kpi in self._kpis:
+        if kpi in self:
             kpi_atts = kpi.get_kpi_attributes()
             logger.info(
                 f"KPI with attributes \n"
@@ -58,26 +58,34 @@ class KPICollection:
             decimals: int = None,
             order_of_magnitude: float = None,
             include_unit: bool = None,
+            always_include_sign: bool = None,
     ) -> pd.Series:
         if not pretty_text:
             return pd.Series(
                 {kpi.name: kpi.value for kpi in self._kpis}
             )
         return pd.Series(
-            {kpi.name: kpi.get_pretty_text_value(decimals, order_of_magnitude, include_unit) for kpi in self._kpis}
+            {kpi.name: kpi.get_pretty_text_value(decimals, order_of_magnitude, include_unit, always_include_sign) for kpi in self._kpis}
         )
 
     def get_kpi_df_with_descriptive_attributes(
             self,
             unstack_column_levels: str | list[str] = None,
-            pretty_text: bool = False,
-            decimals: int = None,
-            order_of_magnitude: float = None,
-            include_unit: bool = None,
+            include_pretty_text_value: bool = False,
+            pretty_text_decimals: int = None,
+            pretty_text_order_of_magnitude: float = None,
+            pretty_text_include_unit: bool = True,
+            pretty_text_always_include_sign: bool = None,
     ) -> pd.DataFrame:
         df = pd.concat(
             [
-                kpi.get_kpi_as_series(pretty_text, decimals, order_of_magnitude, include_unit)
+                kpi.get_kpi_as_series(
+                    include_pretty_text_value=include_pretty_text_value,
+                    pretty_text_decimals=pretty_text_decimals,
+                    pretty_text_order_of_magnitude=pretty_text_order_of_magnitude,
+                    pretty_text_include_unit=pretty_text_include_unit,
+                    pretty_text_always_include_sign=pretty_text_always_include_sign,
+                )
                 for kpi in self._kpis
             ],
             axis=1
@@ -168,24 +176,28 @@ class KPICollection:
         return [kpi.value for kpi in self._kpis]
 
     def get_in_common_kpi_attributes(self) -> dict[str, bool | int | float | str]:
-        dicts = [kpi.get_kpi_attributes_as_immutable_values() for kpi in self]
+        dicts = [kpi.get_kpi_attributes_as_hashable_values() for kpi in self]
         return get_intersection_of_dicts(dicts)
 
     def get_not_in_common_kpi_attributes_and_value_sets(self) -> dict[str, set[bool | int | float | str]]:
-        dicts = [kpi.get_kpi_attributes_as_immutable_values() for kpi in self]
+        dicts = [kpi.get_kpi_attributes_as_hashable_values() for kpi in self]
         in_common_keys = get_intersection_of_dicts(dicts)
         all_keys = set([k for d in dicts for k in d.keys()])
         not_in_common_keys = all_keys.difference(in_common_keys)
         values = defaultdict(set)
         for d in dicts:
             for k in not_in_common_keys:
-                values[k].update(d[k])
+                values[k].add(d[k])
         return values
 
-    def get_group_without(self, kpi: KPI) -> 'KPIGroup':
+    def get_group_without(self, kpi: KPI) -> 'KPICollection':
         if kpi not in self._kpis:
             logger.warning(
                 f'NotIntended: You are getting all kpis except a given one, '
                 f'but the given one is not even in this {type(self)}. Sure this is intended?'
             )
-        return KPIGroup({k for k in self._kpis if not k == kpi})
+        return KPICollection({k for k in self._kpis if not k == kpi})
+
+    @property
+    def empty(self) -> bool:
+        return len(self._kpis) == 0

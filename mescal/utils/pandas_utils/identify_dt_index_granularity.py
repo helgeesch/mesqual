@@ -23,17 +23,22 @@ def get_granularity_as_series_of_timedeltas(dt_index: pd.DatetimeIndex) -> pd.Se
     return gran
 
 
+_warned_about_granularity = False
+
+
 def get_granularity_as_timedelta(dt_index: pd.DatetimeIndex) -> pd.Timedelta:
+    global _warned_about_granularity
     gran = get_granularity_as_series_of_timedeltas(dt_index)
     if len(dt_index) == 0:
         return pd.Timedelta(0)
     first_gran = gran.iloc[0]
-    if len(gran.unique()) > 1:
+    if len(gran.unique()) > 1 and not _warned_about_granularity:
         warnings.warn(
             f'Found multiple granularities in DatetimeIndex. '
             f'Either your Index has gaps, or the index has an inconsistent granularity.'
             f'Using {first_gran} as the index granularity. Other timedeltas present are: {gran.unique()}'
         )
+        _warned_about_granularity = True
     return first_gran
 
 

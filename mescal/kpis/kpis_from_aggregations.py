@@ -18,15 +18,15 @@ logger = get_logger(__name__)
 SPACE = ' '
 
 
-class MultipleColumnsInSubset(Exception):
+class MultipleColumnsInSubsetException(Exception):
     pass
 
 
-class NoColumnDefined(Exception):
+class NoColumnDefinedException(Exception):
     pass
 
 
-class MissingColumnsFromSubset(Exception):
+class MissingColumnsFromSubsetException(Exception):
     pass
 
 
@@ -121,7 +121,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
             subset = self._get_column_subset_as_list()
             if not set(subset).issubset(data.columns):
                 missing = set(subset).difference(data.columns)
-                raise MissingColumnsFromSubset(
+                raise MissingColumnsFromSubsetException(
                     f'Trying to fetch the data for {self.get_kpi_name_with_data_set_name()}, '
                     f'the following columns were not found in the result_df: {missing}.'
                 )
@@ -138,7 +138,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         For example you'd want this in case you need this info for plotting.
         """
         if self._column_subset is None:
-            raise NoColumnDefined(
+            raise NoColumnDefinedException(
                 f"You are trying to get the attributed_object_name for KPI {self.get_kpi_name_with_data_set_name()}. "
                 f"However, this method is only valid if you define exactly 1 column in the column_subset. "
                 f"Currently, the column_subset is not set at all (None)."
@@ -146,7 +146,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
 
         subset = self._get_column_subset_as_list()
         if len(subset) > 1:
-            raise MultipleColumnsInSubset(
+            raise MultipleColumnsInSubsetException(
                 f"You are trying to get the attributed_object_name for KPI {self.get_kpi_name_with_data_set_name()}. "
                 f"However, This method is only valid if you define exactly 1 column in the column_subset. "
                 f"Currently, the column_subset contains multiple columns: {self._column_subset}."

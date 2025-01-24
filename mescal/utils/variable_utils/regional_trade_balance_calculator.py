@@ -205,7 +205,7 @@ class RegionalTradeBalanceCalculator:
 
         if not flows_list:
             return pd.DataFrame(
-                index=raw_flows.index,
+                index=flow_data.sent_up.index,
                 columns=pd.MultiIndex.from_tuples([], names=column_level_names)
             )
 

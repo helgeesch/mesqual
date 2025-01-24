@@ -1,3 +1,5 @@
+import numpy as np
+
 from pint import UnitRegistry, Unit, Quantity
 
 
@@ -52,7 +54,8 @@ def get_pretty_text_value(
         quantity: Quantity,
         decimals: int = None,
         order_of_magnitude: float = None,
-        include_unit: bool = True
+        include_unit: bool = True,
+        always_include_sign: bool = None,
 ) -> str:
     if order_of_magnitude is not None:
         order_of_magnitude = _check_order_of_magnitude(order_of_magnitude)
@@ -64,12 +67,16 @@ def get_pretty_text_value(
         value = float(quantity.magnitude)
         unit = str(quantity.units)
         decimals = 2
+        if order_of_magnitude is not None:
+            raise NotImplementedError
     elif quantity.units == MTU.units:
         value = int(quantity.magnitude)
         unit = str(quantity.units)
         if value > 1:
             unit += 's'
         decimals = None
+        if order_of_magnitude is not None:
+            raise NotImplementedError
     else:
         value, unit = _get_value_unit_for_physical_quantity(quantity, order_of_magnitude, include_unit)
         if decimals is None:
@@ -80,8 +87,20 @@ def get_pretty_text_value(
 
     if decimals is not None:
         value = round(value, decimals)
+    if decimals == 0:
+        value = int(value)
 
-    return f"{value}{' ' + unit if unit else ''}"
+    if np.isnan(value):
+        sign = ''
+    elif value > 0:
+        sign = '+' if always_include_sign else ''
+    else:
+        sign = '-'
+        value = abs(value)
+
+    unit = ' ' + unit if unit else ''
+
+    return f"{sign}{value}{unit}"
 
 
 def _get_value_unit_for_currency(
@@ -109,8 +128,10 @@ def _get_value_unit_for_currency(
             prefix = "M"
         elif order_of_magnitude == 1e9:
             prefix = "B"
+        elif order_of_magnitude == 1e12:
+            prefix = "T"
         else:
-            prefix = ""
+            prefix = f"{order_of_magnitude:.0e}"
         unit = f"{prefix}{unit}"
     unit = _format_unit_string(unit)
     return value, unit
@@ -135,21 +156,21 @@ def _get_value_unit_for_physical_quantity(
 
 def _format_unit_string(unit: str) -> str:
     replacements = {
-        'microwatt_hour': 'µWh',
-        'milliwatt_hour': 'mWh',
-        'terawatt_hour': 'TWh',
-        'gigawatt_hour': 'GWh',
-        'megawatt_hour': 'MWh',
-        'kilowatt_hour': 'kWh',
         'watt_hour': 'Wh',
-
-        'microwatt': 'µW',
-        'terawatt': 'TW',
-        'megawatt': 'MW',
-        'milliwatt': 'mW',
-        'gigawatt': 'GW',
-        'kilowatt': 'kW',
         'watt': 'W',
+        'percent': '%',
+
+        'trillion': 'T',
+        'billion': 'B',
+        'million': 'M',
+
+        'tera': 'T',
+        'giga': 'G',
+        'mega': 'M',
+        'kilo': 'k',
+        'milli': 'm',
+        'micro': 'µ',
+
     }
 
     parts = unit.split(' / ')
@@ -203,6 +224,8 @@ if __name__ == "__main__":
     for value in test_values:
         print(f"Original: {value}")
         print(f"Formatted: {get_pretty_text_value(value)}")
+        if value.units not in [per_unit, MTU]:
+            print(f"Formatted 1e3: {get_pretty_text_value(value, order_of_magnitude=1e3)}")
         print("---")
 
     print("\nTesting order of magnitude validation:")

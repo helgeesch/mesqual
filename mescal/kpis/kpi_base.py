@@ -19,7 +19,7 @@ from mescal.kpis.aggs import (
 KPI_VALUE_TYPES = int | float | bool
 
 
-def _make_values_immutable(any_dict: dict) -> dict:
+def _to_primitive_types(any_dict: dict) -> dict:
     d = dict()
     for k, v in any_dict.items():
         if isinstance(v, (bool, int, float, str)):
@@ -94,9 +94,10 @@ class KPI(ABC):
             self,
             decimals: int = None,
             order_of_magnitude: int = None,
-            include_unit: bool = True
+            include_unit: bool = True,
+            always_include_sign: bool = None,
     ) -> str:
-        return units.get_pretty_text_value(self.quantity, decimals, order_of_magnitude, include_unit)
+        return units.get_pretty_text_value(self.quantity, decimals, order_of_magnitude, include_unit, always_include_sign)
 
     def get_kpi_name_with_data_set_name(self, data_set_name_as_suffix: bool = True) -> str:
         if data_set_name_as_suffix:
@@ -109,9 +110,10 @@ class KPI(ABC):
             data_set_name=self._data_set.name,
             unit=self.unit,
         )
+        from mescal.kpis.kpis_from_aggregations import NoColumnDefinedException, MultipleColumnsInSubsetException
         try:
             atts['object_name'] = self.get_attributed_object_name()
-        except NotImplementedError:
+        except (NotImplementedError, NoColumnDefinedException, MultipleColumnsInSubsetException):
             atts['object_name'] = None
         try:
             atts['model_flag'] = self.get_attributed_model_flag()
@@ -119,80 +121,105 @@ class KPI(ABC):
             atts['model_flag'] = None
         return atts
 
-    def get_kpi_attributes_as_immutable_values(self) -> dict:
-        return _make_values_immutable(self.get_kpi_attributes())
+    def get_kpi_attributes_as_hashable_values(self) -> dict:
+        return _to_primitive_types(self.get_kpi_attributes())
 
     def get_kpi_as_series(
             self,
-            pretty_text: bool = False,
-            decimals: int = None,
-            order_of_magnitude: float = None,
-            include_unit: bool = None,
+            include_pretty_text_value: bool = False,
+            pretty_text_decimals: int = None,
+            pretty_text_order_of_magnitude: float = None,
+            pretty_text_include_unit: bool = True,
+            pretty_text_always_include_sign: bool = None,
     ) -> pd.Series:
-        s = self.get_kpi_attributes_as_immutable_values()
-        if not pretty_text:
-            s['value'] = self.value
-        else:
-            s['value'] = self.get_pretty_text_value(decimals, order_of_magnitude, include_unit)
+        s = self.get_kpi_attributes_as_hashable_values()
+        s['value'] = self.value
+        if include_pretty_text_value:
+            s['pretty_text_value'] = self.get_pretty_text_value(
+                decimals=pretty_text_decimals,
+                order_of_magnitude=pretty_text_order_of_magnitude,
+                include_unit=pretty_text_include_unit,
+                always_include_sign=pretty_text_always_include_sign,
+            )
         return pd.Series(s, name=self.get_kpi_name_with_data_set_name())
 
     def has_attribute_values(self, **kwargs) -> bool:
-        """
-        # TODO: enhance example
+        """Check if KPI matches all provided attribute conditions.
+
         Example:
-            kpi_name: str = 'Mean BiddingZone.MarketPrice',
-            data_set_name: str = 'base_case',
-            unit: str | Unit = '€/MWh',
-            object_name_not_none = True
+            kpi = WhateverKPI(
+                kpi_name='BiddingZone.MarketPrice',
+                object_name="DE",
+                aggregation='Mean',
+                data_set_name='my_ds_1'
+            )
+            # Regular attribute checks
+            kpi.has_attribute_values(name='BiddingZone.MarketPrice')  # True
+            kpi.has_attribute_values(aggregation='Mean')  # True
+
+            # None checks - all equivalent
+            kpi.has_attribute_values(object_name_not_none=True)  # True
+            kpi.has_attribute_values(object_name_not_na=True)    # True
+            kpi.has_attribute_values(object_name_is_none=False)  # True
+            kpi.has_attribute_values(object_name_isna=False)     # True
+
+            # Multiple conditions
+            kpi.has_attribute_values(
+                name='BiddingZone.MarketPrice',
+                data_set_name='my_ds_1'
+            )  # True
         """
         if not kwargs:
             return True
+
         my_atts = self.get_kpi_attributes()
-        my_atts_im = _make_values_immutable(my_atts)
-        for k, v in kwargs.items():
-            _is_none_strings = ['_is_na', '_isna', '_is_nan', '_is_none']
-            _not_none_strings = ['_not_na', '_not_isna', '_not_nan', '_not_none']
-            if ((any(i in k for i in _not_none_strings) and (v is True))
-                    or (any(i in k for i in _is_none_strings) and (v is False))):
-                kk = str(k)
-                for i in _not_none_strings + _is_none_strings:
-                    kk = kk.replace(i, '')
-                if kk in my_atts and (my_atts[kk] is None):
-                    continue
-                if getattr(self, kk, getattr(self, f'_{kk}', None)) is None:
-                    continue
-            if ((any(i in k for i in _not_none_strings) and (v is False))
-                    or (any(i in k for i in _is_none_strings) and (v is True))):
-                kk = str(k)
-                for i in _not_none_strings + _is_none_strings:
-                    kk = kk.replace(i, '')
-                if kk in my_atts and (my_atts[kk] is not None):
-                    continue
-                if getattr(self, kk, getattr(self, f'_{kk}', None)) is not None:
-                    continue
-            elif k in my_atts and (my_atts[k] == v):
+        my_atts_hashable = _to_primitive_types(my_atts)
+
+        none_true_keys = ['_is_na', '_isna', '_is_nan', '_is_none']
+        none_false_keys = ['_not_na', '_not_isna', '_not_nan', '_not_none']
+
+        def _check_none_condition(kkey: str, value) -> bool:
+            base_key = kkey
+            for suffix in none_true_keys + none_false_keys:
+                base_key = base_key.replace(suffix, '')
+
+            attr_value = my_atts.get(base_key) or getattr(self, base_key, None) or getattr(self, f'_{base_key}', None)
+            is_none_check = any(kkey.endswith(suffix) for suffix in none_true_keys)
+
+            return (attr_value is None) == (is_none_check == value)
+
+        for key, value in kwargs.items():
+            if any(suffix in key for suffix in none_true_keys + none_false_keys):
+                if not _check_none_condition(key, value):
+                    return False
                 continue
-            elif k in my_atts_im and (my_atts_im[k] == v):
+            elif key in my_atts and my_atts[key] == value:
                 continue
-            elif hasattr(self, k) and (getattr(self, k) == v):
+            elif key in my_atts_hashable and my_atts_hashable[key] == value:
                 continue
-            elif hasattr(self, f'_{k}') and (getattr(self, f'_{k}') == v):
+            elif hasattr(self, key) and getattr(self, key) == value:
+                continue
+            elif hasattr(self, f'_{key}') and getattr(self, f'_{key}') == value:
                 continue
             else:
                 return False
-        return True
 
-    def __hash__(self) -> int:
-        imm = _make_values_immutable(self.get_kpi_attributes())
-        t = ((k, v) for k, v in imm.items())
-        return hash(t)
+        return True
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, KPI):
             return False
-        if self._data_set == other._data_set:
-            return hash(self) == hash(other)
-        return False
+        if self._data_set != other._data_set:
+            return False
+        return self.get_kpi_attributes_as_hashable_values() == other.get_kpi_attributes_as_hashable_values()
+
+    def __hash__(self) -> int:
+        imm = self.get_kpi_attributes_as_hashable_values()
+
+        def _convert_dict_to_frozenset_of_tuples_for_hashability(d: dict):
+            return hash(frozenset(d.items()))
+        
+        return _convert_dict_to_frozenset_of_tuples_for_hashability(imm)
 
     @classmethod
     def from_factory(cls, data_set: DataSetType) -> KPIType:
@@ -276,8 +303,8 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
         value_op_atts = dict()
         value_op_atts['variation_data_set'] = self._variation_kpi._data_set.name
         value_op_atts['reference_data_set'] = self._reference_kpi._data_set.name
-        var_kpi_atts = self._variation_kpi.get_kpi_attributes_as_immutable_values()
-        ref_kpi_atts = self._reference_kpi.get_kpi_attributes_as_immutable_values()
+        var_kpi_atts = self._variation_kpi.get_kpi_attributes_as_hashable_values()
+        ref_kpi_atts = self._reference_kpi.get_kpi_attributes_as_hashable_values()
         var_ref_intersection = get_intersection_of_dicts([var_kpi_atts, ref_kpi_atts])
         value_op_atts.update(**var_ref_intersection)
 
@@ -293,6 +320,16 @@ class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComp
 
     def get_attributed_model_flag(self) -> Flagtype:
         return self._variation_kpi.get_attributed_model_flag()
+
+    def get_attributed_object_info_from_model(self) -> pd.Series:
+        model_flag = self.get_attributed_model_flag()
+        model_df = self._variation_kpi._data_set.fetch(model_flag)
+        object_name = self.get_attributed_object_name()
+        if object_name in model_df.index:
+            return model_df.loc[object_name]
+        else:
+            raise KeyError(f"No info found for object '{object_name}' in model_df for flag '{model_flag}'.")
+
 
 
 class ArithmeticValueOperationKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ArithmeticValueOperation]):
