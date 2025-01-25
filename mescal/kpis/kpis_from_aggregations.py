@@ -4,7 +4,7 @@ from typing import Hashable, Generic, TYPE_CHECKING
 
 import pandas as pd
 
-from mescal import units
+from mescal.units import Units
 from mescal.typevars import DataSetType, Flagtype
 from mescal.utils.pandas_utils.filter import filter_by_model_query
 from mescal.kpis.kpi_base import KPI, KPIFactory
@@ -103,7 +103,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         return name
 
     @property
-    def unit(self) -> units.Unit:
+    def unit(self) -> Units.Unit:
         if self._aggregation.unit is not None:
             return self._aggregation.unit
         return self._data_set.flag_index.get_unit(self._flag)

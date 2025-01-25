@@ -1,235 +1,264 @@
+from typing import Iterator
 import numpy as np
 
-from pint import UnitRegistry, Unit, Quantity
+from pint import UnitRegistry
+
+
+class UnitNotFound(Exception):
+    pass
+
+
+class UnitRegistryNotComplete(Exception):
+    def __init__(self, message: str = None):
+        base = f'You should never end up here. Your units are not properly registered in the {Units.__name__} class.'
+        message = message or ''
+        super().__init__(base + message)
 
 
 ureg = UnitRegistry()
 
-ureg.define("EUR = [currency]")  # Define EUR as a custom currency unit
-ureg.define("USD = [currency]")  # Define USD as a custom currency unit
-ureg.define("per_unit = []")
-W = ureg.watt
-kW = ureg.kilowatt
-MW = ureg.megawatt
-Wh = ureg.watt_hour
-kWh = ureg.kilowatt_hour
-MWh = ureg.megawatt_hour
-EUR = ureg("EUR")
-USD = ureg("USD")
-second = ureg.second
-minute = ureg.minute
-hour = ureg.hour
-day = ureg.day
-week = ureg.week
-year = ureg.year
+ureg.define("Wh = [energy]")
+ureg.define("kWh = 1e3 Wh = kWh")
+ureg.define("MWh = 1e6 Wh = MWh")
+ureg.define("GWh = 1e9 Wh = GWh")
+ureg.define("TWh = 1e12 Wh = TWh")
 
-# Compound units
-EUR_per_Wh = EUR / Wh
-EUR_per_kWh = EUR / kWh
-EUR_per_MWh = EUR / MWh
-USD_per_Wh = USD / Wh
-USD_per_kWh = USD / kWh
-USD_per_MWh = USD / MWh
-per_unit = ureg("per_unit")
-perc = ureg.percent
+ureg.define("W = [power]")
+ureg.define("kW = 1e3 W = kW")
+ureg.define("MW = 1e6 W = MW")
+ureg.define("GW = 1e9 W = GW")
+ureg.define("TW = 1e12 W = TW")
 
-# Custom units for specific use cases
-ureg.define("MTU = []")  # Market Time Unit
-MTU = ureg("MTU")
+ureg.define("EUR = [currency]")
+ureg.define("EUR_cent = 1e-2 EUR")
+ureg.define("kEUR = 1e3 EUR = kEUR")
+ureg.define("MEUR = 1e6 EUR = MEUR")
+ureg.define("BEUR = 1e9 EUR = BEUR")
+ureg.define("TEUR = 1e12 EUR = TEUR")
+
+ureg.define("EUR_per_Wh = EUR / Wh = [price]")
+ureg.define("EUR_per_MWh = EUR / MWh")
+
+ureg.define("minute = [time]")
+ureg.define("hour = 60 minute = hour")
+ureg.define("day = 24 hour = day")
+ureg.define("week = 7 day = week")
+ureg.define("year = 365 day = year")
+
+ureg.define("MTU = [mtu]")
+ureg.define("per_unit = [pu]")
+ureg.define("perc = [percentage]")
+ureg.define("percent_base = 1e-2 percent = percent_base")
+
 
 ureg.define("NaU = []")  # Not a Unit; no physical meaning, dimensionless
-NaU = ureg("NaU")
-
 ureg.define("MissingUnit = []")  # For missing units
-MissingUnit = ureg("MissingUnit")
 
 
-def convert(value: float, from_unit: Unit, to_unit: Unit) -> float:
-    """Converts value from one unit to another using pint."""
-    quantity = value * from_unit
-    return quantity.to(to_unit).magnitude
+class _IterableUnitsMeta(type):
+    def __iter__(cls) -> Iterator[ureg.Unit]:
+        return (u for name, u in cls.__dict__.items() if isinstance(u, ureg.Unit))
 
 
-def get_pretty_text_value(
-        quantity: Quantity,
-        decimals: int = None,
-        order_of_magnitude: float = None,
-        include_unit: bool = True,
-        always_include_sign: bool = None,
-) -> str:
-    if order_of_magnitude is not None:
-        order_of_magnitude = _check_order_of_magnitude(order_of_magnitude)
+class Units(metaclass=_IterableUnitsMeta):
+    Unit = ureg.Unit
+    Quantity = ureg.Quantity
 
-    if _is_currency(quantity):
-        value, unit = _get_value_unit_for_currency(quantity, order_of_magnitude, include_unit)
-        decimals = 2 if decimals is None else decimals
-    elif quantity.units == per_unit.units:
-        value = float(quantity.magnitude)
-        unit = str(quantity.units)
-        decimals = 2
-        if order_of_magnitude is not None:
-            raise NotImplementedError
-    elif quantity.units == MTU.units:
-        value = int(quantity.magnitude)
-        unit = str(quantity.units)
-        if value > 1:
-            unit += 's'
-        decimals = None
-        if order_of_magnitude is not None:
-            raise NotImplementedError
-    else:
-        value, unit = _get_value_unit_for_physical_quantity(quantity, order_of_magnitude, include_unit)
-        if decimals is None:
-            decimals = _get_default_decimals(value)
+    Wh = ureg.Wh
+    kWh = ureg.kWh
+    MWh = ureg.MWh
+    GWh = ureg.GWh
+    TWh = ureg.TWh
 
-    if quantity.units == NaU.units:
-        unit = ''
+    W = ureg.W
+    kW = ureg.kW
+    MW = ureg.MW
+    GW = ureg.GW
+    TW = ureg.TW
 
-    if decimals is not None:
-        value = round(value, decimals)
-    if decimals == 0:
-        value = int(value)
+    EUR = ureg.EUR
+    kEUR = ureg.kEUR
+    MEUR = ureg.MEUR
+    BEUR = ureg.BEUR
+    TEUR = ureg.TEUR
 
-    if np.isnan(value):
-        sign = ''
-    elif value > 0:
-        sign = '+' if always_include_sign else ''
-    else:
-        sign = '-'
-        value = abs(value)
+    EUR_per_Wh = ureg.EUR_per_Wh
+    EUR_per_MWh = ureg.EUR_per_MWh
 
-    unit = ' ' + unit if unit else ''
+    percent_base = ureg.percent_base
+    percent = ureg.perc
+    per_unit = ureg.per_unit
+    MTU = ureg.MTU
+    NaU = ureg.NaU
+    MissingUnit = ureg.MissingUnit
 
-    return f"{sign}{value}{unit}"
-
-
-def _get_value_unit_for_currency(
-        quantity: Quantity,
-        order_of_magnitude: float = None,
-        include_unit: bool = True
-) -> tuple[float, str]:
-    value = float(quantity.magnitude)
-    unit = str(quantity.units) if include_unit else ""
-
-    if order_of_magnitude is None:
-        # Auto-select order of magnitude to keep max 4 digits before decimal
-        if abs(value) >= 1e9:
-            order_of_magnitude = 1e9
-        elif abs(value) >= 1e6:
-            order_of_magnitude = 1e6
-        elif abs(value) >= 1e4:
-            order_of_magnitude = 1e3
-
-    if order_of_magnitude is not None:
-        value = value / order_of_magnitude
-        if order_of_magnitude == 1e3:
-            prefix = "k"
-        elif order_of_magnitude == 1e6:
-            prefix = "M"
-        elif order_of_magnitude == 1e9:
-            prefix = "B"
-        elif order_of_magnitude == 1e12:
-            prefix = "T"
-        else:
-            prefix = f"{order_of_magnitude:.0e}"
-        unit = f"{prefix}{unit}"
-    unit = _format_unit_string(unit)
-    return value, unit
-
-
-def _get_value_unit_for_physical_quantity(
-        quantity: Quantity,
-        order_of_magnitude: float = None,
-        include_unit: bool = True
-) -> tuple[float, str]:
-    if order_of_magnitude is not None:
-        value = quantity.magnitude / order_of_magnitude
-        scaled_quantity = value * quantity.units
-    else:
-        scaled_quantity = quantity.to_compact()
-        value = scaled_quantity.magnitude
-
-    unit = str(scaled_quantity.units) if include_unit else ""
-    unit = _format_unit_string(unit)
-    return value, unit
-
-
-def _format_unit_string(unit: str) -> str:
-    replacements = {
-        'watt_hour': 'Wh',
-        'watt': 'W',
-        'percent': '%',
-
-        'trillion': 'T',
-        'billion': 'B',
-        'million': 'M',
-
-        'tera': 'T',
-        'giga': 'G',
-        'mega': 'M',
-        'kilo': 'k',
-        'milli': 'm',
-        'micro': 'µ',
-
+    _STRING_REPLACEMENTS = {
+        '_per_': '/',
+        'EUR': '€',
+        'per_unit': 'pu',
+        'perc': '%',
     }
 
-    parts = unit.split(' / ')
-    formatted_parts = []
+    @classmethod
+    def units_have_same_base(cls, unit_1: ureg.Unit, unit_2: ureg.Unit) -> bool:
+        return unit_1.dimensionality == unit_2.dimensionality
 
-    for part in parts:
-        formatted_part = part
-        for old, new in replacements.items():
-            formatted_part = formatted_part.replace(old, new)
-        formatted_parts.append(formatted_part)
+    @classmethod
+    def get_base_unit_for_unit(cls, unit: ureg.Unit) -> ureg.Unit:
+        return cls.get_target_unit_for_oom(unit, 1)
 
-    return '/'.join(formatted_parts)
+    @classmethod
+    def get_oom_of_unit(cls, unit: ureg.Unit) -> float:
+        return (1 * unit).to_base_units().magnitude
+
+    @classmethod
+    def get_target_unit_for_oom(cls, reference_unit: ureg.Unit, target_oom: float) -> ureg.Quantity:
+        units = cls.get_all_units_with_equal_base(reference_unit)
+        for u in units:
+            if cls.get_oom_of_unit(u) == target_oom:
+                return u
+        raise UnitNotFound(f'No unit with order of mag {target_oom:.0e} for {reference_unit}')
+
+    @classmethod
+    def get_closest_unit_for_oom(cls, reference_unit: ureg.Unit, target_oom: float) -> ureg.Quantity:
+        units_with_same_dimension = cls.get_all_units_with_equal_base(reference_unit)
+        if len(units_with_same_dimension) == 0:
+            raise UnitRegistryNotComplete
+        base_unit = cls.get_base_unit_for_unit(reference_unit)
+        sorted_units = sorted(units_with_same_dimension, key=lambda x: (1 * x).to(base_unit).magnitude, reverse=True)
+        for u in sorted_units:
+            if (1 * u).to(base_unit).magnitude <= target_oom:
+                return u
+        return sorted_units[0]
+
+    @classmethod
+    def get_quantity_in_target_oom(cls, quantity: ureg.Quantity, target_oom: float) -> ureg.Quantity:
+        try:
+            target_unit = cls.get_target_unit_for_oom(quantity.units, target_oom)
+            return quantity.to(target_unit)
+        except UnitNotFound:
+            RuntimeWarning(f'# TODO:')
+            return quantity
+
+    @classmethod
+    def get_quantity_in_target_unit(cls, quantity: ureg.Quantity, target_unit: ureg.Unit) -> ureg.Quantity:
+        return quantity.to(target_unit)
+
+    @classmethod
+    def get_quantity_in_pretty_unit(cls, quantity: ureg.Quantity) -> str:
+        base_unit = cls.get_base_unit_for_unit(quantity.units)
+        units = cls.get_all_units_with_equal_base(base_unit)
+        units = sorted(units, key=lambda x: (1 * x).to(base_unit).magnitude, reverse=False)
+        for u in units:
+            if quantity.to(u).magnitude < 10_000:
+                return quantity.to(u)
+        return quantity.to(units[-1])
+
+    @classmethod
+    def get_all_units_with_equal_base(cls, unit: ureg.Unit) -> list[ureg.Unit]:
+        return [u for u in Units if cls.units_have_same_base(unit, u)]
+
+    @classmethod
+    def get_pretty_text_for_quantity(
+            cls,
+            quantity: ureg.Quantity,
+            decimals: int = None,
+            thousands_separator: str = None,
+            include_unit: bool = True,
+            include_oom: bool = True,
+            always_include_sign: bool = False,
+    ) -> str:
+        if decimals is None:
+            decimals = cls._get_pretty_decimals(quantity)
+        if thousands_separator is None:
+            thousands_separator = ''
+
+        sign_str = cls._get_sign_str_for_quantity(quantity, always_include_sign)
+        value_str = f'{abs(quantity.magnitude):,.{decimals}f}'
+        value_str = value_str.replace(',', thousands_separator)
+
+        if include_unit:
+            if not include_oom:
+                raise NotImplementedError('Why would you do that?')
+            unit_str = str(quantity.units)
+        elif include_oom:
+            unit_str = cls._get_units_oom_prefix(quantity.units)
+        else:
+            unit_str = ''
+
+        components = []
+        if sign_str:
+            components.append(sign_str)
+
+        components.append(value_str)
+
+        if unit_str:
+            for r, v in cls._STRING_REPLACEMENTS.items():
+                unit_str = unit_str.replace(r, v)
+            components.append(' ' + unit_str)
+
+        return ''.join(components)
+
+    @classmethod
+    def _get_sign_str_for_quantity(cls, quantity: ureg.Quantity, always_include_sign: bool) -> str:
+
+        value = quantity.magnitude
+        if np.isnan(value):
+            return ''
+        if value == 0:
+            return ''
+        if value < 0:
+            return '-'
+        if value > 0:
+            if always_include_sign:
+                return '+'
+            else:
+                return ''
+        raise Exception(f'How did you end up here for value {quantity}')
 
 
-def _check_order_of_magnitude(order: float) -> float:
-    log_order = round(float(f"{order:.2e}".split('e')[1]))
+    @classmethod
+    def _get_pretty_decimals(cls, quantity: ureg.Quantity) -> int:
 
-    if log_order % 3 != 0:
-        raise ValueError(f"Order of magnitude must be a multiple of 3 (e.g., 1e-3, 1e3, 1e6). Got: {order}")
+        # if quantity.units == Units.per_unit:
+        #     return 3
 
-    return float(f"1e{log_order}")
+        if isinstance(quantity.magnitude, int):
+            return 0
+
+        abs_value = abs(quantity.magnitude)
+        if abs_value > 100:
+            return 0
+        elif abs_value > 10:
+            return 1
+        elif abs_value > 0.1:
+            return 2
+        elif abs_value > 0.01:
+            return 3
+        else:
+            return 5
+
+    @classmethod
+    def _get_units_oom_prefix(cls, unit: ureg.Unit) -> str:
+        base_unit = cls.get_base_unit_for_unit(unit)
+        return str(unit).replace(str(base_unit), '')
 
 
-def _get_default_decimals(value: float) -> int:
-    if abs(value) >= 100:
-        return 1
-    elif abs(value) >= 10:
-        return 2
-    return 3
-
-
-def _is_currency(quantity: Quantity) -> bool:
-    base_units = quantity.dimensionality
-    return '[currency]' in str(base_units)
-
-
-if __name__ == "__main__":
-    test_values = [
-        1234.5678912345 * W,
-        1.23456789 * MW,
-        123456.789 * EUR,
-        0.123456789 * EUR,
-        9876.54321 * EUR_per_MWh,
-        1234567.89 * Wh,
-        0.9876544 * per_unit,
-        0.9876544 * NaU,
-        123 * MTU,
+if __name__ == '__main__':
+    test_values = [0.0123, 1.234, 1234.5678, 12345678.90123]
+    test_units = [
+        Units.Wh,
+        Units.MWh,
+        Units.GWh,
+        Units.MW,
+        Units.GW,
+        Units.EUR,
+        Units.EUR_per_MWh,
+        Units.per_unit,
+        Units.percent
     ]
-
-    print("\nTesting normal formatting:")
-    for value in test_values:
-        print(f"Original: {value}")
-        print(f"Formatted: {get_pretty_text_value(value)}")
-        if value.units not in [per_unit, MTU]:
-            print(f"Formatted 1e3: {get_pretty_text_value(value, order_of_magnitude=1e3)}")
-        print("---")
-
-    print("\nTesting order of magnitude validation:")
-    try:
-        print(get_pretty_text_value(1000 * W, order_of_magnitude=1e2))
-    except ValueError as e:
-        print(f"Caught expected error: {e}")
+    for uu in test_units:
+        for vv in test_values:
+            q = vv * uu
+            qq = Units.get_quantity_in_pretty_unit(q)
+            print(Units.get_pretty_text_for_quantity(qq))

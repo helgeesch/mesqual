@@ -6,7 +6,7 @@ from functools import wraps
 
 from mescal.flag.flag import Flagtype
 from mescal.enums import ItemTypeEnum, VisualizationTypeEnum, TopologyTypeEnum
-from mescal import units
+from mescal.units import Units
 
 if TYPE_CHECKING:
     from mescal.data_sets.data_set import DataSet
@@ -19,7 +19,7 @@ class RegistryEntry:
     item_type: ItemTypeEnum = None
     visualization_type: VisualizationTypeEnum = None
     topology_type: TopologyTypeEnum = None
-    unit: units.Unit = None
+    unit: Units.Unit = None
     membership_column_name: str = None
 
 
@@ -46,7 +46,7 @@ class FlagIndex(ABC):
             item_type: ItemTypeEnum = None,
             visualization_type: VisualizationTypeEnum = None,
             topology_type: TopologyTypeEnum = None,
-            unit: units.Unit = None,
+            unit: Units.Unit = None,
     ):
         self._explicit_registry[flag] = RegistryEntry(
             flag,
@@ -87,7 +87,7 @@ class FlagIndex(ABC):
         return self._get_topology_type(flag)
 
     @return_from_explicit_registry_if_available('unit')
-    def get_unit(self, flag: Flagtype) -> units.Unit:
+    def get_unit(self, flag: Flagtype) -> Units.Unit:
         return self._get_unit(flag)
 
     def get_all_timeseries_flags_for_model_flag(self, data_set: DataSet, flag: Flagtype) -> Set[Flagtype]:
@@ -115,7 +115,7 @@ class FlagIndex(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def _get_unit(self, flag: Flagtype) -> units.Unit:
+    def _get_unit(self, flag: Flagtype) -> Units.Unit:
         raise NotImplementedError
 
     def get_linked_model_flag_for_membership_column(self, membership_column_name: str) -> Flagtype:
@@ -190,8 +190,8 @@ class EmptyFlagIndex(FlagIndex):
     def _get_topology_type(self, flag: Flagtype) -> TopologyTypeEnum:
         return TopologyTypeEnum.Other
 
-    def _get_unit(self, flag: Flagtype) -> units.Unit:
-        return units.NaU
+    def _get_unit(self, flag: Flagtype) -> Units.Unit:
+        return Units.NaU
 
     def _get_linked_model_flag_for_membership_column(self, membership_column_name: str) -> Flagtype:
         raise NotImplementedError

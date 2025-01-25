@@ -8,7 +8,7 @@ from mescal.flag.flag import Flagtype
 from mescal.flag.flag_index import FlagIndex
 from mescal.data_sets import DataSet, DataSetLinkCollection
 from mescal.databases import DataBase
-from mescal import units
+from mescal.units import Units
 from mescal.utils.package_path import PACKAGE_SOURCE_ROOT_PATH
 
 
@@ -46,7 +46,7 @@ class MockFlagIndex(FlagIndex):
     def _get_topology_type(self, flag: str) -> TopologyTypeEnum:
         pass
 
-    def _get_unit(self, flag: str) -> units.Unit:
+    def _get_unit(self, flag: str) -> Units.Unit:
         pass
 
     def _get_linked_model_flag_for_membership_column(self, membership_column_name: str) -> Flagtype:

@@ -1,18 +1,11 @@
 from __future__ import annotations
 
 from typing import Iterable, Iterator
-from collections import Counter
 from collections import defaultdict
 
 import pandas as pd
 
 from mescal.kpis.kpi_base import KPI
-from mescal.utils.pretty_scaling import (
-    get_pretty_min_max,
-    get_pretty_order_of_mag,
-    get_pretty_num_of_decimals,
-    symmetric_scaling_around_0_seems_appropriate,
-)
 from mescal.utils.intersect_dicts import get_intersection_of_dicts
 from mescal.utils.logging import get_logger
 
@@ -54,38 +47,23 @@ class KPICollection:
 
     def get_kpi_series(
             self,
-            pretty_text: bool = False,
-            decimals: int = None,
-            order_of_magnitude: float = None,
-            include_unit: bool = None,
-            always_include_sign: bool = None,
+            as_quantity: bool = False,
     ) -> pd.Series:
-        if not pretty_text:
+        if not as_quantity:
             return pd.Series(
-                {kpi.name: kpi.value for kpi in self._kpis}
+                {kpi.name: kpi.value for kpi in self}
             )
         return pd.Series(
-            {kpi.name: kpi.get_pretty_text_value(decimals, order_of_magnitude, include_unit, always_include_sign) for kpi in self._kpis}
+            {kpi.name: kpi.quantity for kpi in self}
         )
 
     def get_kpi_df_with_descriptive_attributes(
             self,
             unstack_column_levels: str | list[str] = None,
-            include_pretty_text_value: bool = False,
-            pretty_text_decimals: int = None,
-            pretty_text_order_of_magnitude: float = None,
-            pretty_text_include_unit: bool = True,
-            pretty_text_always_include_sign: bool = None,
     ) -> pd.DataFrame:
         df = pd.concat(
             [
-                kpi.get_kpi_as_series(
-                    include_pretty_text_value=include_pretty_text_value,
-                    pretty_text_decimals=pretty_text_decimals,
-                    pretty_text_order_of_magnitude=pretty_text_order_of_magnitude,
-                    pretty_text_include_unit=pretty_text_include_unit,
-                    pretty_text_always_include_sign=pretty_text_always_include_sign,
-                )
+                kpi.get_kpi_as_series()
                 for kpi in self._kpis
             ],
             axis=1
@@ -95,11 +73,11 @@ class KPICollection:
                 unstack_column_levels = [unstack_column_levels]
             if not all(c in df.columns for c in unstack_column_levels):
                 raise KeyError(f'Some of the unstack_column_levels where not found in the kpi')
-            index_cols = [c for c in df.columns if c not in unstack_column_levels+['value']]
+            index_cols = [c for c in df.columns if c not in unstack_column_levels+['value', 'quantity']]
             df = df.pivot_table(
                 index=index_cols,
                 columns=unstack_column_levels,
-                values='value'
+                values=['value', 'quantity']
             )
         return df
 
@@ -111,7 +89,7 @@ class KPICollection:
             return None
         elif num > 1:
             logger.warning(f'Found {num} KPIs for attributes {kwargs}. Returning the first one.')
-        return next(iter(self._kpis))
+        return next(iter(subset))
 
     def get_filtered_kpi_collection_by_attributes(self, **kwargs) -> 'KPICollection':
         filtered_kpi_collection = KPICollection()
@@ -146,30 +124,7 @@ class KPICollection:
         self.get_in_common_kpi_attributes()
         in_common = ...
         different_keys_for = ...
-
-    def get_most_common_unit(self):
-        unit_counts = Counter([kpi.unit for kpi in self._kpis])
-        most_common = unit_counts.most_common(1)[0][0]
-        if len(unit_counts) > 1:
-            logger.warning(f'Multiple units identified in your {self.__class__.__name__}. {most_common} is used.')
-        return most_common
-
-    def get_prettiest_order_of_magnitude_for_collection(self):
-        return get_pretty_order_of_mag(self.all_values)
-
-    def get_prettiest_num_of_decimals_for_collection(self):
-        return get_pretty_num_of_decimals(self.all_values)
-
-    def get_pretty_min_max_for_linear_scale(
-            self,
-            lower_percentile: int = 1,
-            upper_percentile: int = 99,
-            symmetric_scaling_around_0: bool = False
-    ) -> tuple[float, float]:
-        return get_pretty_min_max(self.all_values, lower_percentile, upper_percentile, symmetric_scaling_around_0)
-
-    def get_symmetric_scaling_around_0_seems_appropriate(self) -> bool:
-        return symmetric_scaling_around_0_seems_appropriate(self.all_values)
+        # TODO
 
     @property
     def all_values(self) -> list[bool | int | float]:
@@ -180,13 +135,18 @@ class KPICollection:
         return get_intersection_of_dicts(dicts)
 
     def get_not_in_common_kpi_attributes_and_value_sets(self) -> dict[str, set[bool | int | float | str]]:
+        all_value_sets = self.get_all_kpi_attributes_and_value_sets()
+        in_common_keys = self.get_in_common_kpi_attributes().keys()
+        for k in in_common_keys:
+            all_value_sets.pop(k, None)
+        return all_value_sets
+
+    def get_all_kpi_attributes_and_value_sets(self) -> dict[str, set[bool | int | float | str]]:
         dicts = [kpi.get_kpi_attributes_as_hashable_values() for kpi in self]
-        in_common_keys = get_intersection_of_dicts(dicts)
         all_keys = set([k for d in dicts for k in d.keys()])
-        not_in_common_keys = all_keys.difference(in_common_keys)
         values = defaultdict(set)
         for d in dicts:
-            for k in not_in_common_keys:
+            for k in all_keys:
                 values[k].add(d[k])
         return values
 

@@ -9,7 +9,7 @@ import pandas as pd
 from mescal.data_sets.data_set import DataSet
 from mescal.data_sets.data_set_comparison import DataSetComparison
 from mescal.typevars import Flagtype, DataSetType, ValueOperationType, KPIType
-from mescal import units
+from mescal.units import Units
 from mescal.kpis.aggs import (
     ValueComparison, ValueComparisons,
     ArithmeticValueOperation, ArithmeticValueOperations,
@@ -55,7 +55,7 @@ class KPI(ABC):
         self._value = value
 
     @property
-    def quantity(self) -> units.Quantity:
+    def quantity(self) -> Units.Quantity:
         return self.value * self.unit
 
     @abstractmethod
@@ -64,7 +64,7 @@ class KPI(ABC):
 
     @property
     @abstractmethod
-    def unit(self) -> units.Unit:
+    def unit(self) -> Units.Unit:
         pass
 
     def get_attributed_object_name(self) -> str | int:
@@ -97,7 +97,7 @@ class KPI(ABC):
             include_unit: bool = True,
             always_include_sign: bool = None,
     ) -> str:
-        return units.get_pretty_text_value(self.quantity, decimals, order_of_magnitude, include_unit, always_include_sign)
+        raise NotImplementedError
 
     def get_kpi_name_with_data_set_name(self, data_set_name_as_suffix: bool = True) -> str:
         if data_set_name_as_suffix:
@@ -124,23 +124,10 @@ class KPI(ABC):
     def get_kpi_attributes_as_hashable_values(self) -> dict:
         return _to_primitive_types(self.get_kpi_attributes())
 
-    def get_kpi_as_series(
-            self,
-            include_pretty_text_value: bool = False,
-            pretty_text_decimals: int = None,
-            pretty_text_order_of_magnitude: float = None,
-            pretty_text_include_unit: bool = True,
-            pretty_text_always_include_sign: bool = None,
-    ) -> pd.Series:
+    def get_kpi_as_series(self) -> pd.Series:
         s = self.get_kpi_attributes_as_hashable_values()
         s['value'] = self.value
-        if include_pretty_text_value:
-            s['pretty_text_value'] = self.get_pretty_text_value(
-                decimals=pretty_text_decimals,
-                order_of_magnitude=pretty_text_order_of_magnitude,
-                include_unit=pretty_text_include_unit,
-                always_include_sign=pretty_text_always_include_sign,
-            )
+        s['quantity'] = self.quantity
         return pd.Series(s, name=self.get_kpi_name_with_data_set_name())
 
     def has_attribute_values(self, **kwargs) -> bool:
@@ -270,7 +257,7 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
         return self._variation_kpi.required_flags().union(self._reference_kpi.required_flags())
 
     @property
-    def unit(self) -> units.Unit:
+    def unit(self) -> Units.Unit:
         if self._value_operation.unit is not None:
             return self._value_operation.unit
 
