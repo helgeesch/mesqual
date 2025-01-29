@@ -266,3 +266,9 @@ class DataSet(Generic[DataSetConfigType], ABC):
     def set_class_config(cls, config: DataSetConfigType) -> None:
         from mescal.data_sets.data_set_config import DataSetConfigManager
         DataSetConfigManager.set_class_config(cls, config)
+
+    def __str__(self) -> str:
+        return self.name
+
+    def __hash__(self):
+        return hash((self.name, self._config))

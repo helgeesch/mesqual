@@ -38,7 +38,7 @@ class AreaKPIMapVisualizer:
         relevant_attribute_sets = {
             k: v
             for k, v in attribute_sets.items()
-            if k not in ['kpi_name', 'object_name', 'column_subset']  # TODO: could be something to set in __init__
+            if k not in ['name', 'object_name', 'column_subset']  # TODO: could be something to set in __init__
         }
 
         groups: list[KPICollection] = []
@@ -49,10 +49,10 @@ class AreaKPIMapVisualizer:
         return groups
 
     def _get_feature_group_name(self, kpi_group: KPICollection) -> str:
-        _include = ['value_operation', 'aggregation', 'flag', 'data_set_name', 'unit']
-        _exclude = ['variation_data_set', 'reference_data_set', 'model_flag']
+        _include = ['value_operation', 'aggregation', 'flag', 'data_set', 'unit']
+        _exclude = ['variation_data_set', 'reference_data_set', 'model_flag', 'base_unit', 'data_set_type']
 
-        attributes = kpi_group.get_in_common_kpi_attributes()
+        attributes = kpi_group.get_in_common_kpi_attributes(primitive_values=True)
         for k in _exclude:
             attributes.pop(k, None)
 
@@ -60,7 +60,7 @@ class AreaKPIMapVisualizer:
         _include += [k for k in attributes.keys() if k not in _include]
         for k in _include:
             value = attributes.pop(k, None)
-            if value is not None and not (value == 'None'):
+            if value is not None:
                 components.append(value)
 
         return ' '.join(components)
@@ -129,17 +129,16 @@ class AreaKPIMapVisualizer:
         return html
 
     def _get_related_kpi_groups(self, kpi: KPI) -> dict[str, KPICollection]:
-        NONE_VALUES = [None, 'None']
         groups = {
             'Different Comparisons / ValueOperations': KPICollection(),
             'Different Aggregations': KPICollection(),
             'Different DataSets': KPICollection(),
         }
 
-        kpi_atts = kpi.get_kpi_attributes_as_primitive_types()
+        kpi_atts = kpi.attributes.as_dict(primitive_values=True)
 
         _must_contain = ['flag', 'aggregation']
-        if any(kpi_atts.get(k, None) in NONE_VALUES for k in _must_contain):
+        if any(kpi_atts.get(k, None) is None for k in _must_contain):
             return groups
 
         pre_filtered = self.study_manager.scen_comp.get_merged_kpi_collection()
@@ -151,14 +150,14 @@ class AreaKPIMapVisualizer:
         _main_kpi_is_value_op = isinstance(kpi, (kpis.ValueComparisonKPI, kpis.ArithmeticValueOperationKPI))
 
         for potential_relative in pre_filtered:
-            pratts = potential_relative.get_kpi_attributes_as_primitive_types()
-            if pratts.get('data_set_name') == kpi_atts.get('data_set_name'):  # same ds
+            pratts = potential_relative.attributes.as_dict(primitive_values=True)
+            if pratts.get('data_set') == kpi_atts.get('data_set'):  # same ds
                 if pratts.get('aggregation', None) == kpi_atts.get('aggregation'):  # same ds, agg
                     if pratts.get('value_operation', None) != kpi_atts.get('value_operation', None):
                         groups['Different Comparisons / ValueOperations'].add_kpi(potential_relative)
                         continue
                 else:  # same ds, diff agg
-                    if pratts.get('value_operation', None) in NONE_VALUES:
+                    if pratts.get('value_operation', None) is None:
                         groups['Different Aggregations'].add_kpi(potential_relative)
                         continue
                     elif pratts.get('value_operation') == kpi_atts.get('value_operation', None):

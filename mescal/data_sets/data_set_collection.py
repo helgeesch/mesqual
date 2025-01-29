@@ -97,14 +97,14 @@ class DataSetCollection(Generic[DataSetType, DataSetConfigType], DataSet[DataSet
             names=['data_set']
         )
 
-    def get_merged_kpi_collection(self) -> 'KPICollection':
+    def get_merged_kpi_collection(self, deep: bool = True) -> 'KPICollection':
         from mescal.kpis.kpi_collection import KPICollection
         all_kpis = set()
         for ds in self.data_set_iterator:
             for kpi in ds.kpi_collection:
                 all_kpis.add(kpi)
-            if isinstance(ds, DataSetCollection):
-                for kpi in ds.get_merged_kpi_collection():
+            if deep and isinstance(ds, DataSetCollection):
+                for kpi in ds.get_merged_kpi_collection(deep=deep):
                     all_kpis.add(kpi)
 
         return KPICollection(all_kpis)

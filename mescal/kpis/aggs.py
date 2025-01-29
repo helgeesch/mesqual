@@ -23,6 +23,9 @@ class Aggregation:
     def __str__(self):
         return self.name
 
+    def __hash__(self):
+        return hash(self.name)
+
 
 def _ensure_frame_format(pd_object: pd.Series | pd.DataFrame) -> pd.DataFrame:
     if isinstance(pd_object, pd.Series):
@@ -71,6 +74,9 @@ class OperationOfTwoValues:
 
     def __str__(self):
         return self.name
+
+    def __hash__(self):
+        return hash(self.name)
 
 
 class ValueComparison(OperationOfTwoValues):

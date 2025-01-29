@@ -7,7 +7,7 @@ import pandas as pd
 from mescal.units import Units
 from mescal.typevars import DataSetType, Flagtype
 from mescal.utils.pandas_utils.filter import filter_by_model_query
-from mescal.kpis.kpi_base import KPI, KPIFactory
+from mescal.kpis.kpi_base import KPI, KPIFactory, KPIAttributes
 from mescal.utils.logging import get_logger
 
 if TYPE_CHECKING:
@@ -53,16 +53,25 @@ class FlagAggKPI(Generic[DataSetType], KPI):
 
         super().__init__(data_set=data_set)
 
-    def get_kpi_attributes(self) -> dict:
-        flag_agg_atts = dict(
-            flag=self._flag,
-            aggregation=self._aggregation,
-            column_subset=self._column_subset,
-            model_query=self._model_query,
-            name_prefix=self._kpi_name_prefix,
-            name_suffix=self._kpi_name_suffix,
-        )
-        return {**super().get_kpi_attributes(), **flag_agg_atts}
+    def _get_kpi_attributes(self) -> KPIAttributes:
+        atts = super()._get_kpi_attributes()
+        atts.flag = self._flag
+        atts.aggregation = self._aggregation
+        atts.column_subset = self._column_subset
+        atts.model_query = self._model_query
+        atts.name_prefix = self._kpi_name_prefix
+        atts.name_suffix = self._kpi_name_suffix
+
+        try:
+            atts.object_name = self.get_attributed_object_name()
+        except (NotImplementedError, NoColumnDefinedException, MultipleColumnsInSubsetException):
+            pass
+        try:
+            atts.model_flag = self.get_attributed_model_flag()
+        except (NotImplementedError,):
+            pass
+
+        return atts
 
     @property
     def name(self) -> str:

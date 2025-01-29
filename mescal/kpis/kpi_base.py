@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from typing import Generic, Hashable, Optional
 from abc import ABC, abstractmethod
-from typing import Generic
+from dataclasses import dataclass, asdict
 
 import numpy as np
 import pandas as pd
@@ -13,20 +14,70 @@ from mescal.units import Units
 from mescal.kpis.aggs import (
     ValueComparison, ValueComparisons,
     ArithmeticValueOperation, ArithmeticValueOperations,
+    Aggregation
 )
 
 
 KPI_VALUE_TYPES = int | float | bool
 
 
-def _to_primitive_types(any_dict: dict) -> dict:
-    d = dict()
-    for k, v in any_dict.items():
-        if isinstance(v, (bool, int, float, str)):
-            d[k] = v
+@dataclass
+class KPIAttributes:
+    name: Optional[str] = None
+    data_set: Optional[DataSet] = None
+    data_set_type: Optional[type[DataSet]] = None
+    unit: Optional[Units.Unit] = None
+    base_unit: Optional[Units.Unit] = None
+    flag: Optional[Flagtype] = None
+    object_name: Optional[int | str] = None
+    model_flag: Optional[Flagtype] = None
+    aggregation: Optional[Aggregation] = None
+    variation_data_set: Optional[DataSet] = None
+    reference_data_set: Optional[DataSet] = None
+    model_query: Optional[str] = None
+    column_subset: Optional[Hashable | list[Hashable]] = None
+    name_prefix: Optional[str] = None
+    name_suffix: Optional[str] = None
+    value_comparison: Optional[ValueComparison] = None
+    value_operation: Optional[ArithmeticValueOperation] = None
+
+    def as_dict(self, primitive_values: bool = False, include_none_values: bool = False) -> dict:
+        if not primitive_values:
+            return {k: v for k, v in self.__dict__.items() if include_none_values or v is not None}
         else:
-            d[k] = str(v)
-    return d
+            return {k: self._to_primitive(v) for k, v in self.as_dict(include_none_values).items()}
+
+    def has_attr(self, attr_query: str = None, **kwargs) -> bool:
+        primitive_dict = self.as_dict(primitive_values=True, include_none_values=True)
+        df = pd.DataFrame([primitive_dict])
+
+        if attr_query:
+            try:
+                df = df.query(attr_query, engine='python')
+                if df.empty:
+                    return False
+            except pd.errors.UndefinedVariableError:
+                return False
+
+        return all((getattr(self, k, None) == v) or (primitive_dict.get(k, None) == v) for k, v in kwargs.items())
+
+    def intersection(self, other: 'KPIAttributes') -> 'KPIAttributes':
+        return KPIAttributes(**{k: v for k, v in self.__dict__.items() if k in other.__dict__ and other.__dict__[k] == v})
+
+    @staticmethod
+    def _to_primitive(value):
+        if isinstance(value, (int, float, str, bool, type(None))):
+            return value
+        if isinstance(value, type):
+            return value.__name__
+        if isinstance(value, DataSet):
+            return value.name
+        return str(value)
+
+    def update(self, other: 'KPIAttributes') -> 'KPIAttributes':
+        for k, v in other.as_dict(include_none_values=False).items():
+            setattr(self, k, v)
+        return self
 
 
 class KPI(ABC):
@@ -34,10 +85,17 @@ class KPI(ABC):
         self._data_set = data_set
         self._value: KPI_VALUE_TYPES = np.nan
         self._has_been_computed: bool = False
+        self._attributes: KPIAttributes = None
         self._post_init()
 
     def _post_init(self):
         pass
+
+    @property
+    def attributes(self) -> KPIAttributes:
+        if self._attributes is None:
+            self._attributes = self._get_kpi_attributes()
+        return self._attributes
 
     @property
     @abstractmethod
@@ -108,104 +166,31 @@ class KPI(ABC):
             return f'{self.name} {self._data_set.name}'
         return f'{self._data_set.name} {self.name}'
 
-    def get_kpi_attributes(self) -> dict:
-        atts = dict(
-            kpi_name=self.name,
-            data_set_name=self._data_set.name,
+    def _get_kpi_attributes(self) -> KPIAttributes:
+        atts = KPIAttributes(
+            name=self.name,
+            data_set=self._data_set,
+            data_set_type=type(self._data_set),
             unit=self.unit,
+            base_unit=Units.get_base_unit_for_unit(self.unit),
         )
-        from mescal.kpis.kpis_from_aggregations import NoColumnDefinedException, MultipleColumnsInSubsetException
-        try:
-            atts['object_name'] = self.get_attributed_object_name()
-        except (NotImplementedError, NoColumnDefinedException, MultipleColumnsInSubsetException):
-            atts['object_name'] = None
-        try:
-            atts['model_flag'] = self.get_attributed_model_flag()
-        except NotImplementedError:
-            atts['model_flag'] = None
         return atts
 
-    def get_kpi_attributes_as_primitive_types(self) -> dict:
-        return _to_primitive_types(self.get_kpi_attributes())
-
     def get_kpi_as_series(self) -> pd.Series:
-        s = self.get_kpi_attributes_as_primitive_types()
+        s = self.attributes.as_dict(primitive_values=True)
         s['value'] = self.value
         s['quantity'] = self.quantity
         return pd.Series(s, name=self.get_kpi_name_with_data_set_name())
-
-    def has_attribute_values(self, **kwargs) -> bool:
-        """Check if KPI matches all provided attribute conditions.
-
-        Example:
-            kpi = WhateverKPI(
-                kpi_name='BiddingZone.MarketPrice',
-                object_name="DE",
-                aggregation='Mean',
-                data_set_name='my_ds_1'
-            )
-            # Regular attribute checks
-            kpi.has_attribute_values(name='BiddingZone.MarketPrice')  # True
-            kpi.has_attribute_values(aggregation='Mean')  # True
-
-            # None checks - all equivalent
-            kpi.has_attribute_values(object_name_not_none=True)  # True
-            kpi.has_attribute_values(object_name_not_na=True)    # True
-            kpi.has_attribute_values(object_name_is_none=False)  # True
-            kpi.has_attribute_values(object_name_isna=False)     # True
-
-            # Multiple conditions
-            kpi.has_attribute_values(
-                name='BiddingZone.MarketPrice',
-                data_set_name='my_ds_1'
-            )  # True
-        """
-        if not kwargs:
-            return True
-
-        my_atts = self.get_kpi_attributes()
-        my_atts_hashable = _to_primitive_types(my_atts)
-
-        none_true_keys = ['_is_na', '_isna', '_is_nan', '_is_none']
-        none_false_keys = ['_not_na', '_not_isna', '_not_nan', '_not_none']
-
-        def _check_none_condition(kkey: str, value) -> bool:
-            base_key = kkey
-            for suffix in none_true_keys + none_false_keys:
-                base_key = base_key.replace(suffix, '')
-
-            attr_value = my_atts.get(base_key) or getattr(self, base_key, None) or getattr(self, f'_{base_key}', None)
-            is_none_check = any(kkey.endswith(suffix) for suffix in none_true_keys)
-
-            return (attr_value is None) == (is_none_check == value)
-
-        for key, value in kwargs.items():
-            if any(suffix in key for suffix in none_true_keys + none_false_keys):
-                if not _check_none_condition(key, value):
-                    return False
-                continue
-            elif key in my_atts and my_atts[key] == value:
-                continue
-            elif key in my_atts_hashable and my_atts_hashable[key] == value:
-                continue
-            elif hasattr(self, key) and getattr(self, key) == value:
-                continue
-            elif hasattr(self, f'_{key}') and getattr(self, f'_{key}') == value:
-                continue
-            else:
-                return False
-
-        return True
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, KPI):
             return False
         if self._data_set != other._data_set:
             return False
-        return self.get_kpi_attributes_as_primitive_types() == other.get_kpi_attributes_as_primitive_types()
+        return self.attributes == other.attributes
 
     def __hash__(self) -> int:
-        imm = self.get_kpi_attributes_as_primitive_types()
+        imm = self.attributes.as_dict(primitive_values=True, include_none_values=False)
 
         def _convert_dict_to_frozenset_of_tuples_for_hashability(d: dict):
             return hash(frozenset(d.items()))
@@ -289,19 +274,18 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
         from mescal.utils.string_union import find_difference_and_join
         return find_difference_and_join(var_kpi_name, ref_kpi_name)
 
-    def get_kpi_attributes(self) -> dict:
-        from mescal.utils.intersect_dicts import get_intersection_of_dicts
-        value_op_atts = dict()
-        value_op_atts['variation_data_set'] = self._variation_kpi._data_set.name
-        value_op_atts['reference_data_set'] = self._reference_kpi._data_set.name
-        var_kpi_atts = self._variation_kpi.get_kpi_attributes_as_primitive_types()
-        ref_kpi_atts = self._reference_kpi.get_kpi_attributes_as_primitive_types()
-        var_ref_intersection = get_intersection_of_dicts([var_kpi_atts, ref_kpi_atts])
-        value_op_atts.update(**var_ref_intersection)
+    def _get_kpi_attributes(self) -> KPIAttributes:
 
-        value_op_atts.update(value_operation=str(self._value_operation))
+        var_atts = self._variation_kpi.attributes
+        ref_atts = self._reference_kpi.attributes
 
-        return {**super().get_kpi_attributes(), **value_op_atts}
+        this_atts: KPIAttributes = var_atts.intersection(ref_atts)
+
+        this_atts.update(super()._get_kpi_attributes())
+        this_atts.variation_data_set = self._variation_kpi._data_set
+        this_atts.reference_data_set = self._reference_kpi._data_set
+        this_atts.value_operation = self._value_operation
+        return this_atts
 
 
 class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComparison]):
@@ -320,7 +304,6 @@ class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComp
             return model_df.loc[object_name]
         else:
             raise KeyError(f"No info found for object '{object_name}' in model_df for flag '{model_flag}'.")
-
 
 
 class ArithmeticValueOperationKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ArithmeticValueOperation]):
