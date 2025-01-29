@@ -5,6 +5,7 @@ import branca.colormap as cm
 
 from mescal.utils.color_utils.conversion import to_hex
 
+# TODO: remove this file
 
 def _sorted_dict(d):
     return {k: d[k] for k in sorted(d.keys())}
@@ -17,7 +18,6 @@ def color_continuous_segments_to_colors_and_index(
     sorted_segments = _sorted_dict(segments)
     sorted_keys = list(sorted_segments.keys())
 
-    # TODO: check for sequence / overlap in tuples and assert it works
     vmax = sorted_keys[-1][-1]
 
     for k in sorted_keys:
