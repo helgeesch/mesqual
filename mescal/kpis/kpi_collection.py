@@ -131,7 +131,7 @@ class KPICollection:
         return [kpi.value for kpi in self._kpis]
 
     def get_in_common_kpi_attributes(self) -> dict[str, bool | int | float | str]:
-        dicts = [kpi.get_kpi_attributes_as_hashable_values() for kpi in self]
+        dicts = [kpi.get_kpi_attributes_as_primitive_types() for kpi in self]
         return get_intersection_of_dicts(dicts)
 
     def get_not_in_common_kpi_attributes_and_value_sets(self) -> dict[str, set[bool | int | float | str]]:
@@ -142,12 +142,12 @@ class KPICollection:
         return all_value_sets
 
     def get_all_kpi_attributes_and_value_sets(self) -> dict[str, set[bool | int | float | str]]:
-        dicts = [kpi.get_kpi_attributes_as_hashable_values() for kpi in self]
+        dicts = [kpi.get_kpi_attributes_as_primitive_types() for kpi in self]
         all_keys = set([k for d in dicts for k in d.keys()])
         values = defaultdict(set)
         for d in dicts:
             for k in all_keys:
-                values[k].add(d[k])
+                values[k].add(d.get(k, None))
         return values
 
     def get_group_without(self, kpi: KPI) -> 'KPICollection':
@@ -161,3 +161,7 @@ class KPICollection:
     @property
     def empty(self) -> bool:
         return len(self._kpis) == 0
+
+    @property
+    def size(self) -> int:
+        return len(self._kpis)

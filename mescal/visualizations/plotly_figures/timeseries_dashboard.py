@@ -49,6 +49,7 @@ class TimeSeriesDashboard:
         'Q0.95': lambda x: x.quantile(0.95),
         'Q0.05': lambda x: x.quantile(0.05),
         'Q0.01': lambda x: x.quantile(0.01),
+        'Std': lambda x: x.std(),
     }
 
     def __init__(
@@ -63,7 +64,7 @@ class TimeSeriesDashboard:
             stat_aggs: Dict[str, Callable[[pd.Series], Union[float, int]]] = None,
             groupby_aggregation: GROUPBY_AGG_TYPES = 'mean',
             title: str = None,
-            color_continuous_scale: Union[str, List[str]] = None,
+            color_continuous_scale: Union[str, list[str], list[tuple[float, str]]] = None,
             color_continuous_midpoint: Union[int, float] = None,
             range_color: List[Union[int, float]] = None,
             time_series_figure_kwargs: Dict[str, Any] = None,

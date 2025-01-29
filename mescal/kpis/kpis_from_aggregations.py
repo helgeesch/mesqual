@@ -43,8 +43,6 @@ class FlagAggKPI(Generic[DataSetType], KPI):
             kpi_name_suffix: str = None,
             kpi_name: str = None,
     ):
-        super().__init__(data_set=data_set)
-
         self._flag = flag
         self._aggregation = aggregation
         self._column_subset = column_subset
@@ -52,6 +50,8 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         self._kpi_name_prefix = kpi_name_prefix
         self._kpi_name_suffix = kpi_name_suffix
         self._kpi_name = kpi_name
+
+        super().__init__(data_set=data_set)
 
     def get_kpi_attributes(self) -> dict:
         flag_agg_atts = dict(
@@ -211,8 +211,11 @@ class FlagAggKPIFactory(Generic[DataSetType], KPIFactory[DataSetType, FlagAggKPI
         self._kpi_name_suffix = kpi_name_suffix
         self._kpi_name = kpi_name
 
+    def get_kpi_class(self) -> type[FlagAggKPI]:
+        return FlagAggKPI
+
     def get_kpi(self, data_set: DataSetType) -> FlagAggKPI:
-        kpi = FlagAggKPI(
+        kpi = self.get_kpi_class()(
             data_set=data_set,
             flag=self._flag,
             aggregation=self._aggregation,

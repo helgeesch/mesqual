@@ -13,7 +13,7 @@ class SegmentedColorMapBase:
     def __init__(
             self,
             segments: Dict[Tuple[float, float], List[str]],
-            na_color: Optional[str] = None
+            na_color: str = '#FFFFFF'
     ):
         self.segments_dict = segments
         self.sorted_segments = self._sort_segments(segments)
@@ -118,7 +118,7 @@ class SegmentedColorMapBase:
         # Deduplicate while preserving order
         seen = set()
         return [
-            (pos, color) for pos, color in sorted(colorscale, key=lambda x: x[0])
+            (pos, color[:-2]) for pos, color in sorted(colorscale, key=lambda x: x[0])
             if not (pos in seen or seen.add(pos))
         ]
 
@@ -169,12 +169,12 @@ class SegmentedColorMap(SegmentedColorMapBase, MacroElement):
             self,
             segments: Dict[Tuple[float, float], List[str]],
             title: str,
+            na_color: str = '#FFFFFF',
             background_color: str = "white",
             title_color: str = "#333333",
             title_font_size: int = 14,
             tick_color: Optional[str] = None,
             tick_font_size: int = 12,
-            na_color: Optional[str] = None,
             width: int = 400,
             bar_height: int = 30,
             total_height: int = 60,

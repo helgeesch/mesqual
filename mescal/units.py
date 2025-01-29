@@ -97,6 +97,8 @@ class Units(metaclass=_IterableUnitsMeta):
         'EUR': '€',
         'per_unit': 'pu',
         'perc': '%',
+        'inf': '∞',
+        'nan': 'N/A'
     }
 
     @classmethod
@@ -145,12 +147,12 @@ class Units(metaclass=_IterableUnitsMeta):
         return quantity.to(target_unit)
 
     @classmethod
-    def get_quantity_in_pretty_unit(cls, quantity: ureg.Quantity) -> str:
+    def get_quantity_in_pretty_unit(cls, quantity: ureg.Quantity) -> ureg.Quantity:
         base_unit = cls.get_base_unit_for_unit(quantity.units)
         units = cls.get_all_units_with_equal_base(base_unit)
         units = sorted(units, key=lambda x: (1 * x).to(base_unit).magnitude, reverse=False)
         for u in units:
-            if quantity.to(u).magnitude < 10_000:
+            if abs(quantity.to(u).magnitude) < 10_000:
                 return quantity.to(u)
         return quantity.to(units[-1])
 
@@ -166,14 +168,14 @@ class Units(metaclass=_IterableUnitsMeta):
             thousands_separator: str = None,
             include_unit: bool = True,
             include_oom: bool = True,
-            always_include_sign: bool = False,
+            include_sign: bool = None,
     ) -> str:
         if decimals is None:
             decimals = cls._get_pretty_decimals(quantity)
         if thousands_separator is None:
             thousands_separator = ''
 
-        sign_str = cls._get_sign_str_for_quantity(quantity, always_include_sign)
+        sign_str = cls._get_sign_str_for_quantity(quantity, include_sign)
         value_str = f'{abs(quantity.magnitude):,.{decimals}f}'
         value_str = value_str.replace(',', thousands_separator)
 
@@ -193,14 +195,19 @@ class Units(metaclass=_IterableUnitsMeta):
         components.append(value_str)
 
         if unit_str:
-            for r, v in cls._STRING_REPLACEMENTS.items():
-                unit_str = unit_str.replace(r, v)
             components.append(' ' + unit_str)
 
-        return ''.join(components)
+        pretty_text = ''.join(components)
+
+        for r, v in cls._STRING_REPLACEMENTS.items():
+            pretty_text = pretty_text.replace(r, v)
+
+        return pretty_text
 
     @classmethod
-    def _get_sign_str_for_quantity(cls, quantity: ureg.Quantity, always_include_sign: bool) -> str:
+    def _get_sign_str_for_quantity(cls, quantity: ureg.Quantity, include_sign: bool = None) -> str:
+        if include_sign is False:
+            return ''
 
         value = quantity.magnitude
         if np.isnan(value):
@@ -210,12 +217,11 @@ class Units(metaclass=_IterableUnitsMeta):
         if value < 0:
             return '-'
         if value > 0:
-            if always_include_sign:
+            if include_sign:
                 return '+'
             else:
                 return ''
         raise Exception(f'How did you end up here for value {quantity}')
-
 
     @classmethod
     def _get_pretty_decimals(cls, quantity: ureg.Quantity) -> int:

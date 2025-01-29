@@ -34,6 +34,10 @@ class KPI(ABC):
         self._data_set = data_set
         self._value: KPI_VALUE_TYPES = np.nan
         self._has_been_computed: bool = False
+        self._post_init()
+
+    def _post_init(self):
+        pass
 
     @property
     @abstractmethod
@@ -121,11 +125,11 @@ class KPI(ABC):
             atts['model_flag'] = None
         return atts
 
-    def get_kpi_attributes_as_hashable_values(self) -> dict:
+    def get_kpi_attributes_as_primitive_types(self) -> dict:
         return _to_primitive_types(self.get_kpi_attributes())
 
     def get_kpi_as_series(self) -> pd.Series:
-        s = self.get_kpi_attributes_as_hashable_values()
+        s = self.get_kpi_attributes_as_primitive_types()
         s['value'] = self.value
         s['quantity'] = self.quantity
         return pd.Series(s, name=self.get_kpi_name_with_data_set_name())
@@ -198,10 +202,10 @@ class KPI(ABC):
             return False
         if self._data_set != other._data_set:
             return False
-        return self.get_kpi_attributes_as_hashable_values() == other.get_kpi_attributes_as_hashable_values()
+        return self.get_kpi_attributes_as_primitive_types() == other.get_kpi_attributes_as_primitive_types()
 
     def __hash__(self) -> int:
-        imm = self.get_kpi_attributes_as_hashable_values()
+        imm = self.get_kpi_attributes_as_primitive_types()
 
         def _convert_dict_to_frozenset_of_tuples_for_hashability(d: dict):
             return hash(frozenset(d.items()))
@@ -290,8 +294,8 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
         value_op_atts = dict()
         value_op_atts['variation_data_set'] = self._variation_kpi._data_set.name
         value_op_atts['reference_data_set'] = self._reference_kpi._data_set.name
-        var_kpi_atts = self._variation_kpi.get_kpi_attributes_as_hashable_values()
-        ref_kpi_atts = self._reference_kpi.get_kpi_attributes_as_hashable_values()
+        var_kpi_atts = self._variation_kpi.get_kpi_attributes_as_primitive_types()
+        ref_kpi_atts = self._reference_kpi.get_kpi_attributes_as_primitive_types()
         var_ref_intersection = get_intersection_of_dicts([var_kpi_atts, ref_kpi_atts])
         value_op_atts.update(**var_ref_intersection)
 
