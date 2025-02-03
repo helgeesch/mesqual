@@ -61,6 +61,8 @@ class Aggregations:
     MTUsEqZero = Aggregation('MTUsEqZero', lambda df: (_ensure_frame_format(df) == 0).any(axis=1).sum(), Units.MTU)
     MTUsAboveZero = Aggregation('MTUsAboveZero', lambda df: (_ensure_frame_format(df) > 0).any(axis=1).sum(), Units.MTU)
     MTUsBelowZero = Aggregation('MTUsBelowZero', lambda df: (_ensure_frame_format(df) < 0).any(axis=1).sum(), Units.MTU)
+    MTUsAboveX = lambda x: Aggregation(f'MTUsAbove{x}', lambda df: (_ensure_frame_format(df) > x).any(axis=1).sum(), Units.MTU)
+    MTUsBelowX = lambda x: Aggregation(f'MTUsBelow{x}', lambda df: (_ensure_frame_format(df) < x).any(axis=1).sum(), Units.MTU)
 
 
 @dataclass

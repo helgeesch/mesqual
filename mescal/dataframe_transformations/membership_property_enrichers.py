@@ -8,6 +8,8 @@ from mescal.utils.logging import get_logger
 
 logger = get_logger(__name__)
 
+# TODO: Clean up modules and create common base class
+
 
 class MembershipTagging(Enum):
     NONE = "none"
@@ -202,6 +204,7 @@ class DirectionalMembershipPropertyEnricher:
 
 
 if __name__ == "__main__":
+    # TODO: mescal_mock
     from mescal.mock.mock_data_set import MockDataSet
 
     # Initialize mock dataset and appenders
