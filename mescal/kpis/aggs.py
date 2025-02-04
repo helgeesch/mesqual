@@ -26,6 +26,9 @@ class Aggregation:
     def __hash__(self):
         return hash(self.name)
 
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Aggregation) and self.name == other.name
+
 
 def _ensure_frame_format(pd_object: pd.Series | pd.DataFrame) -> pd.DataFrame:
     if isinstance(pd_object, pd.Series):

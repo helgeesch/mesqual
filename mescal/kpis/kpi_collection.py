@@ -23,7 +23,7 @@ class KPICollection:
     def name(self) -> str:
         if self._name is not None:
             return self._name
-        return f'{self.__class__.__name__} for' + ' '.join(self.get_in_common_kpi_attributes(primitive_values=True))
+        return f'{self.__class__.__name__} for ' + ' '.join(self.get_in_common_kpi_attributes(primitive_values=True))
 
     def add_kpis(self, kpis: Iterable[KPI]):
         for kpi in kpis:
@@ -40,9 +40,15 @@ class KPICollection:
             return
         self._kpis.add(kpi)
 
-    def compute_all(self):
-        for kpi in self._kpis:
-            kpi.compute()
+    def compute_all(self, pbar: bool = False):
+        if pbar:
+            from tqdm import tqdm
+            pbar = tqdm(self._kpis, total=self.size, desc=f'Computing KPIs')
+            for kpi in pbar:
+                kpi.compute()
+        else:
+            for kpi in self._kpis:
+                kpi.compute()
 
     def get_kpi_series(
             self,
