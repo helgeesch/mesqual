@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from functools import wraps
 
 from mescal.flag.flag import Flagtype
-from mescal.enums import ItemTypeEnum, VisualizationTypeEnum, TopologyTypeEnum
+from mescal.enums import ItemTypeEnum, VisualizationTypeEnum, TopologyTypeEnum, QuantityTypeEnum
 from mescal.units import Units
 
 if TYPE_CHECKING:
@@ -89,6 +89,10 @@ class FlagIndex(ABC):
     @return_from_explicit_registry_if_available('unit')
     def get_unit(self, flag: Flagtype) -> Units.Unit:
         return self._get_unit(flag)
+
+    def get_quantity_type_enum(self, flag: Flagtype) -> QuantityTypeEnum:
+        unit = self.get_unit(flag)
+        return Units.get_quantity_type_enum(unit)
 
     def get_all_timeseries_flags_for_model_flag(self, data_set: DataSet, flag: Flagtype) -> Set[Flagtype]:
         variable_flags = set()

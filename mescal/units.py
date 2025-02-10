@@ -1,7 +1,8 @@
 from typing import Iterator
 import numpy as np
-
 from pint import UnitRegistry
+
+from mescal.enums import QuantityTypeEnum
 
 
 class UnitNotFound(Exception):
@@ -100,6 +101,18 @@ class Units(metaclass=_IterableUnitsMeta):
         'inf': '∞',
         'nan': 'N/A'
     }
+
+    _INTENSIVE_QUANTITIES = [W, EUR_per_Wh, percent_base, per_unit]
+    _EXTENSIVE_QUANTITIES = [Wh, EUR, MTU]
+
+    @classmethod
+    def get_quantity_type_enum(cls, unit: ureg.Unit) -> QuantityTypeEnum:
+        base_unit = cls.get_base_unit_for_unit(unit)
+        if base_unit in cls._INTENSIVE_QUANTITIES:
+            return QuantityTypeEnum.INTENSIVE
+        elif base_unit in cls._EXTENSIVE_QUANTITIES:
+            return QuantityTypeEnum.EXTENSIVE
+        raise KeyError(f'QuantityTypeEnum for {unit} not registered')
 
     @classmethod
     def units_have_same_base(cls, unit_1: ureg.Unit, unit_2: ureg.Unit) -> bool:
