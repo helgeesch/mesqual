@@ -1,6 +1,6 @@
-from typing import Iterator
+from typing import Iterator, ClassVar
 import numpy as np
-from pint import UnitRegistry
+from pint import get_application_registry, UnitRegistry, set_application_registry, Unit, Quantity
 
 from mescal.enums import QuantityTypeEnum
 
@@ -16,82 +16,120 @@ class UnitRegistryNotComplete(Exception):
         super().__init__(base + message)
 
 
-ureg = UnitRegistry()
+class UnitRegistrySingleton:
+    _instance: ClassVar[UnitRegistry | None] = None
 
-ureg.define("Wh = [energy]")
-ureg.define("kWh = 1e3 Wh = kWh")
-ureg.define("MWh = 1e6 Wh = MWh")
-ureg.define("GWh = 1e9 Wh = GWh")
-ureg.define("TWh = 1e12 Wh = TWh")
+    @classmethod
+    def get_registry(cls) -> UnitRegistry:
+        if cls._instance is None:
+            cls._instance = cls._create_registry()
+        return cls._instance
 
-ureg.define("W = [power]")
-ureg.define("kW = 1e3 W = kW")
-ureg.define("MW = 1e6 W = MW")
-ureg.define("GW = 1e9 W = GW")
-ureg.define("TW = 1e12 W = TW")
+    @classmethod
+    def _create_registry(cls) -> UnitRegistry:
+        ureg = UnitRegistry()
+        set_application_registry(ureg)
 
-ureg.define("EUR = [currency]")
-ureg.define("EUR_cent = 1e-2 EUR")
-ureg.define("kEUR = 1e3 EUR = kEUR")
-ureg.define("MEUR = 1e6 EUR = MEUR")
-ureg.define("BEUR = 1e9 EUR = BEUR")
-ureg.define("TEUR = 1e12 EUR = TEUR")
+        ureg.define("Wh = [energy]")
+        ureg.define("kWh = 1e3 Wh = kWh")
+        ureg.define("MWh = 1e6 Wh = MWh")
+        ureg.define("GWh = 1e9 Wh = GWh")
+        ureg.define("TWh = 1e12 Wh = TWh")
 
-ureg.define("EUR_per_Wh = EUR / Wh = [price]")
-ureg.define("EUR_per_MWh = EUR / MWh")
+        ureg.define("W = [power]")
+        ureg.define("kW = 1e3 W = kW")
+        ureg.define("MW = 1e6 W = MW")
+        ureg.define("GW = 1e9 W = GW")
+        ureg.define("TW = 1e12 W = TW")
 
-ureg.define("minute = [time]")
-ureg.define("hour = 60 minute = hour")
-ureg.define("day = 24 hour = day")
-ureg.define("week = 7 day = week")
-ureg.define("year = 365 day = year")
+        ureg.define("EUR = [currency]")
+        ureg.define("EUR_cent = 1e-2 EUR")
+        ureg.define("kEUR = 1e3 EUR = kEUR")
+        ureg.define("MEUR = 1e6 EUR = MEUR")
+        ureg.define("BEUR = 1e9 EUR = BEUR")
+        ureg.define("TEUR = 1e12 EUR = TEUR")
 
-ureg.define("MTU = [mtu]")
-ureg.define("per_unit = [pu]")
-ureg.define("perc = [percentage]")
-ureg.define("percent_base = 1e-2 percent = percent_base")
+        ureg.define("EUR_per_W = EUR / W = [price_for_capacity]")
+        ureg.define("EUR_per_MW = EUR / MW")
+
+        ureg.define("EUR_per_Wh = EUR / Wh = [price_for_energy]")
+        ureg.define("EUR_per_MWh = EUR / MWh")
+
+        ureg.define("minute = [time]")
+        ureg.define("hour = 60 minute = hour")
+        ureg.define("day = 24 hour = day")
+        ureg.define("week = 7 day = week")
+        ureg.define("year = 365 day = year")
+
+        ureg.define("W_per_min = W / minute = [ramping]")
+        ureg.define("MW_per_min = MW / minute")
+        ureg.define("MW_per_hour = MW / hour")
+
+        ureg.define("EUR_per_W_per_min = EUR / (W / minute) = [price_for_ramping]")
+        ureg.define("EUR_per_MW_per_min = EUR / (MW / minute)")
+        ureg.define("EUR_per_MW_per_hour = EUR / (MW / hour)")
+
+        ureg.define("MTU = [mtu]")
+        ureg.define("per_unit = [pu]")
+        ureg.define("perc = [percentage]")
+        ureg.define("percent_base = 1e-2 percent = percent_base")
 
 
-ureg.define("NaU = []")  # Not a Unit; no physical meaning, dimensionless
-ureg.define("MissingUnit = []")  # For missing units
+        ureg.define("NaU = []")  # Not a Unit; no physical meaning, dimensionless
+        ureg.define("MissingUnit = []")  # For missing units
+
+        return ureg
 
 
 class _IterableUnitsMeta(type):
-    def __iter__(cls) -> Iterator[ureg.Unit]:
-        return (u for name, u in cls.__dict__.items() if isinstance(u, ureg.Unit))
+    def __iter__(cls) -> Iterator[Unit]:
+        return (u for name, u in cls.__dict__.items() if isinstance(u, Unit))
 
 
 class Units(metaclass=_IterableUnitsMeta):
-    Unit = ureg.Unit
-    Quantity = ureg.Quantity
+    _ureg = UnitRegistrySingleton.get_registry()
+    # _ureg = UnitRegistrySingleton.get_registry()
+    Unit = Unit
+    Quantity = Quantity
 
-    Wh = ureg.Wh
-    kWh = ureg.kWh
-    MWh = ureg.MWh
-    GWh = ureg.GWh
-    TWh = ureg.TWh
+    Wh = _ureg.Wh
+    kWh = _ureg.kWh
+    MWh = _ureg.MWh
+    GWh = _ureg.GWh
+    TWh = _ureg.TWh
 
-    W = ureg.W
-    kW = ureg.kW
-    MW = ureg.MW
-    GW = ureg.GW
-    TW = ureg.TW
+    W = _ureg.W
+    kW = _ureg.kW
+    MW = _ureg.MW
+    GW = _ureg.GW
+    TW = _ureg.TW
 
-    EUR = ureg.EUR
-    kEUR = ureg.kEUR
-    MEUR = ureg.MEUR
-    BEUR = ureg.BEUR
-    TEUR = ureg.TEUR
+    W_per_min = _ureg.W_per_min
+    MW_per_min = _ureg.MW_per_min
+    MW_per_hour = _ureg.MW_per_hour
 
-    EUR_per_Wh = ureg.EUR_per_Wh
-    EUR_per_MWh = ureg.EUR_per_MWh
+    EUR = _ureg.EUR
+    kEUR = _ureg.kEUR
+    MEUR = _ureg.MEUR
+    BEUR = _ureg.BEUR
+    TEUR = _ureg.TEUR
 
-    percent_base = ureg.percent_base
-    percent = ureg.perc
-    per_unit = ureg.per_unit
-    MTU = ureg.MTU
-    NaU = ureg.NaU
-    MissingUnit = ureg.MissingUnit
+    EUR_per_W = _ureg.EUR_per_W
+    EUR_per_MW = _ureg.EUR_per_MW
+
+    EUR_per_Wh = _ureg.EUR_per_Wh
+    EUR_per_MWh = _ureg.EUR_per_MWh
+
+    EUR_per_W_per_min = _ureg.EUR_per_W_per_min
+    EUR_per_MW_per_min = _ureg.EUR_per_MW_per_min
+    EUR_per_MW_per_hour = _ureg.EUR_per_MW_per_hour
+
+    percent_base = _ureg.percent_base
+    percent = _ureg.perc
+    per_unit = _ureg.per_unit
+    MTU = _ureg.MTU
+    NaU = _ureg.NaU
+    MissingUnit = _ureg.MissingUnit
 
     _STRING_REPLACEMENTS = {
         '_per_': '/',
@@ -99,14 +137,14 @@ class Units(metaclass=_IterableUnitsMeta):
         'per_unit': 'pu',
         'perc': '%',
         'inf': '∞',
-        'nan': 'N/A'
+        'nan': 'N/A',
     }
 
     _INTENSIVE_QUANTITIES = [W, EUR_per_Wh, percent_base, per_unit]
     _EXTENSIVE_QUANTITIES = [Wh, EUR, MTU]
 
     @classmethod
-    def get_quantity_type_enum(cls, unit: ureg.Unit) -> QuantityTypeEnum:
+    def get_quantity_type_enum(cls, unit: Unit) -> QuantityTypeEnum:
         base_unit = cls.get_base_unit_for_unit(unit)
         if base_unit in cls._INTENSIVE_QUANTITIES:
             return QuantityTypeEnum.INTENSIVE
@@ -115,19 +153,19 @@ class Units(metaclass=_IterableUnitsMeta):
         raise KeyError(f'QuantityTypeEnum for {unit} not registered')
 
     @classmethod
-    def units_have_same_base(cls, unit_1: ureg.Unit, unit_2: ureg.Unit) -> bool:
+    def units_have_same_base(cls, unit_1: Unit, unit_2: Unit) -> bool:
         return unit_1.dimensionality == unit_2.dimensionality
 
     @classmethod
-    def get_base_unit_for_unit(cls, unit: ureg.Unit) -> ureg.Unit:
+    def get_base_unit_for_unit(cls, unit: Unit) -> Unit:
         return cls.get_target_unit_for_oom(unit, 1)
 
     @classmethod
-    def get_oom_of_unit(cls, unit: ureg.Unit) -> float:
+    def get_oom_of_unit(cls, unit: Unit) -> float:
         return (1 * unit).to_base_units().magnitude
 
     @classmethod
-    def get_target_unit_for_oom(cls, reference_unit: ureg.Unit, target_oom: float) -> ureg.Quantity:
+    def get_target_unit_for_oom(cls, reference_unit: Unit, target_oom: float) -> Quantity:
         units = cls.get_all_units_with_equal_base(reference_unit)
         for u in units:
             if cls.get_oom_of_unit(u) == target_oom:
@@ -135,7 +173,7 @@ class Units(metaclass=_IterableUnitsMeta):
         raise UnitNotFound(f'No unit with order of mag {target_oom:.0e} for {reference_unit}')
 
     @classmethod
-    def get_closest_unit_for_oom(cls, reference_unit: ureg.Unit, target_oom: float) -> ureg.Quantity:
+    def get_closest_unit_for_oom(cls, reference_unit: Unit, target_oom: float) -> Quantity:
         units_with_same_dimension = cls.get_all_units_with_equal_base(reference_unit)
         if len(units_with_same_dimension) == 0:
             raise UnitRegistryNotComplete
@@ -147,7 +185,7 @@ class Units(metaclass=_IterableUnitsMeta):
         return sorted_units[0]
 
     @classmethod
-    def get_quantity_in_target_oom(cls, quantity: ureg.Quantity, target_oom: float) -> ureg.Quantity:
+    def get_quantity_in_target_oom(cls, quantity: Quantity, target_oom: float) -> Quantity:
         try:
             target_unit = cls.get_target_unit_for_oom(quantity.units, target_oom)
             return quantity.to(target_unit)
@@ -156,11 +194,11 @@ class Units(metaclass=_IterableUnitsMeta):
             return quantity
 
     @classmethod
-    def get_quantity_in_target_unit(cls, quantity: ureg.Quantity, target_unit: ureg.Unit) -> ureg.Quantity:
+    def get_quantity_in_target_unit(cls, quantity: Quantity, target_unit: Unit) -> Quantity:
         return quantity.to(target_unit)
 
     @classmethod
-    def get_quantity_in_pretty_unit(cls, quantity: ureg.Quantity) -> ureg.Quantity:
+    def get_quantity_in_pretty_unit(cls, quantity: Quantity) -> Quantity:
         base_unit = cls.get_base_unit_for_unit(quantity.units)
         units = cls.get_all_units_with_equal_base(base_unit)
         units = sorted(units, key=lambda x: (1 * x).to(base_unit).magnitude, reverse=False)
@@ -170,13 +208,13 @@ class Units(metaclass=_IterableUnitsMeta):
         return quantity.to(units[-1])
 
     @classmethod
-    def get_all_units_with_equal_base(cls, unit: ureg.Unit) -> list[ureg.Unit]:
+    def get_all_units_with_equal_base(cls, unit: Unit) -> list[Unit]:
         return [u for u in Units if cls.units_have_same_base(unit, u)]
 
     @classmethod
     def get_pretty_text_for_quantity(
             cls,
-            quantity: ureg.Quantity,
+            quantity: Quantity,
             decimals: int = None,
             thousands_separator: str = None,
             include_unit: bool = True,
@@ -218,7 +256,7 @@ class Units(metaclass=_IterableUnitsMeta):
         return pretty_text
 
     @classmethod
-    def _get_sign_str_for_quantity(cls, quantity: ureg.Quantity, include_sign: bool = None) -> str:
+    def _get_sign_str_for_quantity(cls, quantity: Quantity, include_sign: bool = None) -> str:
         if include_sign is False:
             return ''
 
@@ -237,7 +275,7 @@ class Units(metaclass=_IterableUnitsMeta):
         raise Exception(f'How did you end up here for value {quantity}')
 
     @classmethod
-    def _get_pretty_decimals(cls, quantity: ureg.Quantity) -> int:
+    def _get_pretty_decimals(cls, quantity: Quantity) -> int:
 
         # if quantity.units == Units.per_unit:
         #     return 3
@@ -258,7 +296,7 @@ class Units(metaclass=_IterableUnitsMeta):
             return 5
 
     @classmethod
-    def _get_units_oom_prefix(cls, unit: ureg.Unit) -> str:
+    def _get_units_oom_prefix(cls, unit: Unit) -> str:
         base_unit = cls.get_base_unit_for_unit(unit)
         return str(unit).replace(str(base_unit), '')
 

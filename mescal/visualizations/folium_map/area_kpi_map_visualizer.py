@@ -1,10 +1,8 @@
 import folium
 from tqdm import tqdm
 
-import kpis
+from mescal.kpis import ValueComparisonKPI, KPI, KPICollection
 from mescal.study_manager import StudyManager
-from mescal.kpis.kpi_base import KPI
-from mescal.kpis.kpi_collection import KPICollection
 from mescal.units import Units
 from mescal.utils.logging import get_logger
 from mescal.utils.dict_combinations import dict_combination_iterator
@@ -182,7 +180,7 @@ class AreaKPIMapVisualizer:
             flag=kpi_atts['flag'],
             model_flag=kpi.get_attributed_model_flag(),
         )
-        _main_kpi_is_value_op = isinstance(kpi, (kpis.ValueComparisonKPI, kpis.ArithmeticValueOperationKPI))
+        _main_kpi_is_value_op = isinstance(kpi, (ValueComparisonKPI, ArithmeticValueOperationKPI))
 
         for potential_relative in pre_filtered:
             pratts = potential_relative.attributes.as_dict(primitive_values=True)

@@ -110,12 +110,12 @@ class DirectionalMembershipPropertyEnricher:
     """
     def __init__(
             self,
-            from_tag: str = "_from",
-            to_tag: str = "_to",
+            from_identifier: str = "_from",
+            to_identifier: str = "_to",
     ):
-        self._from_tag = from_tag
-        self._to_tag = to_tag
-        self._tag_finder = CommonBaseKeyFinder(from_tag, to_tag)
+        self._from_identifier = from_identifier
+        self._to_identifier = to_identifier
+        self._tag_finder = CommonBaseKeyFinder(from_identifier, to_identifier)
 
     def append_properties(
             self,
@@ -154,7 +154,7 @@ class DirectionalMembershipPropertyEnricher:
         source_df = dataset.fetch(source_flag)
         result_df = target_df.copy()
 
-        for tag in [self._from_tag, self._to_tag]:
+        for tag in [self._from_identifier, self._to_identifier]:
             membership_column = self._get_full_column_name(base_column, tag, target_df.columns)
 
             if membership_column not in target_df.columns:

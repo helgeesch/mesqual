@@ -1,4 +1,3 @@
-import warnings
 from enums import Enum
 
 import pandas as pd
@@ -44,19 +43,46 @@ class TimeSeriesGranularityConverter:
         if not isinstance(series.index, pd.DatetimeIndex):
             raise TypeError(f"Series index must be DatetimeIndex, got {type(series.index)}")
 
-    def upsample_through_fillna(self, series: pd.Series, quantity_type: QuantityTypeEnum) -> pd.Series:
-        """
-        Upsamples a series from hourly to sub-hourly granularity by filling NaNs
-        according to quantity-type method (repeat / split value).
-        """
-        tmp = series.copy().sort_index()
+    def upsample_through_fillna(
+            self,
+            data: pd.DataFrame | pd.Series,
+            quantity_type: QuantityTypeEnum
+    ) -> pd.DataFrame | pd.Series:
+        if isinstance(data, pd.Series):
+            return self._upsample_series(data, quantity_type)
 
+        tmp = data.copy().sort_index()
         idx = tmp.index.tz_convert('UTC') if tmp.index.tz is not None else tmp.index
+
         if quantity_type == QuantityTypeEnum.EXTENSIVE:
-            segments = tmp.notna().cumsum().values
-            return tmp.groupby([idx.date, idx.hour, segments]).transform(lambda s: s.ffill() / len(s)).loc[series.index]
+            segment_patterns = tmp.notna().cumsum()
+
+            # Group columns by their segment pattern
+            pattern_to_cols = {}
+            for col in tmp.columns:
+                pattern = tuple(segment_patterns[col].values)  # Convert to tuple to make it hashable
+                pattern_to_cols.setdefault(pattern, []).append(col)
+
+            # Process each group of columns with same pattern
+            result_pieces = []
+            for pattern, cols in pattern_to_cols.items():
+                segments = segment_patterns[cols[0]]  # Take segments from first column (all are same)
+                piece = (
+                    tmp[cols]
+                    .groupby([idx.date, idx.hour, segments])
+                    .transform(lambda s: s.ffill() / len(s))
+                )
+                result_pieces.append(piece)
+
+            return pd.concat(result_pieces, axis=1).loc[data.index].rename_axis(data.columns.names, axis=1)
         else:
-            return tmp.groupby([idx.date, idx.hour]).ffill().loc[series.index]
+            return tmp.groupby([idx.date, idx.hour]).ffill().loc[data.index]
+
+    def _upsample_series(self, series: pd.Series, quantity_type: QuantityTypeEnum) -> pd.Series:
+        return self.upsample_through_fillna(
+            series.to_frame(),
+            quantity_type
+        ).iloc[:, 0]
 
     def convert_to_target_index(
             self,

@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 from mescal.utils.pandas_utils.set_new_column import set_column
@@ -23,10 +24,17 @@ class AggregatedColumnAppender:
         cols = df.columns.get_level_values(0).unique()
         cols_with_common_part = [x for x in cols if self._in_common_part in x]
 
+        df_in_common = df[cols_with_common_part]
         if df.columns.nlevels == 1:
-            dff = df[cols_with_common_part].sum(axis=1)
+            dff = df_in_common.sum(axis=1)
+            dff.loc[df_in_common.isna().all(axis=1)] = np.nan
         else:
-            dff = df[cols_with_common_part].T.groupby(level=list(range(1, df.columns.nlevels))).sum().T
+            _groupby = list(range(1, df.columns.nlevels))
+            dff = df_in_common.T.groupby(level=_groupby).sum().T
+            _all_na = df_in_common.isna().T.groupby(level=_groupby).all().T
+            if _all_na.any().any():
+                for c in _all_na.columns:
+                    dff.loc[_all_na[c], c] = np.nan
 
         new_col_name = f'{self._agg_col_name_prefix}{self._in_common_part}{self._agg_col_name_suffix}'
         df = set_column(df, new_col_name, dff)

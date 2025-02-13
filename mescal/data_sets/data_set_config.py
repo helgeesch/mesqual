@@ -5,6 +5,10 @@ from mescal.typevars import DataSetConfigType
 from mescal.data_sets.data_set import DataSet
 
 
+class InvalidConfigSettingError(Exception):
+    pass
+
+
 @dataclass
 class DataSetConfig:
     auto_sort_datetime_index: bool = True
