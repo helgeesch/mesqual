@@ -68,6 +68,31 @@ def sort_datetime_index(method):
     return _sort_datetime_index_if_config_says_so
 
 
+class _DotNotationFetcher:
+    """
+    Enables dot notation access for DataSet flag fetching.
+
+    Accumulates flag parts through attribute access and converts them to a flag via
+    the dataset's flag_index when executed. Supports both immediate execution through
+    direct dataset attribute access and delayed execution through fetch_dotted.
+
+    Usage:
+        data_set.dotfetch.my.flag.as.string()
+    """
+    def __init__(self, data_set, accumulated_parts: list[str] = None):
+        self._data_set = data_set
+        self._accumulated_parts = accumulated_parts or []
+
+    def __getattr__(self, part: str) -> '_DotNotationFetcher':
+        return _DotNotationFetcher(self._data_set, self._accumulated_parts + [part])
+
+    def __str__(self) -> str:
+        return '.'.join(self._accumulated_parts)
+
+    def __call__(self) -> pd.DataFrame | pd.Series:
+        return self._data_set.fetch(self._data_set.flag_index.get_flag_from_string(str(self)))
+
+
 class DataSet(Generic[DataSetConfigType], ABC):
     def __init__(
             self,
@@ -84,12 +109,13 @@ class DataSet(Generic[DataSetConfigType], ABC):
         self._attributes: dict = attributes if attributes is not None else dict()
         self._data_base = data_base
         self._config = config
+        self.dotfetch = _DotNotationFetcher(self)
 
         from mescal.kpis.kpi_collection import KPICollection
         self.kpi_collection: KPICollection = KPICollection()
 
     def _get_key_for_db(self, flag: Flagtype, **kwargs) -> str:
-        return f'{self.name} {flag}'
+        return f'{self.name} {flag}'  # TODO: config kwargs
 
     @property
     def flag_index(self) -> FlagIndex:

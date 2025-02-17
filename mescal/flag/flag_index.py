@@ -99,6 +99,10 @@ class FlagIndex(ABC):
         return variable_flags
 
     @abstractmethod
+    def get_flag_from_string(self, flag_string: str) -> Flagtype:
+        return flag_string
+
+    @abstractmethod
     def _get_linked_model_flag(self, flag: Flagtype) -> Flagtype:
         raise NotImplementedError
 
@@ -175,6 +179,9 @@ class FlagIndex(ABC):
 
 
 class EmptyFlagIndex(FlagIndex):
+    def get_flag_from_string(self, flag_string: str) -> Flagtype:
+        return flag_string
+
     def _get_all_timeseries_flags_for_model_flag_from_implicit_registry(self, flag: Flagtype) -> Set[Flagtype]:
         return set()
 
