@@ -103,7 +103,7 @@ class DataSet(Generic[DataSetConfigType], ABC):
             data_base: DataBase = None,
             config: DataSetConfigType = None
     ):
-        self.name = name if name is not None else self._get_random_name()
+        self.name = name or f'{self.__class__.__name__}_{str(id(self))}'
         self._flag_index = flag_index or EmptyFlagIndex()
         self._parent_data_set = parent_data_set
         self._attributes: dict = attributes if attributes is not None else dict()
@@ -226,16 +226,6 @@ class DataSet(Generic[DataSetConfigType], ABC):
     @classmethod
     def _get_class_name_lower_snake(cls) -> str:
         return to_lower_snake(cls.__name__)
-
-    @classmethod
-    def _get_random_name(cls) -> str:
-        import random
-        import string
-
-        _num_chars = 6
-        part_1 = cls._get_class_name_lower_snake()
-        part_2 = ''.join(random.choices(string.ascii_lowercase + string.digits, k=_num_chars))
-        return f'{part_1}_{part_2}'
 
     def fetch_filter_groupby_agg(
             self,
