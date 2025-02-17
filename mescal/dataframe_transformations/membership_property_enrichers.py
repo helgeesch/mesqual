@@ -26,12 +26,36 @@ class MembershipPropertyEnricher:
     are supported (e.g., node, company, fuel_type), and NaN memberships are preserved.
     Properties can optionally be prefixed/suffixed with the membership name.
     """
+    def __init__(self, membership_tag_separator: str = '_'):
+        self._membership_tag_separator = membership_tag_separator
+
+    def identify_membership_columns(self, column_names: list[str], dataset: DataSet) -> list[str]:
+        return [
+            col for col in column_names
+            if dataset.flag_index.column_name_in_model_describes_membership(col)
+        ]
+
     def append_properties(
             self,
             target_df: pd.DataFrame,
             dataset: DataSet,
             membership_tagging: MembershipTagging = MembershipTagging.NONE
     ) -> pd.DataFrame:
+        """
+        Enriches target DataFrame with properties from linked model objects.
+
+        Automatically identifies all membership columns in the target DataFrame and appends
+        properties from their corresponding model objects. For each membership column,
+        fetches the linked model DataFrame and adds all its properties to the target.
+
+        Args:
+            target_df: DataFrame to enrich with properties
+            dataset: Dataset containing the linked model DataFrames
+            membership_tagging: Controls naming of enriched properties (none, prefix, or suffix)
+
+        Returns:
+            DataFrame with added properties from all linked model objects
+        """
         membership_columns = self.identify_membership_columns(target_df.columns, dataset)
         result_df = target_df.copy()
 
@@ -45,12 +69,6 @@ class MembershipPropertyEnricher:
 
         return result_df
 
-    def identify_membership_columns(self, column_names: list[str], dataset: DataSet) -> list[str]:
-        return [
-            col for col in column_names
-            if dataset.flag_index.column_name_in_model_describes_membership(col)
-        ]
-
     def append_single_membership_properties(
             self,
             target_df: pd.DataFrame,
@@ -58,6 +76,22 @@ class MembershipPropertyEnricher:
             membership_column: str,
             membership_tagging: MembershipTagging = MembershipTagging.NONE
     ) -> pd.DataFrame:
+        """
+        Enriches target DataFrame with properties from a single membership column.
+
+        Fetches the model DataFrame corresponding to the membership column and adds
+        its properties to the target DataFrame. Handles NaN memberships by preserving
+        them in the enriched properties.
+
+        Args:
+            target_df: DataFrame to enrich with properties
+            dataset: Dataset containing the linked model DataFrame
+            membership_column: Name of the column containing memberships
+            membership_tagging: Controls naming of enriched properties (none, prefix, or suffix)
+
+        Returns:
+            DataFrame with added properties from the linked model objects
+        """
         source_flag = dataset.flag_index.get_linked_model_flag_for_membership_column(membership_column)
         source_df = dataset.fetch(source_flag)
 
@@ -71,9 +105,9 @@ class MembershipPropertyEnricher:
 
         match membership_tagging:
             case MembershipTagging.PREFIX:
-                source_properties = source_properties.add_prefix(f"{membership_column}_")
+                source_properties = source_properties.add_prefix(f"{membership_column}{self._membership_tag_separator}")
             case MembershipTagging.SUFFIX:
-                source_properties = source_properties.add_suffix(f"_{membership_column}")
+                source_properties = source_properties.add_suffix(f"{self._membership_tag_separator}{membership_column}")
 
         result_df = target_df.merge(
             source_properties,
@@ -102,7 +136,7 @@ class DirectionalMembershipPropertyEnricher:
     """
     Enriches a DataFrame with properties from related objects for directional relationships.
 
-    Handles cases where objects have from/to relationships, like in network structures.
+    Handles cases where objects have from/to relationships, like edgesin network structures.
     For example, a line DataFrame might have 'node_from' and 'node_to' columns linking
     to the node DataFrame. This enricher adds properties from related objects with
     appropriate directional tags. Properties can optionally be prefixed/suffixed with
@@ -112,10 +146,19 @@ class DirectionalMembershipPropertyEnricher:
             self,
             from_identifier: str = "_from",
             to_identifier: str = "_to",
+            membership_tag_separator: str = '_',
     ):
         self._from_identifier = from_identifier
         self._to_identifier = to_identifier
+        self._membership_tag_separator = membership_tag_separator
         self._tag_finder = CommonBaseKeyFinder(from_identifier, to_identifier)
+
+    def identify_from_to_columns(self, column_names: list[str], dataset: DataSet) -> list[str]:
+        potential_columns = self._tag_finder.get_keys_for_which_all_association_tags_appear(column_names)
+        return [
+            col for col in potential_columns
+            if dataset.flag_index.column_name_in_model_describes_membership(col)
+        ]
 
     def append_properties(
             self,
@@ -123,6 +166,22 @@ class DirectionalMembershipPropertyEnricher:
             dataset: DataSet,
             membership_tagging: MembershipTagging = MembershipTagging.NONE
     ) -> pd.DataFrame:
+        """
+        Enriches target DataFrame with properties from linked model objects for both directions.
+
+        Automatically identifies all from/to membership pairs in the target DataFrame and appends
+        properties from their corresponding model objects with directional tags. For each base
+        membership (e.g. 'node' in 'node_from'/'node_to'), fetches the linked model DataFrame
+        and adds all its properties with appropriate directional suffixes.
+
+        Args:
+            target_df: DataFrame to enrich with properties
+            dataset: Dataset containing the linked model DataFrames
+            membership_tagging: Controls naming of enriched properties (none, prefix, or suffix)
+
+        Returns:
+            DataFrame with added properties from all linked model objects
+        """
         membership_base_columns = self.identify_from_to_columns(target_df.columns, dataset)
         result_df = target_df.copy()
 
@@ -136,13 +195,6 @@ class DirectionalMembershipPropertyEnricher:
 
         return result_df
 
-    def identify_from_to_columns(self, column_names: list[str], dataset: DataSet) -> list[str]:
-        potential_columns = self._tag_finder.get_keys_for_which_all_association_tags_appear(column_names)
-        return [
-            col for col in potential_columns
-            if dataset.flag_index.column_name_in_model_describes_membership(col)
-        ]
-
     def append_directional_properties(
             self,
             target_df: pd.DataFrame,
@@ -150,6 +202,22 @@ class DirectionalMembershipPropertyEnricher:
             base_column: str,
             membership_tagging: MembershipTagging = MembershipTagging.NONE
     ) -> pd.DataFrame:
+        """
+        Enriches target DataFrame with properties from a single from/to membership pair.
+
+        For a given base column (e.g. 'node' from 'node_from'/'node_to'), fetches the
+        corresponding model DataFrame and adds its properties with appropriate directional
+        tags. Handles NaN memberships by preserving them in the enriched properties.
+
+        Args:
+            target_df: DataFrame to enrich with properties
+            dataset: Dataset containing the linked model DataFrame
+            base_column: Base name of the from/to columns (e.g. 'node' for 'node_from'/'node_to')
+            membership_tagging: Controls naming of enriched properties (none, prefix, or suffix)
+
+        Returns:
+            DataFrame with added properties from the linked model objects
+        """
         source_flag = dataset.flag_index.get_linked_model_flag_for_membership_column(base_column)
         source_df = dataset.fetch(source_flag)
         result_df = target_df.copy()
@@ -170,9 +238,9 @@ class DirectionalMembershipPropertyEnricher:
 
             match membership_tagging:
                 case MembershipTagging.PREFIX:
-                    source_properties = source_properties.add_prefix(f"{base_column}_")
+                    source_properties = source_properties.add_prefix(f"{base_column}{self._membership_tag_separator}")
                 case MembershipTagging.SUFFIX:
-                    source_properties = source_properties.add_suffix(f"_{base_column}")
+                    source_properties = source_properties.add_suffix(f"{self._membership_tag_separator}{base_column}")
 
             source_properties = source_properties.add_suffix(tag)
 
