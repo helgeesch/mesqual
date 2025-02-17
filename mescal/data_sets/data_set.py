@@ -32,7 +32,7 @@ def return_from_db_if_possible(method):
         if self._data_base is None:
             return method(self, flag, **kwargs)
 
-        key = self._get_key_for_db(flag, **kwargs)
+        key = self._get_cache_key(flag, **kwargs)
         if self._data_base.key_is_up_to_date(key, **kwargs):
             return self._data_base.get(key, **kwargs)
 
@@ -61,7 +61,7 @@ def ensure_unique_indices(method):
 def sort_datetime_index(method):
     def _sort_datetime_index_if_config_says_so(self: DataSet, flag: Flagtype = None, **kwargs):
         data = method(self, flag, **kwargs)
-        if self.config.auto_sort_datetime_index:
+        if self.instance_config.auto_sort_datetime_index:
             if isinstance(data, (pd.Series, pd.DataFrame)) and isinstance(data.index, pd.DatetimeIndex):
                 data = data.sort_index()
         return data
@@ -113,9 +113,6 @@ class DataSet(Generic[DataSetConfigType], ABC):
 
         from mescal.kpis.kpi_collection import KPICollection
         self.kpi_collection: KPICollection = KPICollection()
-
-    def _get_key_for_db(self, flag: Flagtype, **kwargs) -> str:
-        return f'{self.name} {flag}'  # TODO: config kwargs
 
     @property
     def flag_index(self) -> FlagIndex:
@@ -190,11 +187,24 @@ class DataSet(Generic[DataSetConfigType], ABC):
         return set()
 
     @flag_must_be_accepted
-    @return_from_db_if_possible
-    @ensure_unique_indices
-    @sort_datetime_index
-    def fetch(self, flag: Flagtype, **kwargs) -> pd.Series | pd.DataFrame:
+    def fetch(self, flag: Flagtype, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
+        effective_config = self._prepare_config(config)
         return self._fetch(flag, **kwargs).copy()
+
+    def _prepare_config(self, config: dict | DataSetConfigType = None) -> DataSetConfigType:
+        if config is None:
+            return self.instance_config
+
+        if isinstance(config, dict):
+            temp_config = self.get_config_type()()
+            temp_config.__dict__.update(config)
+            return self.instance_config.merge(temp_config)
+
+        from mescal.data_sets.data_set_config import DataSetConfig
+        if isinstance(config, DataSetConfig):
+            return self.instance_config.merge(config)
+
+        raise TypeError(f"Config must be dict or {DataSetConfig.__name__}, got {type(config)}")
 
     @abstractmethod
     def _fetch(self, flag: Flagtype, **kwargs) -> pd.Series | pd.DataFrame:
@@ -206,6 +216,7 @@ class DataSet(Generic[DataSetConfigType], ABC):
             concat_axis: int = 1,
             concat_level_name: str = 'variable',
             concat_level_at_top: bool = True,
+            # TODO: config
             **kwargs
     ) -> Union[pd.Series, pd.DataFrame]:
         dfs = {
@@ -223,16 +234,13 @@ class DataSet(Generic[DataSetConfigType], ABC):
             df.axes[concat_axis] = ax
         return df
 
-    @classmethod
-    def _get_class_name_lower_snake(cls) -> str:
-        return to_lower_snake(cls.__name__)
-
     def fetch_filter_groupby_agg(
             self,
             flag: Flagtype,
             model_filter_query: str = None,
             prop_groupby: str | list[str] = None,
             prop_groupby_agg: str = None,
+            # TODO: config
             **kwargs
     ) -> pd.Series | pd.DataFrame:
         model_flag = self.flag_index.get_linked_model_flag(flag)
@@ -267,14 +275,14 @@ class DataSet(Generic[DataSetConfigType], ABC):
         return DataSetConfig
 
     @property
-    def config(self) -> DataSetConfigType:
+    def instance_config(self) -> DataSetConfigType:
         from mescal.data_sets.data_set_config import DataSetConfigManager
         return DataSetConfigManager.get_effective_config(self.__class__, self._config)
 
-    def set_config(self, config: DataSetConfigType) -> None:
+    def set_instance_config(self, config: DataSetConfigType) -> None:
         self._config = config
 
-    def set_config_kwargs(self, **kwargs) -> None:
+    def set_instance_config_kwargs(self, **kwargs) -> None:
         for key, value in kwargs.items():
             setattr(self._config, key, value)
 
@@ -282,6 +290,10 @@ class DataSet(Generic[DataSetConfigType], ABC):
     def set_class_config(cls, config: DataSetConfigType) -> None:
         from mescal.data_sets.data_set_config import DataSetConfigManager
         DataSetConfigManager.set_class_config(cls, config)
+
+    @classmethod
+    def _get_class_name_lower_snake(cls) -> str:
+        return to_lower_snake(cls.__name__)
 
     def __str__(self) -> str:
         return self.name
