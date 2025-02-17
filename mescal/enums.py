@@ -19,6 +19,7 @@ class VisualizationTypeEnum(Enum):
 
 class TopologyTypeEnum(Enum):
     Area = 'Area'
-    Node = 'Point'
+    Node = 'Node'
+    NodeConnectedElement = 'NodeConnectedElement'
     Edge = 'Edge'
     Other = 'Other'
