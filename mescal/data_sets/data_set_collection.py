@@ -117,9 +117,11 @@ class DataSetCollection(Generic[DataSetType, DataSetConfigType], DataSet[DataSet
         for ds in self.data_set_iterator:
             ds.add_kpi(kpi)
 
-    def clear_kpi_collection_for_all_sub_data_sets(self):
+    def clear_kpi_collection_for_all_sub_data_sets(self, deep: bool = True):
         for ds in self.data_set_iterator:
             ds.clear_kpi_collection()
+            if deep and isinstance(ds, DataSetCollection):
+                ds.clear_kpi_collection_for_all_sub_data_sets(deep=deep)
 
     @abstractmethod
     def _fetch(

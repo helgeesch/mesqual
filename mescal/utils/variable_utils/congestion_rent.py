@@ -1,6 +1,10 @@
 from dataclasses import dataclass
 import pandas as pd
 
+from mescal.utils.logging import get_logger
+
+logger = get_logger(__name__)
+
 
 @dataclass
 class CongestionRentCalculator:
@@ -10,12 +14,16 @@ class CongestionRentCalculator:
     received_down: pd.Series
     price_node_from: pd.Series
     price_node_to: pd.Series
-    granularity_hrs: float = 1.0
+    granularity_hrs: float = None
 
     def __post_init__(self):
         if isinstance(self.sent_up.index, pd.DatetimeIndex):
-            from mescal.utils.pandas_utils.identify_dt_index_granularity import get_granularity_in_hrs
-            self.granularity_hrs = get_granularity_in_hrs(self.sent_up.index)
+            from mescal.utils.pandas_utils.granularity_analyzer import TimeSeriesGranularityAnalyzer
+            analyzer = TimeSeriesGranularityAnalyzer(strict_mode=False)
+            self.granularity_hrs = analyzer.get_granularity_as_hours(self.sent_up.index)
+        else:
+            if self.granularity_hrs is None:
+                logger.warning(f'Granularity for CongestionRentCalculator is defaulting back to 1 hrs.')
         self.__check_indices()
 
     def __check_indices(self):
@@ -59,7 +67,7 @@ class CongestionRentCalculator:
             net_flow: pd.Series,
             price_node_from: pd.Series,
             price_node_to: pd.Series,
-            granularity_hrs: float = 1.0
+            granularity_hrs: float = None
     ) -> pd.Series:
         sent_up = net_flow.clip(lower=0)
         sent_down = (-net_flow).clip(lower=0)
@@ -80,7 +88,7 @@ class CongestionRentCalculator:
             flow_down: pd.Series,
             price_node_from: pd.Series,
             price_node_to: pd.Series,
-            granularity_hrs: float = 1.0
+            granularity_hrs: float = None
     ) -> pd.Series:
         return cls(
             sent_up=flow_up,

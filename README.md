@@ -26,10 +26,11 @@ Key features:
 mescal follows a modular design where platform-specific implementations are handled through separate packages:
 
 ```
-mescal/             # Core package
-mescal_plexos/      # PLEXOS connector (separate package)
-mescal_pypsa/       # PyPSA connector (separate package)
-...                 # Other platform connectors
+mescal/                         # Core package
+mescal_plexos/                  # PLEXOS connector (separate package)
+mescal_pypsa/                   # PyPSA connector (separate package)
+...                             # Other platform connectors
+mescal_your_custom_interface    # Custom interface for your platform
 ```
 
 The core package provides:

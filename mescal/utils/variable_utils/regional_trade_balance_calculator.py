@@ -187,7 +187,8 @@ class RegionalTradeBalanceCalculator:
             for secondary in self.get_region_neighbors(primary):
                 exp = raw_flows[(primary, secondary)]
                 imp = raw_flows[(secondary, primary)]
-
+                assert isinstance(exp, pd.Series), 'Oups!?'
+                assert isinstance(imp, pd.Series), 'Oups!?'
                 flows_dict = {
                     self.EXP_VAR: exp,
                     self.IMP_VAR: imp,

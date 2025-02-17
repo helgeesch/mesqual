@@ -3,9 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable, TYPE_CHECKING
 
+import numpy as np
 import pandas as pd
 
 from mescal.units import Units
+from mescal.utils.pandas_utils.granularity_analyzer import TimeSeriesGranularityAnalyzer
 
 if TYPE_CHECKING:
     from mescal.kpis.kpi_base import KPI_VALUE_TYPES
@@ -26,6 +28,9 @@ class Aggregation:
     def __hash__(self):
         return hash(self.name)
 
+    def __eq__(self, other) -> bool:
+        return isinstance(other, Aggregation) and self.name == other.name
+
 
 def _ensure_frame_format(pd_object: pd.Series | pd.DataFrame) -> pd.DataFrame:
     if isinstance(pd_object, pd.Series):
@@ -34,11 +39,9 @@ def _ensure_frame_format(pd_object: pd.Series | pd.DataFrame) -> pd.DataFrame:
 
 
 def _annualized_sum(df: pd.Series | pd.DataFrame) -> float:
-    from mescal.utils.pandas_utils.identify_dt_index_granularity import get_granularity_in_hrs
-    granularity_in_hrs = get_granularity_in_hrs(df.index)
+    total_hours = TimeSeriesGranularityAnalyzer(strict_mode=False).get_granularity_as_series_of_hours(df.index).sum()
     tmp = _ensure_frame_format(df).sum(axis=1)
-    num_values = (~tmp.isna()).sum()
-    return tmp.sum() / num_values * granularity_in_hrs * 8760
+    return tmp.sum() / total_hours * 8760
 
 
 class Aggregations:
@@ -61,6 +64,8 @@ class Aggregations:
     MTUsEqZero = Aggregation('MTUsEqZero', lambda df: (_ensure_frame_format(df) == 0).any(axis=1).sum(), Units.MTU)
     MTUsAboveZero = Aggregation('MTUsAboveZero', lambda df: (_ensure_frame_format(df) > 0).any(axis=1).sum(), Units.MTU)
     MTUsBelowZero = Aggregation('MTUsBelowZero', lambda df: (_ensure_frame_format(df) < 0).any(axis=1).sum(), Units.MTU)
+    MTUsAboveX = lambda x: Aggregation(f'MTUsAbove{x}', lambda df: (_ensure_frame_format(df) > x).any(axis=1).sum(), Units.MTU)
+    MTUsBelowX = lambda x: Aggregation(f'MTUsBelow{x}', lambda df: (_ensure_frame_format(df) < x).any(axis=1).sum(), Units.MTU)
 
 
 @dataclass
@@ -86,9 +91,21 @@ class ValueComparison(OperationOfTwoValues):
 class ValueComparisons:
     Increase = ValueComparison("Increase", lambda var, ref: var - ref)
     Decrease = ValueComparison("Decrease", lambda var, ref: ref - var)
-    PercentageIncrease = ValueComparison("PercentageIncrease", lambda var, ref: (var - ref) / ref * 100, Units.percent)
-    PercentageDecrease = ValueComparison("PercentageDecrease", lambda var, ref: (ref - var) / ref * 100, Units.percent)
-    Share = ValueComparison("Share", lambda var, ref: var / ref * 100, Units.percent)
+    PercentageIncrease = ValueComparison(
+        "PercentageIncrease",
+        lambda var, ref: np.inf * np.sign(var) if ref == 0 else (var - ref) / ref * 100,
+        Units.percent
+    )
+    PercentageDecrease = ValueComparison(
+        "PercentageDecrease",
+        lambda var, ref: -1 * np.inf * np.sign(var) if ref == 0 else (ref - var) / ref * 100,
+        Units.percent
+    )
+    Share = ValueComparison(
+        "Share",
+        lambda var, ref: np.inf * np.sign(var) if ref == 0 else var / ref * 100,
+        Units.percent
+    )
     Delta = ValueComparison("Delta", lambda var, ref: var - ref)
     Diff = ValueComparison("Diff", lambda var, ref: var - ref)
 
@@ -99,8 +116,12 @@ class ArithmeticValueOperation(OperationOfTwoValues):
 
 class ArithmeticValueOperations:
     Product = ArithmeticValueOperation("Product", lambda var, ref: var * ref)
-    Division = ArithmeticValueOperation("Division", lambda var, ref: var / ref)
-    Share = ArithmeticValueOperation("Share", lambda var, ref: var / ref * 100, Units.percent)
+    Division = ArithmeticValueOperation("Division", lambda var, ref: np.inf * np.sign(var) if ref == 0 else var / ref)
+    Share = ArithmeticValueOperation(
+        "Share",
+        lambda var, ref: np.inf * np.sign(var) if ref == 0 else var / ref * 100,
+        Units.percent
+    )
     Sum = ArithmeticValueOperation("Sum", lambda var, ref: var + ref)
     Diff = ArithmeticValueOperation("Diff", lambda var, ref: var - ref)
     Delta = ArithmeticValueOperation("Delta", lambda var, ref: var - ref)
