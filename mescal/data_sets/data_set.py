@@ -27,47 +27,6 @@ def flag_must_be_accepted(method):
     return raise_if_flag_not_accepted
 
 
-def return_from_db_if_possible(method):
-    def _return_data_from_db_if_possible(self: DataSet, flag: Flagtype = None, **kwargs):
-        if self._data_base is None:
-            return method(self, flag, **kwargs)
-
-        key = self._get_cache_key(flag, **kwargs)
-        if self._data_base.key_is_up_to_date(key, **kwargs):
-            return self._data_base.get(key, **kwargs)
-
-        data = method(self, flag, **kwargs)
-        self._data_base.set(key, data, **kwargs)
-        return data
-
-    return _return_data_from_db_if_possible
-
-
-def ensure_unique_indices(method):
-    def _remove_duplicate_indices_if_there_are_any(self: DataSet, flag: Flagtype = None, **kwargs):
-        data = method(self, flag, **kwargs)
-        if any(data.index.duplicated()):
-            logger.info(
-                f'For some reason your data-set {self.name} returns an object with duplicate indices for flag {flag}.\n'
-                f'We manually remove duplicate indices. Please make sure your data importer / converter is set up '
-                f'appropriately and that your raw data does not contain duplicate indices. \n'
-                f'We will keep the first element of every duplicated index.'
-            )
-            data = data.loc[~data.index.duplicated()]
-        return data
-    return _remove_duplicate_indices_if_there_are_any
-
-
-def sort_datetime_index(method):
-    def _sort_datetime_index_if_config_says_so(self: DataSet, flag: Flagtype = None, **kwargs):
-        data = method(self, flag, **kwargs)
-        if self.instance_config.auto_sort_datetime_index:
-            if isinstance(data, (pd.Series, pd.DataFrame)) and isinstance(data.index, pd.DatetimeIndex):
-                data = data.sort_index()
-        return data
-    return _sort_datetime_index_if_config_says_so
-
-
 class _DotNotationFetcher:
     """
     Enables dot notation access for DataSet flag fetching.
@@ -163,7 +122,7 @@ class DataSet(Generic[DataSetConfigType], ABC):
     def parent_data_set(self, parent_data_set: 'DataSetLinkCollection'):
         from mescal.data_sets.data_set_collection import DataSetLinkCollection
         if not isinstance(parent_data_set, DataSetLinkCollection):
-            raise TypeError(f"Parent data_set must be of type DataSet")
+            raise TypeError(f"Parent parent_data_set must be of type {DataSetLinkCollection.__name__}")
         self._parent_data_set = parent_data_set
 
     @property
@@ -189,7 +148,26 @@ class DataSet(Generic[DataSetConfigType], ABC):
     @flag_must_be_accepted
     def fetch(self, flag: Flagtype, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
         effective_config = self._prepare_config(config)
-        return self._fetch(flag, **kwargs).copy()
+        use_database = self._data_base is not None and effective_config.use_database
+
+        if use_database:
+            if self._data_base.key_is_up_to_date(self, flag, config=effective_config, **kwargs):
+                return self._data_base.get(self, flag, config=effective_config, **kwargs)
+
+        raw_data = self._fetch(flag, config=effective_config, **kwargs)
+        processed_data = self._post_process_data(raw_data, effective_config)
+
+        if use_database:
+            self._data_base.set(self, flag, processed_data, config=effective_config, **kwargs)
+
+        return processed_data.copy()
+
+    def _post_process_data(self, data: pd.Series | pd.DataFrame, config: DataSetConfigType) -> pd.Series | pd.DataFrame:
+        if config.remove_duplicate_indices and any(data.index.duplicated()):
+            data = data.loc[~data.index.duplicated()]
+        if config.auto_sort_datetime_index and isinstance(data.index, pd.DatetimeIndex):
+            data = data.sort_index()
+        return data
 
     def _prepare_config(self, config: dict | DataSetConfigType = None) -> DataSetConfigType:
         if config is None:
@@ -216,11 +194,11 @@ class DataSet(Generic[DataSetConfigType], ABC):
             concat_axis: int = 1,
             concat_level_name: str = 'variable',
             concat_level_at_top: bool = True,
-            # TODO: config
+            config: dict | DataSetConfigType = None,
             **kwargs
     ) -> Union[pd.Series, pd.DataFrame]:
         dfs = {
-            flag: self.fetch(flag, **kwargs)
+            flag: self.fetch(flag, config, **kwargs)
             for flag in flags
         }
         df = pd.concat(
@@ -240,7 +218,7 @@ class DataSet(Generic[DataSetConfigType], ABC):
             model_filter_query: str = None,
             prop_groupby: str | list[str] = None,
             prop_groupby_agg: str = None,
-            # TODO: config
+            config: dict | DataSetConfigType = None,
             **kwargs
     ) -> pd.Series | pd.DataFrame:
         model_flag = self.flag_index.get_linked_model_flag(flag)
@@ -249,8 +227,8 @@ class DataSet(Generic[DataSetConfigType], ABC):
 
         from mescal.utils import pandas_utils
 
-        data = self.fetch(flag, **kwargs)
-        model_df = self.fetch(model_flag, **kwargs)
+        data = self.fetch(flag, config, **kwargs)
+        model_df = self.fetch(model_flag, config, **kwargs)
 
         if model_filter_query:
             data = pandas_utils.filter_by_model_query(data, model_df, query=model_filter_query)

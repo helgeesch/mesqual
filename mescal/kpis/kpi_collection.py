@@ -30,6 +30,8 @@ class KPICollection:
             self.add_kpi(kpi)
 
     def add_kpi(self, kpi: KPI):
+        if not isinstance(kpi, KPI):
+            raise ValueError(f"Expected KPI instance, got {type(kpi)}")
         if kpi in self:
             logger.info(
                 f"KPI with attributes \n"
@@ -43,7 +45,7 @@ class KPICollection:
     def compute_all(self, pbar: bool = False):
         if pbar:
             from tqdm import tqdm
-            pbar = tqdm(self._kpis, total=self.size, desc=f'Computing KPIs')
+            pbar = tqdm(self._kpis, total=self.size, desc=f'Computing KPIs {self.name}')
             for kpi in pbar:
                 kpi.compute()
         else:

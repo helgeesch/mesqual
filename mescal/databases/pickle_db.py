@@ -36,16 +36,10 @@ class PickleDataBase(DataBase):
             data_set: DataSetType,
             flag: Flagtype,
             config: DataSetConfigType,
-            timestamp=None,
             **kwargs
     ):
         file_path = self._get_file_path(data_set, flag, config, **kwargs)
-        exists = os.path.exists(file_path)
-        if not exists:
-            return False
-        if timestamp is None:
-            return True
-        return timestamp <= os.path.getmtime(file_path)
+        return os.path.exists(file_path)
 
     def _get_file_path(self, data_set: DataSetType, flag: Flagtype, config: DataSetConfigType = None, **kwargs) -> str:
         components = [data_set.name, str(flag)]

@@ -1,11 +1,12 @@
 from abc import ABC, abstractmethod
+from typing import Generic
 
 import pandas as pd
 
 from mescal.typevars import DataSetType, Flagtype, DataSetConfigType
 
 
-class DataBase(ABC):
+class DataBase(Generic[DataSetType, DataSetConfigType], ABC):
     @abstractmethod
     def get(
             self,
@@ -33,7 +34,6 @@ class DataBase(ABC):
             data_set: DataSetType,
             flag: Flagtype,
             config: DataSetConfigType,
-            timestamp=None,
             **kwargs
     ):
         pass
