@@ -127,77 +127,50 @@ class RegionalTradeBalanceCalculator:
 
         return graph
 
-    def _compute_raw_flows(
-            self,
-            flow_data: LineFlowData,
-            flow_type: FlowType = FlowType.POST_LOSS
-    ) -> pd.DataFrame:
-        region_flows = {}
+    def _get_net_exp_for_couple(self, primary, secondary, flow_data: LineFlowData, flow_type: FlowType) -> pd.Series:
+        mask_forward = (
+                (self.line_model_df[self.node_from_col].map(self.node_to_agg_region_map) == primary) &
+                (self.line_model_df[self.node_to_col].map(self.node_to_agg_region_map) == secondary)
+        )
+        mask_backward = (
+                (self.line_model_df[self.node_from_col].map(self.node_to_agg_region_map) == secondary) &
+                (self.line_model_df[self.node_to_col].map(self.node_to_agg_region_map) == primary)
+        )
 
-        for region1, region2 in self.agg_region_graph.edges():
-            mask_forward = (
-                    (self.line_model_df[self.node_from_col].map(self.node_to_agg_region_map) == region1) &
-                    (self.line_model_df[self.node_to_col].map(self.node_to_agg_region_map) == region2)
+        lines_forward = self.line_model_df[mask_forward].index
+        lines_backward = self.line_model_df[mask_backward].index
+
+        if flow_type == FlowType.PRE_LOSS:
+            return (
+                    flow_data.sent_up[lines_forward].sum(axis=1) -
+                    flow_data.sent_down[lines_forward].sum(axis=1) +
+                    flow_data.sent_down[lines_backward].sum(axis=1) -
+                    flow_data.sent_up[lines_backward].sum(axis=1)
             )
-            mask_backward = (
-                    (self.line_model_df[self.node_from_col].map(self.node_to_agg_region_map) == region2) &
-                    (self.line_model_df[self.node_to_col].map(self.node_to_agg_region_map) == region1)
+        else:  # POST_LOSS
+            return (
+                    flow_data.sent_up[lines_forward].sum(axis=1) -
+                    flow_data.received_down[lines_forward].sum(axis=1) +
+                    flow_data.sent_down[lines_backward].sum(axis=1) -
+                    flow_data.received_up[lines_backward].sum(axis=1)
             )
-
-            lines_forward = self.line_model_df[mask_forward].index
-            lines_backward = self.line_model_df[mask_backward].index
-
-            if flow_type == FlowType.PRE_LOSS:
-                flow_forward = (
-                        flow_data.sent_up[lines_forward].sum(axis=1) +
-                        flow_data.sent_down[lines_backward].sum(axis=1)
-                )
-                flow_backward = (
-                        flow_data.sent_up[lines_backward].sum(axis=1) +
-                        flow_data.sent_down[lines_forward].sum(axis=1)
-                )
-            else:  # POST_LOSS
-                # For forward flows: sent at source (region1), received at destination (region2)
-                flow_forward = (
-                        flow_data.sent_up[lines_forward].sum(axis=1) +
-                        flow_data.received_down[lines_backward].sum(axis=1)
-                )
-                # For backward flows: sent at source (region2), received at destination (region1)
-                flow_backward = (
-                        flow_data.sent_up[lines_backward].sum(axis=1) +
-                        flow_data.received_down[lines_forward].sum(axis=1)
-                )
-
-            region_flows[(region1, region2)] = flow_forward
-            region_flows[(region2, region1)] = flow_backward
-
-        return pd.DataFrame(region_flows)
 
     def get_trade_balance(
             self,
             flow_data: LineFlowData,
             flow_type: FlowType = FlowType.POST_LOSS
     ) -> pd.DataFrame:
-        raw_flows = self._compute_raw_flows(flow_data, flow_type)
-
         flows_list = []
         column_level_names = [self.primary_name, self.partner_name, "variable"]
 
         for primary in self.get_all_regions():
             for secondary in self.get_region_neighbors(primary):
-                exp = raw_flows[(primary, secondary)]
-                imp = raw_flows[(secondary, primary)]
-                assert isinstance(exp, pd.Series), 'Oups!?'
-                assert isinstance(imp, pd.Series), 'Oups!?'
-                flows_dict = {
-                    self.EXP_VAR: exp,
-                    self.IMP_VAR: imp,
-                    self.NET_EXP_VAR: exp - imp
-                }
+                net_exp = self._get_net_exp_for_couple(primary, secondary, flow_data, flow_type)
                 df = pd.concat(
                     {
-                        (primary, secondary, var): value
-                        for var, value in flows_dict.items()
+                        (primary, secondary, self.NET_EXP_VAR): net_exp,
+                        (primary, secondary, self.EXP_VAR): net_exp.clip(0),
+                        (primary, secondary, self.IMP_VAR): net_exp.clip(None, 0).abs(),
                     },
                     axis=1,
                     names=column_level_names,
