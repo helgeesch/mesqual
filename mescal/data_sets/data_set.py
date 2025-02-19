@@ -5,11 +5,11 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
+from mescal.typevars import DataSetConfigType, Flagtype
 from mescal.databases.data_base import DataBase
 from mescal.utils.string_conventions import to_lower_snake
 from mescal.flag.flag_index import EmptyFlagIndex, FlagIndex
 from mescal.utils.logging import get_logger
-from mescal.typevars import DataSetConfigType, Flagtype
 
 if TYPE_CHECKING:
     from mescal.data_sets.data_set_collection import DataSetLinkCollection
@@ -20,10 +20,10 @@ logger = get_logger(__name__)
 
 
 def flag_must_be_accepted(method):
-    def raise_if_flag_not_accepted(self: DataSet, flag: Flagtype = None, **kwargs):
+    def raise_if_flag_not_accepted(self: DataSet, flag: Flagtype = None, config: DataSetConfigType = None, **kwargs):
         if not self.flag_is_accepted(flag):
             raise ValueError(f'Flag {flag} not accepted by DataSet "{self.name}" of type {type(self)}.')
-        return method(self, flag, **kwargs)
+        return method(self, flag, config, **kwargs)
     return raise_if_flag_not_accepted
 
 
@@ -155,15 +155,26 @@ class DataSet(Generic[DataSetConfigType], ABC):
                 return self._data_base.get(self, flag, config=effective_config, **kwargs)
 
         raw_data = self._fetch(flag, config=effective_config, **kwargs)
-        processed_data = self._post_process_data(raw_data, effective_config)
+        processed_data = self._post_process_data(raw_data, flag, effective_config)
 
         if use_database:
             self._data_base.set(self, flag, processed_data, config=effective_config, **kwargs)
 
         return processed_data.copy()
 
-    def _post_process_data(self, data: pd.Series | pd.DataFrame, config: DataSetConfigType) -> pd.Series | pd.DataFrame:
+    def _post_process_data(
+            self,
+            data: pd.Series | pd.DataFrame,
+            flag: Flagtype,
+            config: DataSetConfigType
+    ) -> pd.Series | pd.DataFrame:
         if config.remove_duplicate_indices and any(data.index.duplicated()):
+            logger.info(
+                f'For some reason your data-set {self.name} returns an object with duplicate indices for flag {flag}.\n'
+                f'We manually remove duplicate indices. Please make sure your data importer / converter is set up '
+                f'appropriately and that your raw data does not contain duplicate indices. \n'
+                f'We will keep the first element of every duplicated index.'
+            )
             data = data.loc[~data.index.duplicated()]
         if config.auto_sort_datetime_index and isinstance(data.index, pd.DatetimeIndex):
             data = data.sort_index()
@@ -185,7 +196,7 @@ class DataSet(Generic[DataSetConfigType], ABC):
         raise TypeError(f"Config must be dict or {DataSetConfig.__name__}, got {type(config)}")
 
     @abstractmethod
-    def _fetch(self, flag: Flagtype, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: Flagtype, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
         return pd.DataFrame()
 
     def fetch_multiple_flags_and_concat(

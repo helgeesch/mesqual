@@ -77,19 +77,19 @@ class PlatformDataSet(Generic[DataSetType, DataSetConfigType], DataSetLinkCollec
     ...
     >>> @MyPlatformDataSet.register_interpreter
     ... class ModelCSVInterpreter(MyInterpreterBase):
-    ...     def _fetch(self, flag: Flagtype) -> pd.DataFrame:
+    ...     def _fetch(self, flag: Flagtype, ...) -> pd.DataFrame:
     ...         # Implementation
     ...         pass
     ...
     >>> @MyPlatformDataSet.register_interpreter
     ... class ResultCSVInterpreter(MyInterpreterBase):
-    ...     def _fetch(self, flag: Flagtype) -> pd.DataFrame:
+    ...     def _fetch(self, flag: Flagtype, ...) -> pd.DataFrame:
     ...         # Implementation
     ...         pass
     ...
     >>> @MyPlatformDataSet.register_interpreter
     ... class StudySpecificVariable(MyInterpreterBase):
-    ...     def _fetch(self, flag: Flagtype) -> pd.DataFrame:
+    ...     def _fetch(self, flag: Flagtype, ...) -> pd.DataFrame:
     ...         # Implementation
     ...         pass
 

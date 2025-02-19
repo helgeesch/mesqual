@@ -11,7 +11,9 @@ class InvalidConfigSettingError(Exception):
 
 @dataclass
 class DataSetConfig:
+    use_database: bool = True
     auto_sort_datetime_index: bool = True
+    remove_duplicate_indices: bool = True
 
     def merge(self: DataSetConfigType, other: Optional[DataSetConfigType]) -> DataSetConfigType:
         if other is None:

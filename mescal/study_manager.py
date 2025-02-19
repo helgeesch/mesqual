@@ -22,21 +22,8 @@ class StudyManager:
             concat_level_name='type',
         )
         self._export_folder: str = export_folder
-        self._ensure_folder_exists(export_folder)
-
-    @property
-    def export_folder(self) -> str:
-        return self._export_folder
-
-    @staticmethod
-    def _ensure_folder_exists(folder: str):
-        if not os.path.exists(folder):
-            os.mkdir(folder)
-
-    def export_path(self, file_name: str) -> str:
-        if self._export_folder is None:
-            raise RuntimeError(f'Export folder must be assigned first.')
-        return os.path.join(self._export_folder, file_name)
+        if export_folder is not None:
+            self._ensure_folder_exists(export_folder)
 
     @property
     def scen(self) -> DataSetConcatCollection:
@@ -55,6 +42,25 @@ class StudyManager:
     @property
     def scen_comp(self) -> DataSetConcatCollection:
         return self._scenarios_and_comparisons
+
+    @property
+    def export_folder(self) -> str:
+        return self._export_folder
+
+    @export_folder.setter
+    def export_folder(self, folder_path: str):
+        self._ensure_folder_exists(folder_path)
+        self._export_folder = folder_path
+
+    @staticmethod
+    def _ensure_folder_exists(folder: str):
+        if not os.path.exists(folder):
+            os.mkdir(folder)
+
+    def export_path(self, file_name: str) -> str:
+        if self._export_folder is None:
+            raise RuntimeError(f'Export folder must be assigned first.')
+        return os.path.join(self._export_folder, file_name)
 
     @classmethod
     def factory_from_scenarios(

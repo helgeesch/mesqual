@@ -127,6 +127,7 @@ class DataSetCollection(Generic[DataSetType, DataSetConfigType], DataSet[DataSet
     def _fetch(
             self,
             flag: Flagtype,
+            config: dict | DataSetConfigType = None,
             **kwargs
     ) -> pd.Series | pd.DataFrame:
         pass
@@ -195,10 +196,10 @@ class DataSetLinkCollection(Generic[DataSetType, DataSetConfigType], DataSetColl
         )
         self._warn_if_flags_overlap()
 
-    def _fetch(self, flag: Flagtype, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: Flagtype, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
         for ds in self.data_set_iterator:
             if ds.flag_is_accepted(flag):
-                return ds.fetch(flag, **kwargs)
+                return ds.fetch(flag, config, **kwargs)
         raise KeyError(f"Key '{flag}' not recognized by any of the linked DataSets.")
 
     def _warn_if_flags_overlap(self):
@@ -247,9 +248,9 @@ class DataSetMergeCollection(Generic[DataSetType, DataSetConfigType], DataSetCol
         )
         self.keep_first = keep_first
 
-    def _fetch(self, flag: Flagtype, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: Flagtype, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
         df = self._combine_dfs(
-            get_df_from_data_set_method=lambda ds: ds.fetch(flag, **kwargs),
+            get_df_from_data_set_method=lambda ds: ds.fetch(flag, config, **kwargs),
             keep_first=self.keep_first,
             skip_ds_condition=skip_ds_if_flag_not_accepted_condition(flag),
         )
@@ -317,6 +318,7 @@ class DataSetConcatCollection(Generic[DataSetType, DataSetConfigType], DataSetCo
     def _fetch(
             self,
             flag: Flagtype,
+            config: dict | DataSetConfigType = None,
             skip_ds_condition: Callable[[DataSet], bool] = None,
             concat_axis: int = None,
             transpose: bool = False,
@@ -374,11 +376,11 @@ class DataSetConcatCollection(Generic[DataSetType, DataSetConfigType], DataSetCo
 
 
 class DataSetSumCollection(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
-    def _fetch(self, flag: Flagtype, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: Flagtype, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
         data: list[pd.Series | pd.DataFrame] = []
         for ds in self.data_set_iterator:
             if ds.flag_is_accepted(flag):
-                data.append(ds.fetch(flag, **kwargs))
+                data.append(ds.fetch(flag, config, **kwargs))
         if not data:
             raise KeyError(f"Flag '{flag}' not recognized by any of the linked DataSets.")
         
