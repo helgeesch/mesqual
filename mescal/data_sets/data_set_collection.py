@@ -157,8 +157,8 @@ class DataSetCollection(
             self.add_data_set(ds)
 
     def add_data_set(self, data_set: DataSetType):
-        if not isinstance(data_set, self.get_collection_member_data_set_type()):
-            raise TypeError(f"Can only add data sets of type {self.get_collection_member_data_set_type().__name__}.")
+        if not isinstance(data_set, self.get_child_data_set_type()):
+            raise TypeError(f"Can only add data sets of type {self.get_child_data_set_type().__name__}.")
         if data_set.name not in self.data_sets:
             self.data_sets[data_set.name] = data_set
         else:
@@ -168,7 +168,7 @@ class DataSetCollection(
             )
 
     @classmethod
-    def get_collection_member_data_set_type(cls) -> type[DataSetType]:
+    def get_child_data_set_type(cls) -> type[DataSetType]:
         return DataSet
 
 

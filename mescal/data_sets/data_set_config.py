@@ -53,7 +53,7 @@ class DataSetConfigManager:
 
     @classmethod
     @overload
-    def set_class_config(cls, dataset_class: Type[DataSet[DataSetConfigType]], config: DataSetConfigType) -> None:
+    def set_class_config(cls, dataset_class: Type[DataSet], config: DataSetConfigType) -> None:
         ...
 
     @classmethod
@@ -62,7 +62,7 @@ class DataSetConfigManager:
 
     @classmethod
     @overload
-    def update_class_config_kwargs(cls, dataset_class: Type[DataSet[DataSetConfigType]], **config_kwargs) -> None:
+    def update_class_config_kwargs(cls, dataset_class: Type[DataSet], **config_kwargs) -> None:
         ...
 
     @classmethod
@@ -74,7 +74,7 @@ class DataSetConfigManager:
     @overload
     def get_effective_config(
             cls,
-            dataset_class: Type[DataSet[DataSetConfigType]],
+            dataset_class: Type[DataSet],
             instance_config: Optional[DataSetConfigType] = None
     ) -> DataSetConfigType:
         ...

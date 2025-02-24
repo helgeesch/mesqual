@@ -54,4 +54,6 @@ class DataSetConcatCollectionOfComparisons(
     Generic[DataSetConfigType, Flagtype, FlagIndexType],
     DataSetConcatCollection[DataSetComparison, DataSetConfigType, Flagtype, FlagIndexType]
 ):
-    data_set_type = DataSetComparison
+    @classmethod
+    def get_child_data_set_type(cls) -> type[DataSetType]:
+        return DataSetComparison

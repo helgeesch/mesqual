@@ -67,15 +67,15 @@ class PlatformDataSet(
     -----
     To create a platform-specific dataset:
     1. Subclass PlatformDataSet
-    2. Define get_collection_member_data_set_type
-    3. Create interpreters that inherit from _child_data_set_type
+    2. Define get_child_data_set_type
+    3. Create interpreters that inherit from collection_member_data_set_type
     4. Register interpreters using the @register_interpreter decorator
 
     Example
     -------
     >>> class MyPlatformDataSet(PlatformDataSet[MyInterpreterBase]):
     ...     @classmethod
-    ...     def get_collection_member_data_set_type(cls) -> type[DataSetType]:
+    ...     def get_child_data_set_type(cls) -> type[DataSetType]:
     ...         return MyInterpreterBase
     ...
     >>> @MyPlatformDataSet.register_interpreter
@@ -100,7 +100,7 @@ class PlatformDataSet(
     -----
     - Interpreters are initialized automatically when the platform dataset is instantiated
     - Registration order determines interpreter priority (last registered = first checked)
-    - Each interpreter must implement the interface defined by _child_data_set_type
+    - Each interpreter must implement the interface defined by child_data_set_type
     - Arguments required by interpreters are automatically extracted and passed during
       initialization
     """
@@ -154,7 +154,7 @@ class PlatformDataSet(
         }
 
     def _prepare_interpreter_initialization_args(self, kwargs: dict) -> dict:
-        interpreter_signature = InterpreterSignature.from_interpreter(self._child_data_set_type)
+        interpreter_signature = InterpreterSignature.from_interpreter(self.get_child_data_set_type())
         return {
             arg: kwargs.get(arg, default)
             for arg, default in zip(interpreter_signature.args, interpreter_signature.defaults)
@@ -168,9 +168,9 @@ class PlatformDataSet(
 
     @classmethod
     def _validate_interpreter_type(cls, interpreter: Type[DataSetType]) -> None:
-        if not issubclass(interpreter, cls._child_data_set_type):
+        if not issubclass(interpreter, cls.get_child_data_set_type()):
             raise TypeError(
-                f'Interpreter must be subclass of {cls._child_data_set_type.__name__}'
+                f'Interpreter must be subclass of {cls.get_child_data_set_type().__name__}'
             )
 
     @classmethod
