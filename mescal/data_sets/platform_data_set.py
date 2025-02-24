@@ -6,7 +6,7 @@ import inspect
 
 from mescal.data_sets.data_set import DataSet
 from mescal.data_sets.data_set_collection import DataSetLinkCollection
-from mescal.typevars import Flagtype, DataSetType, DataSetConfigType, FlagIndexType
+from mescal.typevars import FlagType, DataSetType, DataSetConfigType, FlagIndexType
 from mescal.databases.data_base import DataBase
 
 
@@ -41,8 +41,8 @@ class InterpreterSignature:
 
 
 class PlatformDataSet(
-    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
-    DataSetLinkCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
+    Generic[DataSetType, DataSetConfigType, FlagType, FlagIndexType],
+    DataSetLinkCollection[DataSetType, DataSetConfigType, FlagType, FlagIndexType],
     ABC
 ):
     """
@@ -80,19 +80,19 @@ class PlatformDataSet(
     ...
     >>> @MyPlatformDataSet.register_interpreter
     ... class ModelCSVInterpreter(MyInterpreterBase):
-    ...     def _fetch(self, flag: Flagtype, ...) -> pd.DataFrame:
+    ...     def _fetch(self, flag: FlagType, ...) -> pd.DataFrame:
     ...         # Implementation
     ...         pass
     ...
     >>> @MyPlatformDataSet.register_interpreter
     ... class ResultCSVInterpreter(MyInterpreterBase):
-    ...     def _fetch(self, flag: Flagtype, ...) -> pd.DataFrame:
+    ...     def _fetch(self, flag: FlagType, ...) -> pd.DataFrame:
     ...         # Implementation
     ...         pass
     ...
     >>> @MyPlatformDataSet.register_interpreter
     ... class StudySpecificVariable(MyInterpreterBase):
-    ...     def _fetch(self, flag: Flagtype, ...) -> pd.DataFrame:
+    ...     def _fetch(self, flag: FlagType, ...) -> pd.DataFrame:
     ...         # Implementation
     ...         pass
 
@@ -147,7 +147,7 @@ class PlatformDataSet(
             )
         return interpreter
 
-    def get_flags_by_interpreter(self) -> dict[Type[DataSetType], set[Flagtype]]:
+    def get_flags_by_interpreter(self) -> dict[Type[DataSetType], set[FlagType]]:
         return {
             type(interpreter): interpreter.accepted_flags
             for interpreter in self.data_sets.values()

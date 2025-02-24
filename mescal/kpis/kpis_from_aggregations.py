@@ -5,7 +5,7 @@ from typing import Hashable, Generic, TYPE_CHECKING
 import pandas as pd
 
 from mescal.units import Units
-from mescal.typevars import DataSetType, Flagtype
+from mescal.typevars import DataSetType, FlagType
 from mescal.utils.pandas_utils.filter import filter_by_model_query
 from mescal.kpis.kpi_base import KPI, KPIFactory, KPIAttributes
 from mescal.utils.logging import get_logger
@@ -35,7 +35,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
     def __init__(
             self,
             data_set: DataSetType,
-            flag: Flagtype,
+            flag: FlagType,
             aggregation: Aggregation,
             column_subset: Hashable | list[Hashable] = None,
             model_query: str = None,
@@ -88,7 +88,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
 
     @staticmethod
     def _generic_kpi_name_generator(
-            flag: Flagtype,
+            flag: FlagType,
             aggregation: Aggregation,
             column_subset: Hashable | list[Hashable] = None,
             model_query: str = None,
@@ -178,7 +178,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         else:
             return column
 
-    def get_attributed_model_flag(self) -> Flagtype:
+    def get_attributed_model_flag(self) -> FlagType:
         """
         Only necessary in case one wants to be able to retrieve the attributed model_flag for a KPI.
         For example you'd want this for applying a model query, or in case you need this info for plotting.
@@ -190,7 +190,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         self._value = self._aggregation(data)
         self._has_been_computed = True
 
-    def required_flags(self) -> set[Flagtype]:
+    def required_flags(self) -> set[FlagType]:
         flags = {self._flag}
         if self._model_query:
             flags.add(self.get_attributed_model_flag())
@@ -200,7 +200,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
 class FlagAggKPIFactory(Generic[DataSetType], KPIFactory[DataSetType, FlagAggKPI]):
     def __init__(
             self,
-            flag: Flagtype,
+            flag: FlagType,
             aggregation: Aggregation,
             column_subset: Hashable | list[Hashable] = None,
             model_query: str = None,

@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from mescal.kpis.kpi_collection import KPICollection
 
 
-Flagtype = TypeVar('Flagtype', bound='FlagTypeProtocol')
+FlagType = TypeVar('FlagType', bound='FlagTypeProtocol')
 DataSetType = TypeVar('DataSetType', bound='DataSet')
 DataSetConfigType = TypeVar('DataSetConfigType', bound='DataSetConfig')
 FlagIndexType = TypeVar('FlagIndexType', bound='FlagIndex')

@@ -9,7 +9,7 @@ import pandas as pd
 
 from mescal.data_sets.data_set import DataSet
 from mescal.data_sets.data_set_comparison import DataSetComparison
-from mescal.typevars import Flagtype, DataSetType, ValueOperationType, KPIType
+from mescal.typevars import FlagType, DataSetType, ValueOperationType, KPIType
 from mescal.units import Units
 from mescal.kpis.aggs import (
     ValueComparison, ValueComparisons,
@@ -28,9 +28,9 @@ class KPIAttributes:
     data_set_type: Optional[type[DataSet]] = None
     unit: Optional[Units.Unit] = None
     base_unit: Optional[Units.Unit] = None
-    flag: Optional[Flagtype] = None
+    flag: Optional[FlagType] = None
     object_name: Optional[int | str] = None
-    model_flag: Optional[Flagtype] = None
+    model_flag: Optional[FlagType] = None
     aggregation: Optional[Aggregation] = None
     variation_data_set: Optional[DataSet] = None
     reference_data_set: Optional[DataSet] = None
@@ -103,7 +103,7 @@ class KPI(ABC):
         pass
     
     @abstractmethod
-    def required_flags(self) -> set[Flagtype]:
+    def required_flags(self) -> set[FlagType]:
         pass
 
     @property
@@ -136,7 +136,7 @@ class KPI(ABC):
         """
         raise NotImplementedError
 
-    def get_attributed_model_flag(self) -> Flagtype:
+    def get_attributed_model_flag(self) -> FlagType:
         """
         Only necessary in case one wants to be able to retrieve the attributed model_flag for a KPI.
         For example you'd want this in case you need this info for plotting.
@@ -242,7 +242,7 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
             return f'{self.name} {ds_name}'
         return f'{ds_name} {self.name}'
 
-    def required_flags(self) -> set[Flagtype]:
+    def required_flags(self) -> set[FlagType]:
         return self._variation_kpi.required_flags().union(self._reference_kpi.required_flags())
 
     @property
@@ -293,7 +293,7 @@ class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComp
     def get_attributed_object_name(self) -> str | int:
         return self._variation_kpi.get_attributed_object_name()
 
-    def get_attributed_model_flag(self) -> Flagtype:
+    def get_attributed_model_flag(self) -> FlagType:
         return self._variation_kpi.get_attributed_model_flag()
 
     def get_attributed_object_info_from_model(self) -> pd.Series:

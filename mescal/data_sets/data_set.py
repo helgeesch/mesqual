@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from mescal.typevars import DataSetConfigType, Flagtype, FlagIndexType
+from mescal.typevars import DataSetConfigType, FlagType, FlagIndexType
 from mescal.databases.data_base import DataBase
 from mescal.utils.string_conventions import to_lower_snake
 from mescal.flag.flag_index import EmptyFlagIndex
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 def flag_must_be_accepted(method):
-    def raise_if_flag_not_accepted(self: DataSet, flag: Flagtype, config: DataSetConfigType = None, **kwargs):
+    def raise_if_flag_not_accepted(self: DataSet, flag: FlagType, config: DataSetConfigType = None, **kwargs):
         if not self.flag_is_accepted(flag):
             raise ValueError(f'Flag {flag} not accepted by DataSet "{self.name}" of type {type(self)}.')
         return method(self, flag, config, **kwargs)
@@ -52,7 +52,7 @@ class _DotNotationFetcher:
         return self._data_set.fetch(self._data_set.flag_index.get_flag_from_string(str(self)))
 
 
-class DataSet(Generic[DataSetConfigType, Flagtype, FlagIndexType], ABC):
+class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
     def __init__(
             self,
             name: str = None,
@@ -127,10 +127,10 @@ class DataSet(Generic[DataSetConfigType, Flagtype, FlagIndexType], ABC):
 
     @property
     @abstractmethod
-    def accepted_flags(self) -> set[Flagtype]:
+    def accepted_flags(self) -> set[FlagType]:
         return set()
 
-    def flag_is_accepted(self, flag: Flagtype) -> bool:
+    def flag_is_accepted(self, flag: FlagType) -> bool:
         """
         This method can be optionally overridden in any child-class
         in case you want to follow logic instead of the explicit set of accepted_flags.
@@ -138,15 +138,15 @@ class DataSet(Generic[DataSetConfigType, Flagtype, FlagIndexType], ABC):
         return flag in self.accepted_flags
 
     @flag_must_be_accepted
-    def required_flags_for_flag(self, flag: Flagtype) -> set[Flagtype]:
+    def required_flags_for_flag(self, flag: FlagType) -> set[FlagType]:
         return self._required_flags_for_flag(flag)
 
     @abstractmethod
-    def _required_flags_for_flag(self, flag: Flagtype) -> set[Flagtype]:
+    def _required_flags_for_flag(self, flag: FlagType) -> set[FlagType]:
         return set()
 
     @flag_must_be_accepted
-    def fetch(self, flag: Flagtype, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
+    def fetch(self, flag: FlagType, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
         effective_config = self._prepare_config(config)
         use_database = self._data_base is not None and effective_config.use_database
 
@@ -165,7 +165,7 @@ class DataSet(Generic[DataSetConfigType, Flagtype, FlagIndexType], ABC):
     def _post_process_data(
             self,
             data: pd.Series | pd.DataFrame,
-            flag: Flagtype,
+            flag: FlagType,
             config: DataSetConfigType
     ) -> pd.Series | pd.DataFrame:
         if config.remove_duplicate_indices and any(data.index.duplicated()):
@@ -196,12 +196,12 @@ class DataSet(Generic[DataSetConfigType, Flagtype, FlagIndexType], ABC):
         raise TypeError(f"Config must be dict or {DataSetConfig.__name__}, got {type(config)}")
 
     @abstractmethod
-    def _fetch(self, flag: Flagtype, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: FlagType, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
         return pd.DataFrame()
 
     def fetch_multiple_flags_and_concat(
             self,
-            flags: Iterable[Flagtype],
+            flags: Iterable[FlagType],
             concat_axis: int = 1,
             concat_level_name: str = 'variable',
             concat_level_at_top: bool = True,
@@ -225,7 +225,7 @@ class DataSet(Generic[DataSetConfigType, Flagtype, FlagIndexType], ABC):
 
     def fetch_filter_groupby_agg(
             self,
-            flag: Flagtype,
+            flag: FlagType,
             model_filter_query: str = None,
             prop_groupby: str | list[str] = None,
             prop_groupby_agg: str = None,
@@ -259,7 +259,7 @@ class DataSet(Generic[DataSetConfigType, Flagtype, FlagIndexType], ABC):
         return data
 
     @classmethod
-    def get_flag_type(cls) -> Type[Flagtype]:
+    def get_flag_type(cls) -> Type[FlagType]:
         from mescal.flag.flag import FlagTypeProtocol
         return FlagTypeProtocol
 

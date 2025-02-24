@@ -6,13 +6,13 @@ import pandas as pd
 
 from mescal.data_sets.data_set import DataSet
 from mescal.data_sets.data_set_collection import DataSetCollection, DataSetConcatCollection
-from mescal.typevars import Flagtype, DataSetConfigType, FlagIndexType, DataSetType
+from mescal.typevars import FlagType, DataSetConfigType, FlagIndexType, DataSetType
 from mescal.utils.pandas_utils.is_numeric import pd_is_numeric
 
 
 class DataSetComparison(
-    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
-    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+    Generic[DataSetType, DataSetConfigType, FlagType, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, FlagType, FlagIndexType]
 ):
     """
     Takes two DataSets (variation and reference) and fetch method will return the delta between the two (var-ref).
@@ -38,7 +38,7 @@ class DataSetComparison(
         self.variation_data_set = variation_data_set
         self.reference_data_set = reference_data_set
 
-    def _fetch(self, flag: Flagtype, effective_config: DataSetConfigType, fill_value: float | int | None = 0, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: FlagType, effective_config: DataSetConfigType, fill_value: float | int | None = 0, **kwargs) -> pd.Series | pd.DataFrame:
         df_var: pd.DataFrame = self.variation_data_set.fetch(flag, effective_config, **kwargs)
         df_ref: pd.DataFrame = self.reference_data_set.fetch(flag, effective_config, **kwargs)
 
@@ -51,8 +51,8 @@ class DataSetComparison(
 
 
 class DataSetConcatCollectionOfComparisons(
-    Generic[DataSetConfigType, Flagtype, FlagIndexType],
-    DataSetConcatCollection[DataSetComparison, DataSetConfigType, Flagtype, FlagIndexType]
+    Generic[DataSetConfigType, FlagType, FlagIndexType],
+    DataSetConcatCollection[DataSetComparison, DataSetConfigType, FlagType, FlagIndexType]
 ):
     @classmethod
     def get_child_data_set_type(cls) -> type[DataSetType]:

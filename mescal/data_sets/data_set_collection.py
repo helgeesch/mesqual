@@ -11,7 +11,7 @@ from mescal.utils.logging import get_logger
 from mescal.utils.pandas_utils.combine_df import combine_dfs
 from mescal.utils.set_aggregations import nested_union
 from mescal.utils.intersect_dicts import get_intersection_of_dicts
-from mescal.typevars import DataSetType, DataSetConfigType, Flagtype, FlagIndexType
+from mescal.typevars import DataSetType, DataSetConfigType, FlagType, FlagIndexType
 
 if TYPE_CHECKING:
     from mescal.kpis.kpi_base import KPIFactory
@@ -25,13 +25,13 @@ def _never_skip_ds_condition(ds: DataSet) -> bool:
     return False
 
 
-def skip_ds_if_flag_not_accepted_condition(flag: Flagtype) -> Callable[[DataSet], bool]:
+def skip_ds_if_flag_not_accepted_condition(flag: FlagType) -> Callable[[DataSet], bool]:
     return lambda ds: not ds.flag_is_accepted(flag)
 
 
 class DataSetCollection(
-    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
-    DataSet[DataSetConfigType, Flagtype, FlagIndexType],
+    Generic[DataSetType, DataSetConfigType, FlagType, FlagIndexType],
+    DataSet[DataSetConfigType, FlagType, FlagIndexType],
     ABC
 ):
     """
@@ -126,20 +126,20 @@ class DataSetCollection(
     @abstractmethod
     def _fetch(
             self,
-            flag: Flagtype,
+            flag: FlagType,
             effective_config: DataSetConfigType,
             **kwargs
     ) -> pd.Series | pd.DataFrame:
         pass
 
-    def flag_is_accepted(self, flag: Flagtype) -> bool:
+    def flag_is_accepted(self, flag: FlagType) -> bool:
         return any(ds.flag_is_accepted(flag) for ds in self.data_set_iterator)
 
     @property
-    def accepted_flags(self) -> set[Flagtype]:
+    def accepted_flags(self) -> set[FlagType]:
         return nested_union([ds.accepted_flags for ds in self.data_set_iterator])
 
-    def _required_flags_for_flag(self, flag: Flagtype) -> set[Flagtype]:
+    def _required_flags_for_flag(self, flag: FlagType) -> set[FlagType]:
         return nested_union([ds.accepted_flags for ds in self.data_set_iterator])
 
     @property
@@ -173,8 +173,8 @@ class DataSetCollection(
 
 
 class DataSetLinkCollection(
-    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
-    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+    Generic[DataSetType, DataSetConfigType, FlagType, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, FlagType, FlagIndexType]
 ):
     """
     Links multiple DataSet instances so:
@@ -203,7 +203,7 @@ class DataSetLinkCollection(
         )
         self._warn_if_flags_overlap()
 
-    def _fetch(self, flag: Flagtype, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: FlagType, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
         for ds in self.data_set_iterator:
             if ds.flag_is_accepted(flag):
                 return ds.fetch(flag, effective_config, **kwargs)
@@ -228,8 +228,8 @@ class DataSetLinkCollection(
 
 
 class DataSetMergeCollection(
-    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
-    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+    Generic[DataSetType, DataSetConfigType, FlagType, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, FlagType, FlagIndexType]
 ):
     """
     Fetch method will merge fragmented DataSets for same flag, e.g.:
@@ -258,7 +258,7 @@ class DataSetMergeCollection(
         )
         self.keep_first = keep_first
 
-    def _fetch(self, flag: Flagtype, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: FlagType, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
         df = self._combine_dfs(
             get_df_from_data_set_method=lambda ds: ds.fetch(flag, effective_config, **kwargs),
             keep_first=self.keep_first,
@@ -286,8 +286,8 @@ class DataSetMergeCollection(
 
 
 class DataSetConcatCollection(
-    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
-    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+    Generic[DataSetType, DataSetConfigType, FlagType, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, FlagType, FlagIndexType]
 ):
     """
     Fetch method will return a concatenation of all sub-DataSets with an additional Index-level.
@@ -330,7 +330,7 @@ class DataSetConcatCollection(
 
     def _fetch(
             self,
-            flag: Flagtype,
+            flag: FlagType,
             effective_config: DataSetConfigType,
             skip_ds_condition: Callable[[DataSet], bool] = None,
             concat_axis: int = None,
@@ -389,10 +389,10 @@ class DataSetConcatCollection(
 
 
 class DataSetSumCollection(
-    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
-    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+    Generic[DataSetType, DataSetConfigType, FlagType, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, FlagType, FlagIndexType]
 ):
-    def _fetch(self, flag: Flagtype, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: FlagType, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
         data: list[pd.Series | pd.DataFrame] = []
         for ds in self.data_set_iterator:
             if ds.flag_is_accepted(flag):

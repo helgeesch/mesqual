@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from mescal.typevars import DataSetType, Flagtype, DataSetConfigType
+from mescal.typevars import DataSetType, FlagType, DataSetConfigType
 from mescal.databases.data_base import DataBase
 
 
@@ -14,7 +14,7 @@ class PickleDataBase(DataBase):
     def get(
             self,
             data_set: DataSetType,
-            flag: Flagtype,
+            flag: FlagType,
             config: DataSetConfigType,
             **kwargs
     ) -> pd.Series | pd.DataFrame:
@@ -23,7 +23,7 @@ class PickleDataBase(DataBase):
     def set(
             self,
             data_set: DataSetType,
-            flag: Flagtype,
+            flag: FlagType,
             config: DataSetConfigType,
             value,
             **kwargs
@@ -34,7 +34,7 @@ class PickleDataBase(DataBase):
     def key_is_up_to_date(
             self,
             data_set: DataSetType,
-            flag: Flagtype,
+            flag: FlagType,
             config: DataSetConfigType,
             **kwargs
     ):
@@ -69,7 +69,7 @@ class PickleDataBase(DataBase):
         sorted_items = sorted(str_dict.items())
         return str(hash(str(sorted_items)))
 
-    def _get_file_path(self, data_set: DataSetType, flag: Flagtype, config: DataSetConfigType = None, **kwargs) -> str:
+    def _get_file_path(self, data_set: DataSetType, flag: FlagType, config: DataSetConfigType = None, **kwargs) -> str:
         components = [data_set.name, str(flag)]
 
         config_hash = self._get_config_hash(config)

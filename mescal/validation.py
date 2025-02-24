@@ -2,7 +2,7 @@ from typing import Iterable
 from abc import ABC, abstractmethod
 
 from mescal.data_sets import DataSet
-from mescal.typevars import Flagtype
+from mescal.typevars import FlagType
 from mescal.utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -65,7 +65,7 @@ class DataSetValidator(ABC):
 class ConstraintValidation(Validation):
     def __init__(
             self,
-            flag: Flagtype,
+            flag: FlagType,
             min_value: float | None = None,
             max_value: float | None = None,
             exact_value: float | None = None,
