@@ -6,8 +6,7 @@ import inspect
 
 from mescal.data_sets.data_set import DataSet
 from mescal.data_sets.data_set_collection import DataSetLinkCollection
-from mescal.typevars import Flagtype, DataSetType, DataSetConfigType
-from mescal.flag.flag_index import FlagIndex
+from mescal.typevars import Flagtype, DataSetType, DataSetConfigType, FlagIndexType
 from mescal.databases.data_base import DataBase
 
 
@@ -41,7 +40,11 @@ class InterpreterSignature:
         )
 
 
-class PlatformDataSet(Generic[DataSetType, DataSetConfigType], DataSetLinkCollection[DataSetType, DataSetConfigType], ABC):
+class PlatformDataSet(
+    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
+    DataSetLinkCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
+    ABC
+):
     """
     Base class for managing platform-specific data interpreters in a type-safe way.
 
@@ -59,21 +62,21 @@ class PlatformDataSet(Generic[DataSetType, DataSetConfigType], DataSetLinkCollec
     ----------
     _interpreter_registry : list[Type[DataSetType]]
         List of registered interpreter classes, ordered by registration time (newest first)
-    _child_data_set_type : Type[DataSetType]
-        Base type for all interpreters that can be registered with this platform
 
     Usage
     -----
     To create a platform-specific dataset:
     1. Subclass PlatformDataSet
-    2. Define _child_data_set_type
+    2. Define get_collection_member_data_set_type
     3. Create interpreters that inherit from _child_data_set_type
     4. Register interpreters using the @register_interpreter decorator
 
     Example
     -------
     >>> class MyPlatformDataSet(PlatformDataSet[MyInterpreterBase]):
-    ...     _child_data_set_type = MyInterpreterBase
+    ...     @classmethod
+    ...     def get_collection_member_data_set_type(cls) -> type[DataSetType]:
+    ...         return MyInterpreterBase
     ...
     >>> @MyPlatformDataSet.register_interpreter
     ... class ModelCSVInterpreter(MyInterpreterBase):
@@ -103,12 +106,11 @@ class PlatformDataSet(Generic[DataSetType, DataSetConfigType], DataSetLinkCollec
     """
 
     _interpreter_registry: list[Type[DataSetType]] = []
-    _child_data_set_type: Type[DataSetType]
 
     def __init__(
             self,
             name: str = None,
-            flag_index: FlagIndex = None,
+            flag_index: FlagIndexType = None,
             attributes: dict = None,
             data_base: DataBase = None,
             config: DataSetConfigType = None,

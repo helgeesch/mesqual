@@ -1,10 +1,10 @@
 from __future__ import annotations
-from typing import Set, Dict, TYPE_CHECKING
+from typing import Set, Dict, TYPE_CHECKING, Generic
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from functools import wraps
 
-from mescal.flag.flag import Flagtype
+from mescal.typevars import Flagtype
 from mescal.enums import ItemTypeEnum, VisualizationTypeEnum, TopologyTypeEnum, QuantityTypeEnum
 from mescal.units import Units
 
@@ -34,7 +34,7 @@ def return_from_explicit_registry_if_available(attribute):
     return decorator
 
 
-class FlagIndex(ABC):
+class FlagIndex(Generic[Flagtype], ABC):
     def __init__(self, data_set: DataSet = None):
         self._explicit_registry: Dict[Flagtype, RegistryEntry] = dict()
         self.linked_data_set = data_set
@@ -180,6 +180,11 @@ class FlagIndex(ABC):
             return True
         except KeyError:
             return False
+
+    @classmethod
+    def get_flag_type(cls) -> type[Flagtype]:
+        from mescal.flag.flag import FlagTypeProtocol
+        return FlagTypeProtocol
 
 
 class EmptyFlagIndex(FlagIndex):

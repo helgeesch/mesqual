@@ -1,8 +1,8 @@
 from typing import Protocol
 
 
-class Flagtype(Protocol):
-    """A Flagtype can be anything that is Hashable as well as Stringable."""
+class FlagTypeProtocol(Protocol):
+    """A FlagType can be anything that is Hashable as well as Stringable."""
     def __hash__(self) -> int:
         ...  # Placeholder: just indicates that __hash__ must exist
 

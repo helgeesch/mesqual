@@ -11,7 +11,7 @@ from mescal.utils.logging import get_logger
 from mescal.utils.pandas_utils.combine_df import combine_dfs
 from mescal.utils.set_aggregations import nested_union
 from mescal.utils.intersect_dicts import get_intersection_of_dicts
-from mescal.typevars import DataSetType, DataSetConfigType, Flagtype
+from mescal.typevars import DataSetType, DataSetConfigType, Flagtype, FlagIndexType
 
 if TYPE_CHECKING:
     from mescal.kpis.kpi_base import KPIFactory
@@ -29,16 +29,16 @@ def skip_ds_if_flag_not_accepted_condition(flag: Flagtype) -> Callable[[DataSet]
     return lambda ds: not ds.flag_is_accepted(flag)
 
 
-class DataSetCollection(Generic[DataSetType, DataSetConfigType], DataSet[DataSetConfigType], ABC):
+class DataSetCollection(
+    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
+    DataSet[DataSetConfigType, Flagtype, FlagIndexType],
+    ABC
+):
     """
     Abstract class to collect multiple DataSet instances
     and handle them according to a specific logic.
     Inherits all methods / functionalities from DataSet.
     """
-
-    # Class attribute to store the data_set type,
-    # can optionally be overwritten in child-classes
-    data_set_type: Type[DataSetType] = DataSet
 
     def __init__(
             self,
@@ -157,8 +157,8 @@ class DataSetCollection(Generic[DataSetType, DataSetConfigType], DataSet[DataSet
             self.add_data_set(ds)
 
     def add_data_set(self, data_set: DataSetType):
-        if not isinstance(data_set, self.data_set_type):
-            raise TypeError(f"Can only add data sets of type {self.data_set_type.__name__}.")
+        if not isinstance(data_set, self.get_collection_member_data_set_type()):
+            raise TypeError(f"Can only add data sets of type {self.get_collection_member_data_set_type().__name__}.")
         if data_set.name not in self.data_sets:
             self.data_sets[data_set.name] = data_set
         else:
@@ -167,8 +167,15 @@ class DataSetCollection(Generic[DataSetType, DataSetConfigType], DataSet[DataSet
                 f"data_set {data_set.name} already in {type(self).__name__}. Not added again."
             )
 
+    @classmethod
+    def get_collection_member_data_set_type(cls) -> type[DataSetType]:
+        return DataSet
 
-class DataSetLinkCollection(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
+
+class DataSetLinkCollection(
+    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+):
     """
     Links multiple DataSet instances so:
         - the parent DataSet accepts flags of all child DataSets.
@@ -220,7 +227,10 @@ class DataSetLinkCollection(Generic[DataSetType, DataSetConfigType], DataSetColl
             )
 
 
-class DataSetMergeCollection(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
+class DataSetMergeCollection(
+    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+):
     """
     Fetch method will merge fragmented DataSets for same flag, e.g.:
         - fragmented simulation runs, e.g. CW1, CW2, CW3, CWn.
@@ -275,7 +285,10 @@ class DataSetMergeCollection(Generic[DataSetType, DataSetConfigType], DataSetCol
         return df
 
 
-class DataSetConcatCollection(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
+class DataSetConcatCollection(
+    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+):
     """
     Fetch method will return a concatenation of all sub-DataSets with an additional Index-level.
     """
@@ -375,7 +388,10 @@ class DataSetConcatCollection(Generic[DataSetType, DataSetConfigType], DataSetCo
         return df
 
 
-class DataSetSumCollection(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
+class DataSetSumCollection(
+    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+):
     def _fetch(self, flag: Flagtype, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
         data: list[pd.Series | pd.DataFrame] = []
         for ds in self.data_set_iterator:

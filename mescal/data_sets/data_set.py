@@ -5,10 +5,10 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from mescal.typevars import DataSetConfigType, Flagtype
+from mescal.typevars import DataSetConfigType, Flagtype, FlagIndexType
 from mescal.databases.data_base import DataBase
 from mescal.utils.string_conventions import to_lower_snake
-from mescal.flag.flag_index import EmptyFlagIndex, FlagIndex
+from mescal.flag.flag_index import EmptyFlagIndex
 from mescal.utils.logging import get_logger
 
 if TYPE_CHECKING:
@@ -52,12 +52,12 @@ class _DotNotationFetcher:
         return self._data_set.fetch(self._data_set.flag_index.get_flag_from_string(str(self)))
 
 
-class DataSet(Generic[DataSetConfigType], ABC):
+class DataSet(Generic[DataSetConfigType, Flagtype, FlagIndexType], ABC):
     def __init__(
             self,
             name: str = None,
             parent_data_set: DataSet = None,
-            flag_index: FlagIndex = None,
+            flag_index: FlagIndexType = None,
             attributes: dict = None,
             data_base: DataBase = None,
             config: DataSetConfigType = None
@@ -74,7 +74,7 @@ class DataSet(Generic[DataSetConfigType], ABC):
         self.kpi_collection: KPICollection = KPICollection()
 
     @property
-    def flag_index(self) -> FlagIndex:
+    def flag_index(self) -> FlagIndexType:
         if isinstance(self._flag_index, EmptyFlagIndex):
             logger.info(
                 f"DataSet {self.name}: "
@@ -257,6 +257,16 @@ class DataSet(Generic[DataSetConfigType], ABC):
                 f"No aggregation performed."
             )
         return data
+
+    @classmethod
+    def get_flag_type(cls) -> Type[Flagtype]:
+        from mescal.flag.flag import FlagTypeProtocol
+        return FlagTypeProtocol
+
+    @classmethod
+    def get_flag_index_type(cls) -> Type[FlagIndexType]:
+        from mescal.flag.flag_index import FlagIndex
+        return FlagIndex
 
     @classmethod
     def get_config_type(cls) -> Type[DataSetConfigType]:

@@ -5,12 +5,15 @@ from typing import Generic
 import pandas as pd
 
 from mescal.data_sets.data_set import DataSet
-from mescal.data_sets.data_set_collection import DataSetCollection, DataSetConcatCollection, DataSetType
-from mescal.typevars import Flagtype, DataSetConfigType
+from mescal.data_sets.data_set_collection import DataSetCollection, DataSetConcatCollection
+from mescal.typevars import Flagtype, DataSetConfigType, FlagIndexType, DataSetType
 from mescal.utils.pandas_utils.is_numeric import pd_is_numeric
 
 
-class DataSetComparison(Generic[DataSetType, DataSetConfigType], DataSetCollection[DataSetType, DataSetConfigType]):
+class DataSetComparison(
+    Generic[DataSetType, DataSetConfigType, Flagtype, FlagIndexType],
+    DataSetCollection[DataSetType, DataSetConfigType, Flagtype, FlagIndexType]
+):
     """
     Takes two DataSets (variation and reference) and fetch method will return the delta between the two (var-ref).
     """
@@ -48,7 +51,7 @@ class DataSetComparison(Generic[DataSetType, DataSetConfigType], DataSetCollecti
 
 
 class DataSetConcatCollectionOfComparisons(
-    Generic[DataSetType, DataSetConfigType],
-    DataSetConcatCollection[DataSetComparison, DataSet]
+    Generic[DataSetConfigType, Flagtype, FlagIndexType],
+    DataSetConcatCollection[DataSetComparison, DataSetConfigType, Flagtype, FlagIndexType]
 ):
     data_set_type = DataSetComparison
