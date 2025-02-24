@@ -41,15 +41,43 @@ class PickleDataBase(DataBase):
         file_path = self._get_file_path(data_set, flag, config, **kwargs)
         return os.path.exists(file_path)
 
+    def _get_config_hash(self, config: DataSetConfigType = None) -> str:
+        if config is None:
+            return ""
+
+        attrs = {
+            name: getattr(config, name)
+            for name in dir(config)
+            if not name.startswith('_') and not callable(getattr(config, name))
+        }
+
+        sorted_items = sorted(attrs.items())
+
+        # Convert to string representation for hashing
+        config_str = str(sorted_items)
+        return str(hash(config_str))
+
+    def _get_kwargs_hash(self, kwargs: dict) -> str:
+        if not kwargs:
+            return ""
+
+        str_dict = {
+            str(k): str(v)
+            for k, v in kwargs.items()
+        }
+
+        sorted_items = sorted(str_dict.items())
+        return str(hash(str(sorted_items)))
+
     def _get_file_path(self, data_set: DataSetType, flag: Flagtype, config: DataSetConfigType = None, **kwargs) -> str:
         components = [data_set.name, str(flag)]
 
-        if config:
-            config_hash = hash(frozenset(config.__dict__.items()))
+        config_hash = self._get_config_hash(config)
+        if config_hash:
             components.append(f"config_{config_hash}")
 
-        if kwargs:
-            kwargs_hash = hash(frozenset(kwargs.items()))
+        kwargs_hash = self._get_kwargs_hash(kwargs)
+        if kwargs_hash:
             components.append(f"kwargs_{kwargs_hash}")
 
         filename = "_".join(components) + ".pickle"

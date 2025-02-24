@@ -181,10 +181,9 @@ class FlagAggKPI(Generic[DataSetType], KPI):
     def get_attributed_model_flag(self) -> Flagtype:
         """
         Only necessary in case one wants to be able to retrieve the attributed model_flag for a KPI.
-        For example you'd want this in case you need this info for plotting.
+        For example you'd want this for applying a model query, or in case you need this info for plotting.
         """
-        model_flag = self._data_set.flag_index.get_linked_model_flag(self._flag)
-        return model_flag
+        return self._data_set.flag_index.get_linked_model_flag(self._flag)
 
     def compute(self):
         data = self._fetch_filtered_data(self._data_set)
@@ -194,11 +193,8 @@ class FlagAggKPI(Generic[DataSetType], KPI):
     def required_flags(self) -> set[Flagtype]:
         flags = {self._flag}
         if self._model_query:
-            flags.add(self._get_model_flag_for_flag())
+            flags.add(self.get_attributed_model_flag())
         return flags
-
-    def _get_model_flag_for_flag(self) -> Flagtype:
-        return self._data_set.flag_index.get_linked_model_flag(self._flag)
 
 
 class FlagAggKPIFactory(Generic[DataSetType], KPIFactory[DataSetType, FlagAggKPI]):

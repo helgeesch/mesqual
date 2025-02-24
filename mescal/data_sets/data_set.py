@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 def flag_must_be_accepted(method):
-    def raise_if_flag_not_accepted(self: DataSet, flag: Flagtype = None, config: DataSetConfigType = None, **kwargs):
+    def raise_if_flag_not_accepted(self: DataSet, flag: Flagtype, config: DataSetConfigType = None, **kwargs):
         if not self.flag_is_accepted(flag):
             raise ValueError(f'Flag {flag} not accepted by DataSet "{self.name}" of type {type(self)}.')
         return method(self, flag, config, **kwargs)
@@ -154,11 +154,11 @@ class DataSet(Generic[DataSetConfigType], ABC):
             if self._data_base.key_is_up_to_date(self, flag, config=effective_config, **kwargs):
                 return self._data_base.get(self, flag, config=effective_config, **kwargs)
 
-        raw_data = self._fetch(flag, config=effective_config, **kwargs)
+        raw_data = self._fetch(flag, effective_config, **kwargs)
         processed_data = self._post_process_data(raw_data, flag, effective_config)
 
         if use_database:
-            self._data_base.set(self, flag, processed_data, config=effective_config, **kwargs)
+            self._data_base.set(self, flag, config=effective_config, value=processed_data, **kwargs)
 
         return processed_data.copy()
 
@@ -196,7 +196,7 @@ class DataSet(Generic[DataSetConfigType], ABC):
         raise TypeError(f"Config must be dict or {DataSetConfig.__name__}, got {type(config)}")
 
     @abstractmethod
-    def _fetch(self, flag: Flagtype, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: Flagtype, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
         return pd.DataFrame()
 
     def fetch_multiple_flags_and_concat(

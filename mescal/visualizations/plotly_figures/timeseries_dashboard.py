@@ -234,6 +234,7 @@ class TimeSeriesDashboard:
             if data.columns.name is None:
                 data.columns.name = 'variable'
             data = _insert_empty_column_index_level(data)
+        # TODO: ensure each combination of the columns exist so that facet col doesn't get out of order in case of missing data
         return data
 
     @staticmethod
@@ -431,19 +432,5 @@ class TimeSeriesDashboard:
 
 
 if __name__ == '__main__':
-    from eda.utils.sample_generators.generate_random_time_series import generate_dataframe_with_time_series
-    from eda.utils.plotly_utils.figures_to_html import figures_to_html
-
-    figs = []
-
-    _temp = generate_dataframe_with_time_series([2, 4], freq='1h')
-    _fig_gen = TimeSeriesDashboard(facet_col=_temp.columns.names[0], facet_row=_temp.columns.names[1])
-    _fig = _fig_gen.get_figure(_temp, x_axis='year_week')
-    figs.append(_fig)
-
-    _temp = generate_dataframe_with_time_series([2], freq='15min')
-    _fig_gen = TimeSeriesDashboard(facet_col=_temp.columns.names[0], facet_row='x_axis')
-    _fig = _fig_gen.get_figure(_temp, x_axis=['month', 'year_week', 'date'])
-    figs.append(_fig)
-
-    figures_to_html('_tmp/TimeSeriesDashboard.html', figs)
+    # TODO: provide example
+    pass
