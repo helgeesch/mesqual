@@ -1,19 +1,19 @@
 import os
 
-from mescal.data_sets.data_set_collection import DataSetConcatCollection, DataSet
-from mescal.data_sets.data_set_comparison import DataSetComparison, DataSetConcatCollectionOfComparisons
+from mescal.datasets.dataset_collection import DatasetConcatCollection, Dataset
+from mescal.datasets.dataset_comparison import DatasetComparison, DatasetConcatCollectionOfComparisons
 
 
 class StudyManager:
     def __init__(
             self,
-            scenarios: DataSetConcatCollection,
-            comparisons: DataSetConcatCollectionOfComparisons,
+            scenarios: DatasetConcatCollection,
+            comparisons: DatasetConcatCollectionOfComparisons,
             export_folder: str = None,
     ):
         self._scenarios = scenarios
         self._comparisons = comparisons
-        self._scenarios_and_comparisons: DataSetConcatCollection = DataSetConcatCollection(
+        self._scenarios_and_comparisons: DatasetConcatCollection = DatasetConcatCollection(
             [
                 scenarios,
                 comparisons
@@ -26,21 +26,21 @@ class StudyManager:
             self._ensure_folder_exists(export_folder)
 
     @property
-    def scen(self) -> DataSetConcatCollection:
+    def scen(self) -> DatasetConcatCollection:
         return self._scenarios
 
-    def add_scenario(self, data_set: DataSet):
-        self._scenarios.add_data_set(data_set)
+    def add_scenario(self, dataset: Dataset):
+        self._scenarios.add_dataset(dataset)
 
     @property
-    def comp(self) -> DataSetConcatCollectionOfComparisons:
+    def comp(self) -> DatasetConcatCollectionOfComparisons:
         return self._comparisons
 
-    def add_comparison(self, data_set: DataSetComparison):
-        self._comparisons.add_data_set(data_set)
+    def add_comparison(self, dataset: DatasetComparison):
+        self._comparisons.add_dataset(dataset)
 
     @property
-    def scen_comp(self) -> DataSetConcatCollection:
+    def scen_comp(self) -> DatasetConcatCollection:
         return self._scenarios_and_comparisons
 
     @property
@@ -65,17 +65,17 @@ class StudyManager:
     @classmethod
     def factory_from_scenarios(
             cls,
-            scenarios: list[DataSet],
+            scenarios: list[Dataset],
             comparisons: list[tuple[str, str]],
             export_folder: str = None
     ) -> 'StudyManager':
-        scen = DataSetConcatCollection(scenarios, name='scenario', concat_level_name='data_set',)
-        comp = DataSetConcatCollectionOfComparisons(
-            data_sets=[
-                DataSetComparison(scen.get_data_set(var), scen.get_data_set(ref))
+        scen = DatasetConcatCollection(scenarios, name='scenario', concat_level_name='dataset',)
+        comp = DatasetConcatCollectionOfComparisons(
+            datasets=[
+                DatasetComparison(scen.get_dataset(var), scen.get_dataset(ref))
                 for var, ref in comparisons
             ],
             name='comparison',
-            concat_level_name='data_set',
+            concat_level_name='dataset',
         )
         return cls(scen, comp, export_folder)

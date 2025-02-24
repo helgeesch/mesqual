@@ -5,14 +5,14 @@ from abc import ABC, abstractmethod
 
 import pandas as pd
 
-from mescal.typevars import DataSetConfigType, FlagType, FlagIndexType
+from mescal.typevars import DatasetConfigType, FlagType, FlagIndexType
 from mescal.databases.data_base import DataBase
 from mescal.utils.string_conventions import to_lower_snake
 from mescal.flag.flag_index import EmptyFlagIndex
 from mescal.utils.logging import get_logger
 
 if TYPE_CHECKING:
-    from mescal.data_sets.data_set_collection import DataSetLinkCollection
+    from mescal.datasets.dataset_collection import DatasetLinkCollection
     from mescal.kpis.kpi_collection import KPICollection
     from mescal.kpis.kpi_base import KPI, KPIFactory
 
@@ -20,51 +20,51 @@ logger = get_logger(__name__)
 
 
 def flag_must_be_accepted(method):
-    def raise_if_flag_not_accepted(self: DataSet, flag: FlagType, config: DataSetConfigType = None, **kwargs):
+    def raise_if_flag_not_accepted(self: Dataset, flag: FlagType, config: DatasetConfigType = None, **kwargs):
         if not self.flag_is_accepted(flag):
-            raise ValueError(f'Flag {flag} not accepted by DataSet "{self.name}" of type {type(self)}.')
+            raise ValueError(f'Flag {flag} not accepted by Dataset "{self.name}" of type {type(self)}.')
         return method(self, flag, config, **kwargs)
     return raise_if_flag_not_accepted
 
 
 class _DotNotationFetcher:
     """
-    Enables dot notation access for DataSet flag fetching.
+    Enables dot notation access for Dataset flag fetching.
 
     Accumulates flag parts through attribute access and converts them to a flag via
     the dataset's flag_index when executed. Supports both immediate execution through
     direct dataset attribute access and delayed execution through fetch_dotted.
 
     Usage:
-        data_set.dotfetch.my.flag.as.string()
+        dataset.dotfetch.my.flag.as.string()
     """
-    def __init__(self, data_set, accumulated_parts: list[str] = None):
-        self._data_set = data_set
+    def __init__(self, dataset, accumulated_parts: list[str] = None):
+        self._dataset = dataset
         self._accumulated_parts = accumulated_parts or []
 
     def __getattr__(self, part: str) -> '_DotNotationFetcher':
-        return _DotNotationFetcher(self._data_set, self._accumulated_parts + [part])
+        return _DotNotationFetcher(self._dataset, self._accumulated_parts + [part])
 
     def __str__(self) -> str:
         return '.'.join(self._accumulated_parts)
 
     def __call__(self) -> pd.DataFrame | pd.Series:
-        return self._data_set.fetch(self._data_set.flag_index.get_flag_from_string(str(self)))
+        return self._dataset.fetch(self._dataset.flag_index.get_flag_from_string(str(self)))
 
 
-class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
+class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
     def __init__(
             self,
             name: str = None,
-            parent_data_set: DataSet = None,
+            parent_dataset: Dataset = None,
             flag_index: FlagIndexType = None,
             attributes: dict = None,
             data_base: DataBase = None,
-            config: DataSetConfigType = None
+            config: DatasetConfigType = None
     ):
         self.name = name or f'{self.__class__.__name__}_{str(id(self))}'
         self._flag_index = flag_index or EmptyFlagIndex()
-        self._parent_data_set = parent_data_set
+        self._parent_dataset = parent_dataset
         self._attributes: dict = attributes if attributes is not None else dict()
         self._data_base = data_base
         self._config = config
@@ -77,7 +77,7 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
     def flag_index(self) -> FlagIndexType:
         if isinstance(self._flag_index, EmptyFlagIndex):
             logger.info(
-                f"DataSet {self.name}: "
+                f"Dataset {self.name}: "
                 "You're trying to use functionality of the FlagIndex but didn't define one. "
                 "The current FlagIndex in use is empty. "
                 "Make sure to set a flag_index in case you want to use full functionality of the flag_index."
@@ -113,17 +113,17 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
         self._attributes.update(kwargs)
 
     @property
-    def parent_data_set(self) -> 'DataSetLinkCollection':
-        if self._parent_data_set is None:
-            raise RuntimeError(f"Parent data_set called without / before assignment.")
-        return self._parent_data_set
+    def parent_dataset(self) -> 'DatasetLinkCollection':
+        if self._parent_dataset is None:
+            raise RuntimeError(f"Parent dataset called without / before assignment.")
+        return self._parent_dataset
 
-    @parent_data_set.setter
-    def parent_data_set(self, parent_data_set: 'DataSetLinkCollection'):
-        from mescal.data_sets.data_set_collection import DataSetLinkCollection
-        if not isinstance(parent_data_set, DataSetLinkCollection):
-            raise TypeError(f"Parent parent_data_set must be of type {DataSetLinkCollection.__name__}")
-        self._parent_data_set = parent_data_set
+    @parent_dataset.setter
+    def parent_dataset(self, parent_dataset: 'DatasetLinkCollection'):
+        from mescal.datasets.dataset_collection import DatasetLinkCollection
+        if not isinstance(parent_dataset, DatasetLinkCollection):
+            raise TypeError(f"Parent parent_dataset must be of type {DatasetLinkCollection.__name__}")
+        self._parent_dataset = parent_dataset
 
     @property
     @abstractmethod
@@ -146,7 +146,7 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
         return set()
 
     @flag_must_be_accepted
-    def fetch(self, flag: FlagType, config: dict | DataSetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
+    def fetch(self, flag: FlagType, config: dict | DatasetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
         effective_config = self._prepare_config(config)
         use_database = self._data_base is not None and effective_config.use_database
 
@@ -166,7 +166,7 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
             self,
             data: pd.Series | pd.DataFrame,
             flag: FlagType,
-            config: DataSetConfigType
+            config: DatasetConfigType
     ) -> pd.Series | pd.DataFrame:
         if config.remove_duplicate_indices and any(data.index.duplicated()):
             logger.info(
@@ -180,7 +180,7 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
             data = data.sort_index()
         return data
 
-    def _prepare_config(self, config: dict | DataSetConfigType = None) -> DataSetConfigType:
+    def _prepare_config(self, config: dict | DatasetConfigType = None) -> DatasetConfigType:
         if config is None:
             return self.instance_config
 
@@ -189,14 +189,14 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
             temp_config.__dict__.update(config)
             return self.instance_config.merge(temp_config)
 
-        from mescal.data_sets.data_set_config import DataSetConfig
-        if isinstance(config, DataSetConfig):
+        from mescal.datasets.dataset_config import DatasetConfig
+        if isinstance(config, DatasetConfig):
             return self.instance_config.merge(config)
 
-        raise TypeError(f"Config must be dict or {DataSetConfig.__name__}, got {type(config)}")
+        raise TypeError(f"Config must be dict or {DatasetConfig.__name__}, got {type(config)}")
 
     @abstractmethod
-    def _fetch(self, flag: FlagType, effective_config: DataSetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
+    def _fetch(self, flag: FlagType, effective_config: DatasetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
         return pd.DataFrame()
 
     def fetch_multiple_flags_and_concat(
@@ -205,7 +205,7 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
             concat_axis: int = 1,
             concat_level_name: str = 'variable',
             concat_level_at_top: bool = True,
-            config: dict | DataSetConfigType = None,
+            config: dict | DatasetConfigType = None,
             **kwargs
     ) -> Union[pd.Series, pd.DataFrame]:
         dfs = {
@@ -229,7 +229,7 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
             model_filter_query: str = None,
             prop_groupby: str | list[str] = None,
             prop_groupby_agg: str = None,
-            config: dict | DataSetConfigType = None,
+            config: dict | DatasetConfigType = None,
             **kwargs
     ) -> pd.Series | pd.DataFrame:
         model_flag = self.flag_index.get_linked_model_flag(flag)
@@ -269,16 +269,16 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
         return FlagIndex
 
     @classmethod
-    def get_config_type(cls) -> Type[DataSetConfigType]:
-        from mescal.data_sets.data_set_config import DataSetConfig
-        return DataSetConfig
+    def get_config_type(cls) -> Type[DatasetConfigType]:
+        from mescal.datasets.dataset_config import DatasetConfig
+        return DatasetConfig
 
     @property
-    def instance_config(self) -> DataSetConfigType:
-        from mescal.data_sets.data_set_config import DataSetConfigManager
-        return DataSetConfigManager.get_effective_config(self.__class__, self._config)
+    def instance_config(self) -> DatasetConfigType:
+        from mescal.datasets.dataset_config import DatasetConfigManager
+        return DatasetConfigManager.get_effective_config(self.__class__, self._config)
 
-    def set_instance_config(self, config: DataSetConfigType) -> None:
+    def set_instance_config(self, config: DatasetConfigType) -> None:
         self._config = config
 
     def set_instance_config_kwargs(self, **kwargs) -> None:
@@ -286,9 +286,9 @@ class DataSet(Generic[DataSetConfigType, FlagType, FlagIndexType], ABC):
             setattr(self._config, key, value)
 
     @classmethod
-    def set_class_config(cls, config: DataSetConfigType) -> None:
-        from mescal.data_sets.data_set_config import DataSetConfigManager
-        DataSetConfigManager.set_class_config(cls, config)
+    def set_class_config(cls, config: DatasetConfigType) -> None:
+        from mescal.datasets.dataset_config import DatasetConfigManager
+        DatasetConfigManager.set_class_config(cls, config)
 
     @classmethod
     def _get_class_name_lower_snake(cls) -> str:

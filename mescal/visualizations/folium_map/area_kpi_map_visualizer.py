@@ -54,8 +54,8 @@ class AreaKPIMapVisualizer:
         return groups
 
     def _get_feature_group_name(self, kpi_group: KPICollection) -> str:
-        _include = ['value_operation', 'aggregation', 'flag', 'data_set', 'unit']
-        _exclude = ['variation_data_set', 'reference_data_set', 'model_flag', 'base_unit', 'data_set_type']
+        _include = ['value_operation', 'aggregation', 'flag', 'dataset', 'unit']
+        _exclude = ['variation_dataset', 'reference_dataset', 'model_flag', 'base_unit', 'dataset_type']
 
         attributes = kpi_group.get_in_common_kpi_attributes(primitive_values=True)
         for k in _exclude:
@@ -131,7 +131,7 @@ class AreaKPIMapVisualizer:
         return highlight
 
     def _get_tooltip(self, kpi: KPI) -> str:
-        kpi_name = kpi.get_kpi_name_with_data_set_name()
+        kpi_name = kpi.get_kpi_name_with_dataset_name()
         kpi_quantity = Units.get_quantity_in_pretty_unit(kpi.quantity)
         kpi_text = Units.get_pretty_text_for_quantity(kpi_quantity, thousands_separator=' ')
         html = '<table style="border-collapse: collapse;">\n'
@@ -151,7 +151,7 @@ class AreaKPIMapVisualizer:
             html += "<tr><p>&nbsp;</p></tr>"
             html += f'  <tr><th colspan="2" style="text-align: left; padding: 8px;">{name}</th></tr>\n'
             for related_kpi in group:
-                related_kpi_name = related_kpi.get_kpi_name_with_data_set_name()
+                related_kpi_name = related_kpi.get_kpi_name_with_dataset_name()
                 related_kpi_quantity = Units.get_quantity_in_pretty_unit(related_kpi.quantity)
                 related_kpi_value_text = Units.get_pretty_text_for_quantity(
                     related_kpi_quantity,
@@ -165,7 +165,7 @@ class AreaKPIMapVisualizer:
         groups = {
             'Different Comparisons / ValueOperations': KPICollection(),
             'Different Aggregations': KPICollection(),
-            'Different DataSets': KPICollection(),
+            'Different Datasets': KPICollection(),
         }
 
         kpi_atts = kpi.attributes.as_dict(primitive_values=True)
@@ -184,7 +184,7 @@ class AreaKPIMapVisualizer:
 
         for potential_relative in pre_filtered:
             pratts = potential_relative.attributes.as_dict(primitive_values=True)
-            if pratts.get('data_set') == kpi_atts.get('data_set'):  # same ds
+            if pratts.get('dataset') == kpi_atts.get('dataset'):  # same ds
                 if pratts.get('aggregation', None) == kpi_atts.get('aggregation'):  # same ds, agg
                     if pratts.get('value_operation', None) != kpi_atts.get('value_operation', None):
                         groups['Different Comparisons / ValueOperations'].add_kpi(potential_relative)
@@ -198,7 +198,7 @@ class AreaKPIMapVisualizer:
                         continue
             elif pratts.get('aggregation', None) == kpi_atts.get('aggregation'):  # same agg, diff ds
                 if pratts.get('value_operation', None) == kpi_atts.get('value_operation', None):
-                    groups['Different DataSets'].add_kpi(potential_relative)
+                    groups['Different Datasets'].add_kpi(potential_relative)
                     continue
                 if not _main_kpi_is_value_op:
                     groups['Different Comparisons / ValueOperations'].add_kpi(potential_relative)

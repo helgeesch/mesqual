@@ -43,13 +43,13 @@ The core package provides:
 ## Usage Example
 
 ```python
-# TODO: mock DataSet; mock study
+# TODO: mock Dataset; mock study
 from mescal.study_manager import StudyManager
-from mescal.data_sets import DataSet
+from mescal.datasets import Dataset
 
 # Create scenarios
-base_case = DataSet("base_case")
-scenario_1 = DataSet("scenario_1")
+base_case = Dataset("base_case")
+scenario_1 = Dataset("scenario_1")
 
 # Initialize study manager
 study = StudyManager.factory_from_scenarios(
@@ -71,10 +71,10 @@ To use mescal with a specific platform, install the corresponding connector pack
 
 ```python
 # Example using PyPSA connector
-from mescal_pypsa import PyPSADataSet
+from mescal_pypsa import PyPSADataset
 
 # Load PyPSA network
-dataset = PyPSADataSet("my_scenario")
+dataset = PyPSADataset("my_scenario")
 prices = dataset.fetch("Node.Price")
 ```
 

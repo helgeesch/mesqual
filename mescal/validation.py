@@ -1,7 +1,7 @@
 from typing import Iterable
 from abc import ABC, abstractmethod
 
-from mescal.data_sets import DataSet
+from mescal.datasets import Dataset
 from mescal.typevars import FlagType
 from mescal.utils.logging import get_logger
 
@@ -14,17 +14,17 @@ class ValidationError(Exception):
 
 class Validation(ABC):
     @abstractmethod
-    def validate(self, data_set: DataSet) -> bool:
+    def validate(self, dataset: Dataset) -> bool:
         pass
 
-    def get_error_message(self, data_set: DataSet) -> str:
-        return f"Validation {self.__class__.__name__} failed for DataSet {data_set.name} :("
+    def get_error_message(self, dataset: Dataset) -> str:
+        return f"Validation {self.__class__.__name__} failed for Dataset {dataset.name} :("
 
-    def get_success_message(self, data_set: DataSet) -> str:
-        return f"Validation {self.__class__.__name__} successful for DataSet {data_set.name} :)"
+    def get_success_message(self, dataset: Dataset) -> str:
+        return f"Validation {self.__class__.__name__} successful for Dataset {dataset.name} :)"
 
 
-class DataSetValidator(ABC):
+class DatasetValidator(ABC):
     def __init__(self):
         self.validations: list[Validation] = []
         self._register_validations()
@@ -40,18 +40,18 @@ class DataSetValidator(ABC):
     def add_validation(self, validation: Validation):
         self.validations.append(validation)
 
-    def validate_data_set(self, data_set: DataSet):
+    def validate_dataset(self, dataset: Dataset):
         num_successful = 0
         num_unsuccessful = 0
         for validation in self.validations:
-            if not validation.validate(data_set):
+            if not validation.validate(dataset):
                 num_unsuccessful += 1
-                logger.error(validation.get_error_message(data_set))
+                logger.error(validation.get_error_message(dataset))
             else:
                 num_successful += 1
-                logger.info(validation.get_success_message(data_set))
+                logger.info(validation.get_success_message(dataset))
 
-        _for_what_text = f"{self.__class__.__name__} on DataSet {data_set.name}"
+        _for_what_text = f"{self.__class__.__name__} on Dataset {dataset.name}"
         if num_unsuccessful == 0:
             message = f"Success! All {num_successful} validations passed for {_for_what_text} :)"
             logger.info(message)
@@ -79,8 +79,8 @@ class ConstraintValidation(Validation):
         self.isna_ok = isna_ok
         self.object_subset = object_subset
 
-    def validate(self, data_set: DataSet) -> bool:
-        data = data_set.fetch(self.flag)
+    def validate(self, dataset: Dataset) -> bool:
+        data = dataset.fetch(self.flag)
 
         if self.object_subset:
             data = data[self.object_subset]
@@ -113,14 +113,14 @@ class ConstraintValidation(Validation):
         conditions_text = ' and '.join(conditions)
         return subset_text, conditions_text
 
-    def get_error_message(self, data_set: DataSet) -> str:
+    def get_error_message(self, dataset: Dataset) -> str:
         subset_text, conditions_text = self._get_subset_and_conditions_text()
-        message = f"{self.__class__.__name__} failed for DataSet {data_set.name}: \n"
+        message = f"{self.__class__.__name__} failed for Dataset {dataset.name}: \n"
         message += f"{self.flag}{subset_text} must be {conditions_text}"
         return message
 
-    def get_success_message(self, data_set: DataSet) -> str:
+    def get_success_message(self, dataset: Dataset) -> str:
         subset_text, conditions_text = self._get_subset_and_conditions_text()
-        message = f"{self.__class__.__name__} successful for DataSet {data_set.name}:"
+        message = f"{self.__class__.__name__} successful for Dataset {dataset.name}:"
         message += f"{self.flag}{subset_text} are valid for {conditions_text}"
         return message

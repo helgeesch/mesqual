@@ -7,9 +7,9 @@ from dataclasses import dataclass, asdict
 import numpy as np
 import pandas as pd
 
-from mescal.data_sets.data_set import DataSet
-from mescal.data_sets.data_set_comparison import DataSetComparison
-from mescal.typevars import FlagType, DataSetType, ValueOperationType, KPIType
+from mescal.datasets.dataset import Dataset
+from mescal.datasets.dataset_comparison import DatasetComparison
+from mescal.typevars import FlagType, DatasetType, ValueOperationType, KPIType
 from mescal.units import Units
 from mescal.kpis.aggs import (
     ValueComparison, ValueComparisons,
@@ -24,16 +24,16 @@ KPI_VALUE_TYPES = int | float | bool
 @dataclass
 class KPIAttributes:
     name: Optional[str] = None
-    data_set: Optional[DataSet] = None
-    data_set_type: Optional[type[DataSet]] = None
+    dataset: Optional[Dataset] = None
+    dataset_type: Optional[type[Dataset]] = None
     unit: Optional[Units.Unit] = None
     base_unit: Optional[Units.Unit] = None
     flag: Optional[FlagType] = None
     object_name: Optional[int | str] = None
     model_flag: Optional[FlagType] = None
     aggregation: Optional[Aggregation] = None
-    variation_data_set: Optional[DataSet] = None
-    reference_data_set: Optional[DataSet] = None
+    variation_dataset: Optional[Dataset] = None
+    reference_dataset: Optional[Dataset] = None
     model_query: Optional[str] = None
     column_subset: Optional[Hashable | list[Hashable]] = None
     name_prefix: Optional[str] = None
@@ -70,7 +70,7 @@ class KPIAttributes:
             return value
         if isinstance(value, type):
             return value.__name__
-        if isinstance(value, DataSet):
+        if isinstance(value, Dataset):
             return value.name
         return str(value)
 
@@ -81,8 +81,8 @@ class KPIAttributes:
 
 
 class KPI(ABC):
-    def __init__(self, data_set: DataSetType):
-        self._data_set = data_set
+    def __init__(self, dataset: DatasetType):
+        self._dataset = dataset
         self._value: KPI_VALUE_TYPES = np.nan
         self._has_been_computed: bool = False
         self._attributes: KPIAttributes = None
@@ -145,7 +145,7 @@ class KPI(ABC):
 
     def get_attributed_object_info_from_model(self) -> pd.Series:
         model_flag = self.get_attributed_model_flag()
-        model_df = self._data_set.fetch(model_flag)
+        model_df = self._dataset.fetch(model_flag)
         object_name = self.get_attributed_object_name()
         if object_name in model_df.index:
             return model_df.loc[object_name]
@@ -161,16 +161,16 @@ class KPI(ABC):
     ) -> str:
         raise NotImplementedError
 
-    def get_kpi_name_with_data_set_name(self, data_set_name_as_suffix: bool = True) -> str:
-        if data_set_name_as_suffix:
-            return f'{self.name} {self._data_set.name}'
-        return f'{self._data_set.name} {self.name}'
+    def get_kpi_name_with_dataset_name(self, dataset_name_as_suffix: bool = True) -> str:
+        if dataset_name_as_suffix:
+            return f'{self.name} {self._dataset.name}'
+        return f'{self._dataset.name} {self.name}'
 
     def _get_kpi_attributes(self) -> KPIAttributes:
         atts = KPIAttributes(
             name=self.name,
-            data_set=self._data_set,
-            data_set_type=type(self._data_set),
+            dataset=self._dataset,
+            dataset_type=type(self._dataset),
             unit=self.unit,
             base_unit=Units.get_base_unit_for_unit(self.unit),
         )
@@ -180,12 +180,12 @@ class KPI(ABC):
         s = self.attributes.as_dict(primitive_values=True)
         s['value'] = self.value
         s['quantity'] = self.quantity
-        return pd.Series(s, name=self.get_kpi_name_with_data_set_name())
+        return pd.Series(s, name=self.get_kpi_name_with_dataset_name())
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, KPI):
             return False
-        if self._data_set != other._data_set:
+        if self._dataset != other._dataset:
             return False
         return self.attributes == other.attributes
 
@@ -198,17 +198,17 @@ class KPI(ABC):
         return _convert_dict_to_frozenset_of_tuples_for_hashability(imm)
 
     @classmethod
-    def from_factory(cls, data_set: DataSetType) -> KPIType:
+    def from_factory(cls, dataset: DatasetType) -> KPIType:
         class _Factory(KPIFactory):
-            def get_kpi(self, data_set: DataSetType) -> KPIType:
-                return cls(data_set)
-        return _Factory().get_kpi(data_set)
+            def get_kpi(self, dataset: DatasetType) -> KPIType:
+                return cls(dataset)
+        return _Factory().get_kpi(dataset)
 
     @classmethod
     def get_factory_instance(cls) -> KPIFactory:
         class FactoryClass(KPIFactory):
-            def get_kpi(self, data_set: DataSetType) -> KPIType:
-                return cls(data_set)
+            def get_kpi(self, dataset: DatasetType) -> KPIType:
+                return cls(dataset)
         return FactoryClass()
 
 
@@ -219,10 +219,10 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
             variation_kpi: KPIType,
             reference_kpi: KPIType,
             value_operation: ValueOperationType,
-            data_set: DataSet = None
+            dataset: Dataset = None
     ):
-        data_set = data_set or variation_kpi._data_set
-        super().__init__(data_set)
+        dataset = dataset or variation_kpi._dataset
+        super().__init__(dataset)
         self._variation_kpi = variation_kpi
         self._reference_kpi = reference_kpi
         self._value_operation = value_operation
@@ -234,11 +234,11 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
         self._value = value_op(var_kpi_value, ref_kpi_value)
         self._has_been_computed = True
 
-    def get_kpi_name_with_data_set_name(self, data_set_name_as_suffix: bool = True) -> str:
-        var_ds_name = self._variation_kpi._data_set.name
-        ref_ds_name = self._reference_kpi._data_set.name
+    def get_kpi_name_with_dataset_name(self, dataset_name_as_suffix: bool = True) -> str:
+        var_ds_name = self._variation_kpi._dataset.name
+        ref_ds_name = self._reference_kpi._dataset.name
         ds_name = f'{var_ds_name} to {ref_ds_name}'
-        if data_set_name_as_suffix:
+        if dataset_name_as_suffix:
             return f'{self.name} {ds_name}'
         return f'{ds_name} {self.name}'
 
@@ -282,8 +282,8 @@ class _ValueOperationKPI(Generic[KPIType, ValueOperationType], KPI):
         this_atts: KPIAttributes = var_atts.intersection(ref_atts)
 
         this_atts.update(super()._get_kpi_attributes())
-        this_atts.variation_data_set = self._variation_kpi._data_set
-        this_atts.reference_data_set = self._reference_kpi._data_set
+        this_atts.variation_dataset = self._variation_kpi._dataset
+        this_atts.reference_dataset = self._reference_kpi._dataset
         this_atts.value_operation = self._value_operation
         return this_atts
 
@@ -298,7 +298,7 @@ class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComp
 
     def get_attributed_object_info_from_model(self) -> pd.Series:
         model_flag = self.get_attributed_model_flag()
-        model_df = self._variation_kpi._data_set.fetch(model_flag)
+        model_df = self._variation_kpi._dataset.fetch(model_flag)
         object_name = self.get_attributed_object_name()
         if object_name in model_df.index:
             return model_df.loc[object_name]
@@ -310,23 +310,23 @@ class ArithmeticValueOperationKPI(Generic[KPIType], _ValueOperationKPI[KPIType, 
     pass
 
 
-class KPIFactory(Generic[DataSetType, KPIType], ABC):
+class KPIFactory(Generic[DatasetType, KPIType], ABC):
 
     @abstractmethod
-    def get_kpi(self, data_set: DataSetType) -> KPIType:
+    def get_kpi(self, dataset: DatasetType) -> KPIType:
         pass
 
     def get_kpi_name(self):
         return self.get_kpi(None).name
 
-    def __call__(self, data_set: DataSetType) -> KPIType:
-        return self.get_kpi(data_set)
+    def __call__(self, dataset: DatasetType) -> KPIType:
+        return self.get_kpi(dataset)
 
     def __hash__(self):
         return hash(self.get_kpi_name())
 
 
-class ComparisonKPIFactory(KPIFactory[DataSetComparison, ValueComparisonKPI]):
+class ComparisonKPIFactory(KPIFactory[DatasetComparison, ValueComparisonKPI]):
 
     def __init__(
             self,
@@ -337,19 +337,19 @@ class ComparisonKPIFactory(KPIFactory[DataSetComparison, ValueComparisonKPI]):
         self._kpi_factory = kpi_factory
         self._value_comparison = value_comparison
 
-    def get_kpi(self, data_set: DataSetComparison) -> ValueComparisonKPI:
+    def get_kpi(self, dataset: DatasetComparison) -> ValueComparisonKPI:
 
-        if not isinstance(data_set, DataSetComparison):
-            raise TypeError(f'Expected {DataSetComparison.__name__} for {self.__class__.__name__}, got {type(data_set)}.')
+        if not isinstance(dataset, DatasetComparison):
+            raise TypeError(f'Expected {DatasetComparison.__name__} for {self.__class__.__name__}, got {type(dataset)}.')
 
-        var_kpi = self._kpi_factory.get_kpi(data_set.variation_data_set)
-        ref_kpi = self._kpi_factory.get_kpi(data_set.reference_data_set)
+        var_kpi = self._kpi_factory.get_kpi(dataset.variation_dataset)
+        ref_kpi = self._kpi_factory.get_kpi(dataset.reference_dataset)
         val_op = self._value_comparison
-        val_comp_kpi = ValueComparisonKPI(var_kpi, ref_kpi, val_op, data_set)
+        val_comp_kpi = ValueComparisonKPI(var_kpi, ref_kpi, val_op, dataset)
         return val_comp_kpi
 
 
-class ArithmeticOpKPIFactory(KPIFactory[DataSet, ArithmeticValueOperationKPI]):
+class ArithmeticOpKPIFactory(KPIFactory[Dataset, ArithmeticValueOperationKPI]):
     def __init__(
             self,
             var_kpi_factory: KPIFactory,
@@ -361,9 +361,9 @@ class ArithmeticOpKPIFactory(KPIFactory[DataSet, ArithmeticValueOperationKPI]):
         self._ref_kpi_factory = ref_kpi_factory
         self._arithmetic_op = arithmetic_op
 
-    def get_kpi(self, data_set: DataSetType) -> ArithmeticValueOperationKPI:
-        var_kpi = self._var_kpi_factory.get_kpi(data_set.variation_data_set)
-        ref_kpi = self._ref_kpi_factory.get_kpi(data_set.reference_data_set)
+    def get_kpi(self, dataset: DatasetType) -> ArithmeticValueOperationKPI:
+        var_kpi = self._var_kpi_factory.get_kpi(dataset.variation_dataset)
+        ref_kpi = self._ref_kpi_factory.get_kpi(dataset.reference_dataset)
         val_op = self._arithmetic_op
         return ArithmeticValueOperationKPI(var_kpi, ref_kpi, val_op)
     

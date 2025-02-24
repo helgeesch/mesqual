@@ -2,7 +2,7 @@ from enum import Enum
 
 import pandas as pd
 
-from mescal.data_sets import DataSet
+from mescal.datasets import Dataset
 from mescal.utils.multi_key_utils.common_base_key_finder import CommonBaseKeyFinder
 from mescal.utils.logging import get_logger
 
@@ -29,7 +29,7 @@ class MembershipPropertyEnricher:
     def __init__(self, membership_tag_separator: str = '_'):
         self._membership_tag_separator = membership_tag_separator
 
-    def identify_membership_columns(self, column_names: list[str], dataset: DataSet) -> list[str]:
+    def identify_membership_columns(self, column_names: list[str], dataset: Dataset) -> list[str]:
         return [
             col for col in column_names
             if dataset.flag_index.column_name_in_model_describes_membership(col)
@@ -38,7 +38,7 @@ class MembershipPropertyEnricher:
     def append_properties(
             self,
             target_df: pd.DataFrame,
-            dataset: DataSet,
+            dataset: Dataset,
             membership_tagging: MembershipTagging = MembershipTagging.NONE
     ) -> pd.DataFrame:
         """
@@ -72,7 +72,7 @@ class MembershipPropertyEnricher:
     def append_single_membership_properties(
             self,
             target_df: pd.DataFrame,
-            dataset: DataSet,
+            dataset: Dataset,
             membership_column: str,
             membership_tagging: MembershipTagging = MembershipTagging.NONE
     ) -> pd.DataFrame:
@@ -153,7 +153,7 @@ class DirectionalMembershipPropertyEnricher:
         self._membership_tag_separator = membership_tag_separator
         self._tag_finder = CommonBaseKeyFinder(from_identifier, to_identifier)
 
-    def identify_from_to_columns(self, column_names: list[str], dataset: DataSet) -> list[str]:
+    def identify_from_to_columns(self, column_names: list[str], dataset: Dataset) -> list[str]:
         potential_columns = self._tag_finder.get_keys_for_which_all_association_tags_appear(column_names)
         return [
             col for col in potential_columns
@@ -163,7 +163,7 @@ class DirectionalMembershipPropertyEnricher:
     def append_properties(
             self,
             target_df: pd.DataFrame,
-            dataset: DataSet,
+            dataset: Dataset,
             membership_tagging: MembershipTagging = MembershipTagging.NONE
     ) -> pd.DataFrame:
         """
@@ -198,7 +198,7 @@ class DirectionalMembershipPropertyEnricher:
     def append_directional_properties(
             self,
             target_df: pd.DataFrame,
-            dataset: DataSet,
+            dataset: Dataset,
             base_column: str,
             membership_tagging: MembershipTagging = MembershipTagging.NONE
     ) -> pd.DataFrame:
@@ -273,10 +273,10 @@ class DirectionalMembershipPropertyEnricher:
 
 if __name__ == "__main__":
     # TODO: mescal_mock
-    from mescal.mock.mock_data_set import MockDataSet
+    from mescal.mock.mock_dataset import MockDataset
 
     # Initialize mock dataset and appenders
-    mock_ds = MockDataSet()
+    mock_ds = MockDataset()
     enricher = MembershipPropertyEnricher()
     directional_enricher = DirectionalMembershipPropertyEnricher()
 

@@ -3,16 +3,16 @@ from typing import Generic
 
 import pandas as pd
 
-from mescal.typevars import DataSetType, FlagType, DataSetConfigType
+from mescal.typevars import DatasetType, FlagType, DatasetConfigType
 
 
-class DataBase(Generic[DataSetType, DataSetConfigType], ABC):
+class DataBase(Generic[DatasetType, DatasetConfigType], ABC):
     @abstractmethod
     def get(
             self,
-            data_set: DataSetType,
+            dataset: DatasetType,
             flag: FlagType,
-            config: DataSetConfigType,
+            config: DatasetConfigType,
             **kwargs
     ) -> pd.Series | pd.DataFrame:
         pass
@@ -20,9 +20,9 @@ class DataBase(Generic[DataSetType, DataSetConfigType], ABC):
     @abstractmethod
     def set(
             self,
-            data_set: DataSetType,
+            dataset: DatasetType,
             flag: FlagType,
-            config: DataSetConfigType,
+            config: DatasetConfigType,
             value,
             **kwargs
     ):
@@ -31,9 +31,9 @@ class DataBase(Generic[DataSetType, DataSetConfigType], ABC):
     @abstractmethod
     def key_is_up_to_date(
             self,
-            data_set: DataSetType,
+            dataset: DatasetType,
             flag: FlagType,
-            config: DataSetConfigType,
+            config: DatasetConfigType,
             **kwargs
     ):
         pass

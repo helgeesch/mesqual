@@ -5,7 +5,7 @@ from typing import Hashable, Generic, TYPE_CHECKING
 import pandas as pd
 
 from mescal.units import Units
-from mescal.typevars import DataSetType, FlagType
+from mescal.typevars import DatasetType, FlagType
 from mescal.utils.pandas_utils.filter import filter_by_model_query
 from mescal.kpis.kpi_base import KPI, KPIFactory, KPIAttributes
 from mescal.utils.logging import get_logger
@@ -30,11 +30,11 @@ class MissingColumnsFromSubsetException(Exception):
     pass
 
 
-class FlagAggKPI(Generic[DataSetType], KPI):
+class FlagAggKPI(Generic[DatasetType], KPI):
 
     def __init__(
             self,
-            data_set: DataSetType,
+            dataset: DatasetType,
             flag: FlagType,
             aggregation: Aggregation,
             column_subset: Hashable | list[Hashable] = None,
@@ -51,7 +51,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         self._kpi_name_suffix = kpi_name_suffix
         self._kpi_name = kpi_name
 
-        super().__init__(data_set=data_set)
+        super().__init__(dataset=dataset)
 
     def _get_kpi_attributes(self) -> KPIAttributes:
         atts = super()._get_kpi_attributes()
@@ -115,15 +115,15 @@ class FlagAggKPI(Generic[DataSetType], KPI):
     def unit(self) -> Units.Unit:
         if self._aggregation.unit is not None:
             return self._aggregation.unit
-        return self._data_set.flag_index.get_unit(self._flag)
+        return self._dataset.flag_index.get_unit(self._flag)
 
-    def _fetch_filtered_data(self, data_set: DataSetType) -> pd.DataFrame:
+    def _fetch_filtered_data(self, dataset: DatasetType) -> pd.DataFrame:
         flag = self._flag
-        data = data_set.fetch(flag)
+        data = dataset.fetch(flag)
 
         if self._model_query:
-            model_flag = data_set.flag_index.get_linked_model_flag(flag)
-            model_df = data_set.fetch(model_flag)
+            model_flag = dataset.flag_index.get_linked_model_flag(flag)
+            model_df = dataset.fetch(model_flag)
             data = filter_by_model_query(data, model_df, self._model_query)
 
         if self._column_subset:
@@ -131,7 +131,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
             if not set(subset).issubset(data.columns):
                 missing = set(subset).difference(data.columns)
                 raise MissingColumnsFromSubsetException(
-                    f'Trying to fetch the data for {self.get_kpi_name_with_data_set_name()}, '
+                    f'Trying to fetch the data for {self.get_kpi_name_with_dataset_name()}, '
                     f'the following columns were not found in the result_df: {missing}.'
                 )
             data = data[subset]
@@ -148,7 +148,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         """
         if self._column_subset is None:
             raise NoColumnDefinedException(
-                f"You are trying to get the attributed_object_name for KPI {self.get_kpi_name_with_data_set_name()}. "
+                f"You are trying to get the attributed_object_name for KPI {self.get_kpi_name_with_dataset_name()}. "
                 f"However, this method is only valid if you define exactly 1 column in the column_subset. "
                 f"Currently, the column_subset is not set at all (None)."
             )
@@ -156,7 +156,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         subset = self._get_column_subset_as_list()
         if len(subset) > 1:
             raise MultipleColumnsInSubsetException(
-                f"You are trying to get the attributed_object_name for KPI {self.get_kpi_name_with_data_set_name()}. "
+                f"You are trying to get the attributed_object_name for KPI {self.get_kpi_name_with_dataset_name()}. "
                 f"However, This method is only valid if you define exactly 1 column in the column_subset. "
                 f"Currently, the column_subset contains multiple columns: {self._column_subset}."
             )
@@ -164,7 +164,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         column = subset[0]
         if isinstance(column, tuple):
             model_flag = self.get_attributed_model_flag()
-            model_df = self._data_set.fetch(model_flag)
+            model_df = self._dataset.fetch(model_flag)
             options = set(column).intersection(model_df.index)
             if len(options) == 1:
                 return list(options)[0]
@@ -183,10 +183,10 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         Only necessary in case one wants to be able to retrieve the attributed model_flag for a KPI.
         For example you'd want this for applying a model query, or in case you need this info for plotting.
         """
-        return self._data_set.flag_index.get_linked_model_flag(self._flag)
+        return self._dataset.flag_index.get_linked_model_flag(self._flag)
 
     def compute(self):
-        data = self._fetch_filtered_data(self._data_set)
+        data = self._fetch_filtered_data(self._dataset)
         self._value = self._aggregation(data)
         self._has_been_computed = True
 
@@ -197,7 +197,7 @@ class FlagAggKPI(Generic[DataSetType], KPI):
         return flags
 
 
-class FlagAggKPIFactory(Generic[DataSetType], KPIFactory[DataSetType, FlagAggKPI]):
+class FlagAggKPIFactory(Generic[DatasetType], KPIFactory[DatasetType, FlagAggKPI]):
     def __init__(
             self,
             flag: FlagType,
@@ -219,9 +219,9 @@ class FlagAggKPIFactory(Generic[DataSetType], KPIFactory[DataSetType, FlagAggKPI
     def get_kpi_class(self) -> type[FlagAggKPI]:
         return FlagAggKPI
 
-    def get_kpi(self, data_set: DataSetType) -> FlagAggKPI:
+    def get_kpi(self, dataset: DatasetType) -> FlagAggKPI:
         kpi = self.get_kpi_class()(
-            data_set=data_set,
+            dataset=dataset,
             flag=self._flag,
             aggregation=self._aggregation,
             column_subset=self._column_subset,

@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, Type, Optional, overload
 
-from mescal.typevars import DataSetConfigType
-from mescal.data_sets.data_set import DataSet
+from mescal.typevars import DatasetConfigType
+from mescal.datasets.dataset import Dataset
 
 
 class InvalidConfigSettingError(Exception):
@@ -10,12 +10,12 @@ class InvalidConfigSettingError(Exception):
 
 
 @dataclass
-class DataSetConfig:
+class DatasetConfig:
     use_database: bool = True
     auto_sort_datetime_index: bool = True
     remove_duplicate_indices: bool = True
 
-    def merge(self, other: Optional[DataSetConfigType | dict]) -> DataSetConfigType:
+    def merge(self, other: Optional[DatasetConfigType | dict]) -> DatasetConfigType:
         if other is None:
             return self
 
@@ -48,25 +48,25 @@ class DataSetConfig:
         return f"{self.__class__.__name__}({attrs})"
 
 
-class DataSetConfigManager:
-    _class_configs: Dict[Type[DataSet], DataSetConfig] = {}
+class DatasetConfigManager:
+    _class_configs: Dict[Type[Dataset], DatasetConfig] = {}
 
     @classmethod
     @overload
-    def set_class_config(cls, dataset_class: Type[DataSet], config: DataSetConfigType) -> None:
+    def set_class_config(cls, dataset_class: Type[Dataset], config: DatasetConfigType) -> None:
         ...
 
     @classmethod
-    def set_class_config(cls, dataset_class: Type[DataSet], config: DataSetConfig) -> None:
+    def set_class_config(cls, dataset_class: Type[Dataset], config: DatasetConfig) -> None:
         cls._class_configs[dataset_class] = config
 
     @classmethod
     @overload
-    def update_class_config_kwargs(cls, dataset_class: Type[DataSet], **config_kwargs) -> None:
+    def update_class_config_kwargs(cls, dataset_class: Type[Dataset], **config_kwargs) -> None:
         ...
 
     @classmethod
-    def update_class_config_kwargs(cls, dataset_class: Type[DataSet], **config_kwargs) -> None:
+    def update_class_config_kwargs(cls, dataset_class: Type[Dataset], **config_kwargs) -> None:
         for k, v in config_kwargs.items():
             setattr(cls._class_configs[dataset_class], k, v)
 
@@ -74,17 +74,17 @@ class DataSetConfigManager:
     @overload
     def get_effective_config(
             cls,
-            dataset_class: Type[DataSet],
-            instance_config: Optional[DataSetConfigType] = None
-    ) -> DataSetConfigType:
+            dataset_class: Type[Dataset],
+            instance_config: Optional[DatasetConfigType] = None
+    ) -> DatasetConfigType:
         ...
 
     @classmethod
     def get_effective_config(
             cls,
-            dataset_class: Type[DataSet],
-            instance_config: Optional[DataSetConfig] = None
-    ) -> DataSetConfig:
+            dataset_class: Type[Dataset],
+            instance_config: Optional[DatasetConfig] = None
+    ) -> DatasetConfig:
         config_type = dataset_class.get_config_type()
         base_config = config_type()
         class_config = cls._class_configs.get(dataset_class)

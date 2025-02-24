@@ -2,7 +2,7 @@ import os
 
 import pandas as pd
 
-from mescal.typevars import DataSetType, FlagType, DataSetConfigType
+from mescal.typevars import DatasetType, FlagType, DatasetConfigType
 from mescal.databases.data_base import DataBase
 
 
@@ -13,35 +13,35 @@ class PickleDataBase(DataBase):
 
     def get(
             self,
-            data_set: DataSetType,
+            dataset: DatasetType,
             flag: FlagType,
-            config: DataSetConfigType,
+            config: DatasetConfigType,
             **kwargs
     ) -> pd.Series | pd.DataFrame:
-        return pd.read_pickle(self._get_file_path(data_set, flag, config, **kwargs))
+        return pd.read_pickle(self._get_file_path(dataset, flag, config, **kwargs))
 
     def set(
             self,
-            data_set: DataSetType,
+            dataset: DatasetType,
             flag: FlagType,
-            config: DataSetConfigType,
+            config: DatasetConfigType,
             value,
             **kwargs
     ):
-        file_path = self._get_file_path(data_set, flag, config, **kwargs)
+        file_path = self._get_file_path(dataset, flag, config, **kwargs)
         value.to_pickle(file_path)
 
     def key_is_up_to_date(
             self,
-            data_set: DataSetType,
+            dataset: DatasetType,
             flag: FlagType,
-            config: DataSetConfigType,
+            config: DatasetConfigType,
             **kwargs
     ):
-        file_path = self._get_file_path(data_set, flag, config, **kwargs)
+        file_path = self._get_file_path(dataset, flag, config, **kwargs)
         return os.path.exists(file_path)
 
-    def _get_config_hash(self, config: DataSetConfigType = None) -> str:
+    def _get_config_hash(self, config: DatasetConfigType = None) -> str:
         if config is None:
             return ""
 
@@ -69,8 +69,8 @@ class PickleDataBase(DataBase):
         sorted_items = sorted(str_dict.items())
         return str(hash(str(sorted_items)))
 
-    def _get_file_path(self, data_set: DataSetType, flag: FlagType, config: DataSetConfigType = None, **kwargs) -> str:
-        components = [data_set.name, str(flag)]
+    def _get_file_path(self, dataset: DatasetType, flag: FlagType, config: DatasetConfigType = None, **kwargs) -> str:
+        components = [dataset.name, str(flag)]
 
         config_hash = self._get_config_hash(config)
         if config_hash:

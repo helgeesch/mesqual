@@ -9,7 +9,7 @@ from mescal.enums import ItemTypeEnum, VisualizationTypeEnum, TopologyTypeEnum, 
 from mescal.units import Units
 
 if TYPE_CHECKING:
-    from mescal.data_sets.data_set import DataSet
+    from mescal.datasets.dataset import Dataset
 
 
 @dataclass
@@ -35,9 +35,9 @@ def return_from_explicit_registry_if_available(attribute):
 
 
 class FlagIndex(Generic[FlagType], ABC):
-    def __init__(self, data_set: DataSet = None):
+    def __init__(self, dataset: Dataset = None):
         self._explicit_registry: Dict[FlagType, RegistryEntry] = dict()
-        self.linked_data_set = data_set
+        self.linked_dataset = dataset
 
     def register_new_flag(
             self,
@@ -94,9 +94,9 @@ class FlagIndex(Generic[FlagType], ABC):
         unit = self.get_unit(flag)
         return Units.get_quantity_type_enum(unit)
 
-    def get_all_timeseries_flags_for_model_flag(self, data_set: DataSet, flag: FlagType) -> Set[FlagType]:
+    def get_all_timeseries_flags_for_model_flag(self, dataset: Dataset, flag: FlagType) -> Set[FlagType]:
         variable_flags = set()
-        for f in data_set.accepted_flags:
+        for f in dataset.accepted_flags:
             if self.get_item_type(f) == ItemTypeEnum.TimeSeries:
                 if self.get_linked_model_flag(f) == flag:
                     variable_flags.add(f)

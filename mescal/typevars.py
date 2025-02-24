@@ -4,8 +4,8 @@ from typing import TypeVar, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from mescal.flag.flag import FlagTypeProtocol
-    from mescal.data_sets.data_set import DataSet
-    from mescal.data_sets.data_set_config import DataSetConfig
+    from mescal.datasets.dataset import Dataset
+    from mescal.datasets.dataset_config import DatasetConfig
     from mescal.flag.flag_index import FlagIndex
     from mescal.kpis.kpi_base import KPI
     from mescal.kpis.aggs import OperationOfTwoValues
@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 
 
 FlagType = TypeVar('FlagType', bound='FlagTypeProtocol')
-DataSetType = TypeVar('DataSetType', bound='DataSet')
-DataSetConfigType = TypeVar('DataSetConfigType', bound='DataSetConfig')
+DatasetType = TypeVar('DatasetType', bound='Dataset')
+DatasetConfigType = TypeVar('DatasetConfigType', bound='DatasetConfig')
 FlagIndexType = TypeVar('FlagIndexType', bound='FlagIndex')
 KPIType = TypeVar('KPIType', bound='KPI')
 ValueOperationType = TypeVar('ValueOperationType', bound='OperationOfTwoValues')
