@@ -21,14 +21,6 @@ if TYPE_CHECKING:
 logger = get_logger(__name__)
 
 
-def _never_skip_ds_condition(ds: Dataset) -> bool:
-    return False
-
-
-def skip_ds_if_flag_not_accepted_condition(flag: FlagType) -> Callable[[Dataset], bool]:
-    return lambda ds: not ds.flag_is_accepted(flag)
-
-
 class DatasetCollection(
     Generic[DatasetType, DatasetConfigType, FlagType, FlagIndexType],
     Dataset[DatasetConfigType, FlagType, FlagIndexType],
@@ -164,7 +156,7 @@ class DatasetCollection(
         else:
             logger.warning(
                 f"Dataset {self.name}: "
-                f"dataset {dataset.name} already in {type(self).__name__}. Not added again."
+                f"dataset {dataset.name} already part of this collection. Not added again."
             )
 
     @classmethod
@@ -177,9 +169,11 @@ class DatasetLinkCollection(
     DatasetCollection[DatasetType, DatasetConfigType, FlagType, FlagIndexType]
 ):
     """
-    Links multiple Dataset instances so:
-        - the parent Dataset accepts flags of all child Datasets.
-        - the child Dataset instances can fetch from each other.
+    Links multiple Dataset instances so that:
+        - the parent-Dataset accepts flags of all child-Datasets and automatically returns the data
+          from the child-Dataset one that accepts the flag.
+        - the child-Dataset instances have access to the parent-Dataset so that they can fetch from other,
+          e.g. child_ds.parent_dataset.fetch(...).
     """
 
     def __init__(
@@ -259,29 +253,16 @@ class DatasetMergeCollection(
         self.keep_first = keep_first
 
     def _fetch(self, flag: FlagType, effective_config: DatasetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
-        df = self._combine_dfs(
-            get_df_from_dataset_method=lambda ds: ds.fetch(flag, effective_config, **kwargs),
-            keep_first=self.keep_first,
-            skip_ds_condition=skip_ds_if_flag_not_accepted_condition(flag),
-        )
-        return df
+        data_frames = []
+        for ds in self.dataset_iterator:
+            if ds.flag_is_accepted(flag):
+                data_frames.append(ds.fetch(flag, effective_config, **kwargs))
 
-    def _combine_dfs(
-            self,
-            get_df_from_dataset_method: Callable[[DatasetType], pd.Series | pd.DataFrame],
-            skip_ds_condition: Callable[[DatasetType], bool] = None,
-            keep_first: bool = True,
-    ) -> pd.Series | pd.DataFrame:
-        if skip_ds_condition is None:
-            skip_ds_condition = _never_skip_ds_condition
-        df = combine_dfs(
-            [
-                get_df_from_dataset_method(ds)
-                for ds in self.dataset_iterator
-                if not skip_ds_condition(ds)
-            ],
-            keep_first=keep_first
-        )
+        if not data_frames:
+            raise KeyError(f"Flag '{flag}' not recognized by any of the datasets.")
+
+        from mescal.utils.pandas_utils.combine_df import combine_dfs
+        df = combine_dfs(data_frames, keep_first=self.keep_first)
         return df
 
 
@@ -290,7 +271,7 @@ class DatasetConcatCollection(
     DatasetCollection[DatasetType, DatasetConfigType, FlagType, FlagIndexType]
 ):
     """
-    Fetch method will return a concatenation of all sub-Datasets with an additional Index-level.
+    Fetch method will return a concatenation of all child-Datasets with an additional Index-level.
     """
     def __init__(
             self,
@@ -328,63 +309,53 @@ class DatasetConcatCollection(
             names=[self.concat_level_name]
         )
 
+    def fetch_merged(
+            self,
+            flag: FlagType,
+            config: dict | DatasetConfigType = None,
+            keep_first: bool = True,
+            **kwargs
+    ) -> pd.Series | pd.DataFrame:
+        """Fetch method that merges dataframes from all child datasets, similar to DatasetMergeCollection."""
+        temp_merge_collection = DatasetMergeCollection(
+            datasets=list(self.datasets.values()),
+            name=f"{self.name}_temp_merge",
+            keep_first=keep_first
+        )
+        return temp_merge_collection.fetch(flag, config, **kwargs)
+
     def _fetch(
             self,
             flag: FlagType,
             effective_config: DatasetConfigType,
-            skip_ds_condition: Callable[[Dataset], bool] = None,
             concat_axis: int = None,
-            transpose: bool = False,
             **kwargs
     ) -> pd.Series | pd.DataFrame:
         if concat_axis is None:
             concat_axis = self.default_concat_axis
 
-        if skip_ds_condition is None:
-            skip_ds_condition = skip_ds_if_flag_not_accepted_condition(flag)
+        dfs = {}
+        for ds in self.dataset_iterator:
+            if ds.flag_is_accepted(flag):
+                dfs[ds.name] = ds.fetch(flag, effective_config, **kwargs)
 
-        df = self._concat_dataset_dfs(
-            get_df_from_dataset_method=lambda ds: ds.fetch(flag, effective_config, **kwargs),
-            skip_ds_condition=skip_ds_condition,
-            axis=concat_axis,
-            transpose=transpose
-        )
-        return df
+        if not dfs:
+            raise KeyError(f"Flag '{flag}' not recognized by any of the datasets.")
 
-    def _concat_dataset_dfs(
-            self,
-            get_df_from_dataset_method: Callable[[DatasetType], pd.Series | pd.DataFrame],
-            skip_ds_condition: Callable[[DatasetType], bool] = None,
-            axis: int = 1,
-            transpose: bool = False,
-    ) -> pd.Series | pd.DataFrame:
-        if skip_ds_condition is None:
-            skip_ds_condition = _never_skip_ds_condition
-        dfs = {
-            ds.name: get_df_from_dataset_method(ds)
-            for ds in self.dataset_iterator
-            if not skip_ds_condition(ds)
-        }
+        df0 = list(dfs.values())[0]
+        if not all(len(df.axes) == len(df0.axes) for df in dfs.values()):
+            raise NotImplementedError(f'Axes lengths do not match between dfs.')
 
-        if len(dfs):
-            df0 = list(dfs.values())[0]
-            if not all(len(df.axes) == len(df0.axes) for df in dfs.values()):
-                raise NotImplementedError(f'Axes lengths do not match between dfs.')
-            for ax in range(len(list(dfs.values())[0].axes)):
-                if not all(set(df.axes[ax].names) == set(df0.axes[ax].names) for df in dfs.values()):
-                    raise NotImplementedError(f'Axes names do not match between dfs.')
+        for ax in range(len(df0.axes)):
+            if not all(set(df.axes[ax].names) == set(df0.axes[ax].names) for df in dfs.values()):
+                raise NotImplementedError(f'Axes names do not match between dfs.')
 
-            # from mescal.utils.pandas_utils.standardize_indices import standardize_index
-            # dfs = standardize_index(dfs, axis=axis)
-
-        df = pd.concat(dfs, join='outer', axis=axis, names=[self.concat_level_name])
+        df = pd.concat(dfs, join='outer', axis=concat_axis, names=[self.concat_level_name])
 
         if not self.concat_top:
-            ax: pd.MultiIndex = df.axes[axis]
-            df.axes[axis] = ax.reorder_levels([ax.nlevels] + list(range(ax.nlevels - 1)))
+            ax = df.axes[concat_axis]
+            df.axes[concat_axis] = ax.reorder_levels([ax.nlevels - 1] + list(range(ax.nlevels - 1)))
 
-        if transpose:
-            return df.transpose()
         return df
 
 
