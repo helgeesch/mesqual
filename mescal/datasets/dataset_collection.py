@@ -50,22 +50,21 @@ class DatasetCollection(
             data_base=data_base,
             config=config,
         )
-        datasets = datasets if datasets else []
-        self.datasets: dict[str, DatasetType] = {ds.name: ds for ds in datasets}
+        self.datasets: list[DatasetType] = datasets if datasets else []
 
     @property
     def flag_index(self) -> FlagIndex:
         from mescal.flag.flag_index import EmptyFlagIndex
         if (self._flag_index is None) or isinstance(self._flag_index, EmptyFlagIndex):
             from mescal.utils.check_all_same import all_same_object
-            if all_same_object(ds.flag_index for ds in self.dataset_iterator) and len(self.datasets):
+            if all_same_object(ds.flag_index for ds in self.datasets) and len(self.datasets):
                 return self.get_dataset().flag_index
         return self._flag_index
 
     @property
     def attributes(self) -> pd.Series:
         atts = self._attributes.copy()
-        child_dataset_atts = [ds.attributes.to_dict() for ds in self.datasets.values()]
+        child_dataset_atts = [ds.attributes.to_dict() for ds in self.datasets]
         attributes_that_all_childs_have_in_common = get_intersection_of_dicts(child_dataset_atts)
         for key in atts.keys():
             attributes_that_all_childs_have_in_common.pop(key, None)
@@ -75,7 +74,7 @@ class DatasetCollection(
     @property
     def attributes_df(self) -> pd.DataFrame:
         return pd.concat(
-            {ds.name: ds.attributes for ds in self.dataset_iterator},
+            {ds.name: ds.attributes for ds in self.datasets},
             axis=1,
             names=['dataset']
         ).rename_axis('attribute').T
@@ -84,7 +83,7 @@ class DatasetCollection(
         # TODO: concat axis
         # TODO: uniform order of magnitude per KPI / KPI category
         return pd.concat(
-            {ds.name: ds.get_kpi_series(**kwargs) for ds in self.dataset_iterator},
+            {ds.name: ds.get_kpi_series(**kwargs) for ds in self.datasets},
             axis=1,
             names=['dataset']
         )
@@ -92,7 +91,7 @@ class DatasetCollection(
     def get_merged_kpi_collection(self, deep: bool = True) -> 'KPICollection':
         from mescal.kpis.kpi_collection import KPICollection
         all_kpis = set()
-        for ds in self.dataset_iterator:
+        for ds in self.datasets:
             for kpi in ds.kpi_collection:
                 all_kpis.add(kpi)
             if deep and isinstance(ds, DatasetCollection):
@@ -106,11 +105,11 @@ class DatasetCollection(
             self.add_kpi_to_all_sub_datasets(kpi)
 
     def add_kpi_to_all_sub_datasets(self, kpi: KPIFactory):
-        for ds in self.dataset_iterator:
+        for ds in self.datasets:
             ds.add_kpi(kpi)
 
     def clear_kpi_collection_for_all_sub_datasets(self, deep: bool = True):
-        for ds in self.dataset_iterator:
+        for ds in self.datasets:
             ds.clear_kpi_collection()
             if deep and isinstance(ds, DatasetCollection):
                 ds.clear_kpi_collection_for_all_sub_datasets(deep=deep)
@@ -125,24 +124,26 @@ class DatasetCollection(
         pass
 
     def flag_is_accepted(self, flag: FlagType) -> bool:
-        return any(ds.flag_is_accepted(flag) for ds in self.dataset_iterator)
+        return any(ds.flag_is_accepted(flag) for ds in self.datasets)
 
     @property
     def accepted_flags(self) -> set[FlagType]:
-        return nested_union([ds.accepted_flags for ds in self.dataset_iterator])
+        return nested_union([ds.accepted_flags for ds in self.datasets])
 
     def _required_flags_for_flag(self, flag: FlagType) -> set[FlagType]:
-        return nested_union([ds.accepted_flags for ds in self.dataset_iterator])
-
-    @property
-    def dataset_iterator(self) -> Iterator[DatasetType]:
-        for ds in self.datasets.values():
-            yield ds
+        return nested_union([ds.accepted_flags for ds in self.datasets])
 
     def get_dataset(self, key: str = None) -> DatasetType:
         if key is None:
-            key = list(self.datasets.keys())[0]
-        return self.datasets[key]
+            if not self.datasets:
+                raise ValueError("No datasets available")
+            return self.datasets[0]
+
+        for ds in self.datasets:
+            if ds.name == key:
+                return ds
+
+        raise KeyError(f"Dataset with name '{key}' not found")
 
     def add_datasets(self, datasets: Iterable[DatasetType]):
         for ds in datasets:
@@ -151,13 +152,17 @@ class DatasetCollection(
     def add_dataset(self, dataset: DatasetType):
         if not isinstance(dataset, self.get_child_dataset_type()):
             raise TypeError(f"Can only add data sets of type {self.get_child_dataset_type().__name__}.")
-        if dataset.name not in self.datasets:
-            self.datasets[dataset.name] = dataset
-        else:
-            logger.warning(
-                f"Dataset {self.name}: "
-                f"dataset {dataset.name} already part of this collection. Not added again."
-            )
+
+        for i, existing in enumerate(self.datasets):
+            if existing.name == dataset.name:
+                logger.warning(
+                    f"Dataset {self.name}: "
+                    f"dataset {dataset.name} already in this collection. Replacing it."
+                )
+                self.datasets[i] = dataset
+                return
+
+        self.datasets.append(dataset)
 
     @classmethod
     def get_child_dataset_type(cls) -> type[DatasetType]:
@@ -198,7 +203,7 @@ class DatasetLinkCollection(
         self._warn_if_flags_overlap()
 
     def _fetch(self, flag: FlagType, effective_config: DatasetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
-        for ds in self.dataset_iterator:
+        for ds in self.datasets:
             if ds.flag_is_accepted(flag):
                 return ds.fetch(flag, effective_config, **kwargs)
         raise KeyError(f"Key '{flag}' not recognized by any of the linked Datasets.")
@@ -207,7 +212,7 @@ class DatasetLinkCollection(
         from collections import Counter
 
         accepted_flags = list()
-        for ds in self.dataset_iterator:
+        for ds in self.datasets:
             accepted_flags += list(ds.accepted_flags)
 
         counts = Counter(accepted_flags)
@@ -254,7 +259,7 @@ class DatasetMergeCollection(
 
     def _fetch(self, flag: FlagType, effective_config: DatasetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
         data_frames = []
-        for ds in self.dataset_iterator:
+        for ds in self.datasets:
             if ds.flag_is_accepted(flag):
                 data_frames.append(ds.fetch(flag, effective_config, **kwargs))
 
@@ -304,7 +309,7 @@ class DatasetConcatCollection(
         # TODO: concat axis
         # TODO: uniform order of magnitude per KPI / KPI category
         return pd.concat(
-            {ds.name: ds.get_kpi_series(**kwargs) for ds in self.dataset_iterator},
+            {ds.name: ds.get_kpi_series(**kwargs) for ds in self.datasets},
             axis=1,
             names=[self.concat_level_name]
         )
@@ -318,7 +323,7 @@ class DatasetConcatCollection(
     ) -> pd.Series | pd.DataFrame:
         """Fetch method that merges dataframes from all child datasets, similar to DatasetMergeCollection."""
         temp_merge_collection = DatasetMergeCollection(
-            datasets=list(self.datasets.values()),
+            datasets=self.datasets,
             name=f"{self.name}_temp_merge",
             keep_first=keep_first
         )
@@ -335,7 +340,7 @@ class DatasetConcatCollection(
             concat_axis = self.default_concat_axis
 
         dfs = {}
-        for ds in self.dataset_iterator:
+        for ds in self.datasets:
             if ds.flag_is_accepted(flag):
                 dfs[ds.name] = ds.fetch(flag, effective_config, **kwargs)
 
@@ -365,7 +370,7 @@ class DatasetSumCollection(
 ):
     def _fetch(self, flag: FlagType, effective_config: DatasetConfigType, **kwargs) -> pd.Series | pd.DataFrame:
         data: list[pd.Series | pd.DataFrame] = []
-        for ds in self.dataset_iterator:
+        for ds in self.datasets:
             if ds.flag_is_accepted(flag):
                 data.append(ds.fetch(flag, effective_config, **kwargs))
         if not data:
