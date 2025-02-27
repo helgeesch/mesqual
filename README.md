@@ -7,7 +7,7 @@ A Python framework for energy market data analysis, with a focus on scenario com
 
 ## Overview
 
-mescal provides a flexible framework for handling energy market data from various sources (simulations, real market data, scenarios). Its modular architecture allows easy integration with different energy market platforms and tools through dedicated connector packages.
+MESCAL provides a flexible framework for handling energy market data from various sources (simulations, real market data, scenarios). Its modular architecture allows easy integration with different energy market platforms and tools through dedicated interface packages.
 
 Key features:
 - Unified interface for handling energy market data across different platforms
@@ -16,6 +16,20 @@ Key features:
 - Flexible data aggregation and transformation tools
 - Support for time series analysis and topology-based computations
 
+This is the foundation package for a whole suite of libraries and repositories. 
+In most cases, you will want to combine this foundation package with at least one mescal-platform-interface (e.g. mescal-pypsa, mescal-plexos, ...)
+
+To view a hands-on repository and see how the MESCAL-suite is used in action, please visit:
+[mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git)
+
+Other repositories part of the MESCAL-suite are:
+- [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git)
+- [mescal-pypsa](https://github.com/helgeesch/mescal-pypsa)
+- [mescal-plexos](https://github.com/helgeesch/mescal-plexos) (to be released)
+- [mescal-etp](https://github.com/helgeesch/mescal-etp) (to be released)
+- [mescal-antares](https://github.com/helgeesch/mescal-antares) (to be released)
+- [mescal-bid3](https://github.com/helgeesch/mescal-bid3) (to be released)
+
 ## Minimum usage examples
 
 #### Example using Plexos interface to set up simple dataset and fetch data
@@ -23,9 +37,13 @@ Key features:
 from mescal_plexos import PlexosDataset
 
 # Initialize dataset
-dataset = PlexosDataset.from_paths(model='plexos_model.xml', solution='my_solution.zip', name='my_name')
+dataset = PlexosDataset.from_paths(
+   model='path/to/my_plexos_model.xml', 
+   solution='path/to/my_plexos_solution.zip',
+   name='my_name',
+)
 
-# Fetch data
+# Fetch data as DataFrame
 df_prices = dataset.fetch("ST.Node.Price")
 df_nodes = dataset.fetch("Node.Model")
 ```
@@ -39,36 +57,33 @@ import pypsa
 from mescal import StudyManager
 from mescal_pypsa import PyPSADataset
 
-# Create scenarios
+# Load networks
 n_base = pypsa.Network('your_base_network.nc')
-n_base.name = 'base'
 n_scen1 = pypsa.Network('your_scen1_network.nc')
-n_scen1.name = 'scen1'
 n_scen2 = pypsa.Network('your_scen2_network.nc')
-n_scen2.name = 'scen2'
 
 # Initialize study manager
 study = StudyManager.factory_from_scenarios(
     scenarios=[
-        PyPSADataset(n_base),
-        PyPSADataset(n_scen1),
-        PyPSADataset(n_scen2),
+        PyPSADataset(n_base, name='base'),
+        PyPSADataset(n_scen1, name='scen1'),
+        PyPSADataset(n_scen2, name='scen2'),
     ],
     comparisons=[("scen1", "base"), ("scen2", "base")],
     export_folder="output"
 )
 
-# Access MultiIndex DF with data for all scenarios
+# Access MultiIndex df with data for all scenarios
 df_prices = study.scen.fetch("buses_t.marginal_price")
 
-# Access MultiIndex DF with data for all comparisons (delta values)
+# Access MultiIndex df with data for all comparisons (delta values)
 df_price_deltas = study.comp.fetch("buses_t.marginal_price")
 
 # Access buses model df of base case
 df_bus_model = study.scen.get_dataset('base').fetch('buses')
 ```
 
-For more elaborate and practical examples, please visit to the [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git) repository.
+For more elaborate and practical examples, please visit the [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git) repository.
 
 
 ## Requirements
