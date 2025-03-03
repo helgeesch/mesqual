@@ -16,7 +16,7 @@ from mescal.typevars import DatasetType, DatasetConfigType, FlagType, FlagIndexT
 if TYPE_CHECKING:
     from mescal.kpis.kpi_base import KPIFactory
     from mescal.kpis.kpi_collection import KPICollection
-    from mescal.databases.data_base import DataBase
+    from mescal.databases.database import Database
 
 logger = get_logger(__name__)
 
@@ -39,7 +39,7 @@ class DatasetCollection(
             parent_dataset: Dataset = None,
             flag_index: FlagIndex = None,
             attributes: dict = None,
-            data_base: DataBase = None,
+            database: Database = None,
             config: DatasetConfigType = None
     ):
         super().__init__(
@@ -47,7 +47,7 @@ class DatasetCollection(
             parent_dataset=parent_dataset,
             flag_index=flag_index,
             attributes=attributes,
-            data_base=data_base,
+            database=database,
             config=config,
         )
         self.datasets: list[DatasetType] = datasets if datasets else []
@@ -188,7 +188,7 @@ class DatasetLinkCollection(
             parent_dataset: Dataset = None,
             flag_index: FlagIndex = None,
             attributes: dict = None,
-            data_base: DataBase = None,
+            database: Database = None,
             config: DatasetConfigType = None,
     ):
         super().__init__(
@@ -197,7 +197,7 @@ class DatasetLinkCollection(
             parent_dataset=parent_dataset,
             flag_index=flag_index,
             attributes=attributes,
-            data_base=data_base,
+            database=database,
             config=config,
         )
         self._warn_if_flags_overlap()
@@ -242,7 +242,7 @@ class DatasetMergeCollection(
             parent_dataset: Dataset = None,
             flag_index: FlagIndex = None,
             attributes: dict = None,
-            data_base: DataBase = None,
+            database: Database = None,
             config: DatasetConfigType = None,
             keep_first: bool = True,
     ):
@@ -252,7 +252,7 @@ class DatasetMergeCollection(
             parent_dataset=parent_dataset,
             flag_index=flag_index,
             attributes=attributes,
-            data_base=data_base,
+            database=database,
             config=config,
         )
         self.keep_first = keep_first
@@ -285,7 +285,7 @@ class DatasetConcatCollection(
             parent_dataset: Dataset = None,
             flag_index: FlagIndex = None,
             attributes: dict = None,
-            data_base: DataBase = None,
+            database: Database = None,
             config: DatasetConfigType = None,
             default_concat_axis: int = 1,
             concat_top: bool = True,
@@ -297,7 +297,7 @@ class DatasetConcatCollection(
             parent_dataset=parent_dataset,
             flag_index=flag_index,
             attributes=attributes,
-            data_base=data_base,
+            database=database,
             config=config,
         )
         super().__init__(datasets=datasets, name=name)

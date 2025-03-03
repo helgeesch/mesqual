@@ -1,7 +1,9 @@
 
+[![Python >=3.10](https://img.shields.io/badge/python-≥3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 
 # <img src="assets/logo_no_text_no_bg.svg" width="70" height="70" alt="logo"> MESCAL 
-**M**odular **E**nergy **S**cenario **C**omparison **A**nalysis and **L**ibrary
+**M**odular **E**nergy **S**cenario **C**omparison **A**nalysis **L**ibrary
 
 A Python framework for energy market data analysis, with a focus on scenario comparison and KPI calculation.
 
@@ -19,16 +21,16 @@ Key features:
 This is the foundation package for a whole suite of libraries and repositories. 
 In most cases, you will want to combine this foundation package with at least one mescal-platform-interface (e.g. mescal-pypsa, mescal-plexos, ...)
 
-To view a hands-on repository and see how the MESCAL-suite is used in action, please visit:
-[mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git)
-
-Other repositories part of the MESCAL-suite are:
+To view a hands-on repository and see how the MESCAL-suite is used in action, please visit the vanilla-studies repository. For platform-interfaces, visit those, respectively. The full list of the current MESCAL-suite is:
 - [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git)
+- [mescal](https://github.com/helgeesch/mescal)
 - [mescal-pypsa](https://github.com/helgeesch/mescal-pypsa)
 - [mescal-plexos](https://github.com/helgeesch/mescal-plexos) (to be released)
 - [mescal-etp](https://github.com/helgeesch/mescal-etp) (to be released)
-- [mescal-antares](https://github.com/helgeesch/mescal-antares) (to be released)
-- [mescal-bid3](https://github.com/helgeesch/mescal-bid3) (to be released)
+- [mescal-gui](https://github.com/helgeesch/mescal-gui) (to be released)
+
+[//]: # (- [mescal-antares]&#40;https://github.com/helgeesch/mescal-antares&#41; &#40;to be released&#41;)
+[//]: # (- [mescal-bid3]&#40;https://github.com/helgeesch/mescal-bid3&#41; &#40;to be released&#41;)
 
 ## Minimum usage examples
 
@@ -114,33 +116,39 @@ The core package provides:
 
 MESCAL is designed to be used as a Git submodule. To include it in your project:
 
+Step 1: Git clone repo
+Step 2: Add submodules
+Step 2.1: In case you want to build a new mescal-interface to a new platform, set up a new repo for the interface include it, for example as a submodule like it is done with the other interfaces.
+Step 3: Configure submodules as source root
+Step 4: Install requirements of repo + submodules
+Step 5: Explore
+
+### Step 1: Clone mescal-vanilla-studies
+In your console, navigate to the directory in which you want to clone this repo. Then perform the clone:
+```bash
+git clone https://github.com/helgeesch/mescal-vanilla-studies.git
+```
+
+### Step 2: Add submodules
 ```bash
 git submodule add https://github.com/helgeesch/mescal.git submodules/mescal
-git submodule add [https://repository/url/to/any/mescal-interface.git] submodules/mescal-interface
+git submodule add https://github.com/helgeesch/mescal-interface.git submodules/mescal-interface
 git submodule update --init --recursive
 ```
 The folder `submodules/` should now include the respective packages.
 
-### Install requirements:
-```bash
-pip install -r requirements.txt
-pip install -r submodules/mescal/requirements.txt
-pip install -r submodules/mescal-interface/requirements.txt
-```
-
-### PyCharm Configuration
+### Step 3: Configure submodules as source root
+#### PyCharm Configuration
 If you're using PyCharm, ensure that the submodule directories are properly recognized as part of the source code by setting them as "Sources Root":
 
-1. In PyCharm's Project Explorer, locate the submodule directories and the relevant source code directories:
+1. In PyCharm's Project Explorer, locate the submodule directories:
    - `submodules/mescal`
-   - `submodules/mescal/mescal`
    - `submodules/mescal-interface`
-   - `submodules/mescal-interface/mescal_interface`
 2. Right-click on each of the directories above.
 3. Select Mark Directory as -> Sources Root.
 
 
-### VSCode Configuration
+#### VSCode Configuration
 In Visual Studio Code, you can add the submodules to the python.analysis.extraPaths setting:
 1. Open your project folder.
 2. Create (or modify) .vscode/settings.json:
@@ -148,31 +156,30 @@ In Visual Studio Code, you can add the submodules to the python.analysis.extraPa
     {
         "python.analysis.extraPaths": [
           "submodules/mescal",
-          "submodules/mescal/mescal",
           "submodules/mescal-interface",
-          "submodules/mescal-interface/mescal_interface"
         ]
     }
     ```
 
-### Jupyter Notebook Configuration
+#### Jupyter Notebook Configuration
 If you work with Jupyter, extend the sys.path directly in your notebook:
 ```python
 import sys
 sys.path.append("submodules/mescal")
-sys.path.append("submodules/mescal/mescal")
 sys.path.append("submodules/mescal-interface")
-sys.path.append("submodules/mescal-interface/mescal_interface")
 ```
 
-## License
+### Step 4: Install requirements
+```bash
+pip install -r requirements.txt
+pip install -r submodules/mescal/requirements.txt
+pip install -r submodules/mescal-interface/requirements.txt
+```
 
-This project is licensed under the LGPL License - see the LICENSE file for details.
+## Attribution and Licenses
 
-## Contributing
+This project is primarily licensed under the LGPL License - see the LICENSE file for details.
 
-Contributions are welcome! The modular architecture makes it easy to:
-- Add support for new platforms via interface packages
-- Add or enhance new visualization modules
-- Add data transformation utilities
-- Be creative :)
+### Third-party assets:
+- `countries.geojson`: Made with [Natural Earth](https://github.com/nvkelso/natural-earth-vector.git)
+

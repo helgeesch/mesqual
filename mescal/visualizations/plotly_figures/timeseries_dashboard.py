@@ -7,7 +7,7 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from eda.utils.pandas_utils.sort_multiindex import sort_multiindex
+from mescal.utils.pandas_utils.sort_multiindex import sort_multiindex
 
 
 X_AXIS_AGGS = Literal['date', 'year_month', 'year_week', 'month', 'year']
@@ -26,7 +26,7 @@ def _insert_empty_column_index_level(df: pd.DataFrame, level_name: str = None) -
     return pd.concat({level_value: df}, axis=1, names=[level_name])
 
 
-class TimeSeriesDashboard:
+class TimeSeriesDashboardGenerator:
     DEFAULT_STATISTICS: Dict[str, Callable[[pd.Series], Union[float, int]]] = {
         'Datums': lambda x: len(x),
         'Abs max': lambda x: x.abs().max(),
@@ -43,8 +43,9 @@ class TimeSeriesDashboard:
         '% != 0': lambda x: ((x.round(2) != 0) & (~x.isna())).sum() / (~x.isna()).sum() * 100,
         '% > 0': lambda x: (x.round(2) > 0).sum() / (~x.isna()).sum() * 100,
         '% < 0': lambda x: (x.round(2) < 0).sum() / (~x.isna()).sum() * 100,
-        'mean of v>0': lambda x: x.where(x > 0, np.nan).mean(),
-        'mean of v<0': lambda x: x.where(x < 0, np.nan).mean(),
+        'Mean of v>0': lambda x: x.where(x > 0, np.nan).mean(),
+        'Mean of v<0': lambda x: x.where(x < 0, np.nan).mean(),
+        'Median': lambda x: x.median(),
         'Q0.99': lambda x: x.quantile(0.99),
         'Q0.95': lambda x: x.quantile(0.95),
         'Q0.05': lambda x: x.quantile(0.05),
@@ -432,5 +433,41 @@ class TimeSeriesDashboard:
 
 
 if __name__ == '__main__':
-    # TODO: provide example
-    pass
+    url = "https://tubcloud.tu-berlin.de/s/pKttFadrbTKSJKF/download/time-series-lecture-2.csv"
+    ts_raw = pd.read_csv(url, index_col=0, parse_dates=True).rename_axis('variable', axis=1)
+    ts_res = ts_raw[['onwind', 'offwind', 'solar']]
+
+    generator_raw = TimeSeriesDashboardGenerator(
+        x_axis='date',
+        color_continuous_scale='viridis',
+        facet_row='variable',
+        facet_row_order=['solar', 'onwind', 'offwind']
+    )
+    fig_raw = generator_raw.get_figure(ts_res*100, title='Variables')
+    fig_raw.show(renderer='browser')
+
+    # Multiple scenarios
+    ts_res_scenarios = pd.concat(
+        {
+            'base': ts_res,
+            'scen1': ts_res ** 0.7,
+            'scen2': ts_res ** 0.5
+        },
+        axis=1,
+        names=['dataset']
+    )
+    ts_res_scenarios = ts_res_scenarios * 100  # to percent
+
+    stats = TimeSeriesDashboardGenerator.DEFAULT_STATISTICS.copy()
+    stats['Std'] = TimeSeriesDashboardGenerator.STATISTICS_LIBRARY['Std']
+    stats['% == 0'] = TimeSeriesDashboardGenerator.STATISTICS_LIBRARY['% == 0']
+    generator_res_scenarios = TimeSeriesDashboardGenerator(
+        x_axis='date',
+        facet_col='dataset',
+        facet_row='variable',
+        facet_col_order=['scen2', 'base', 'scen1'],
+        facet_row_order=['solar', 'onwind', 'offwind'],
+        color_continuous_scale='viridis',
+    )
+    fig_res_scenarios = generator_res_scenarios.get_figure(ts_res_scenarios, title='Variable per Scenario')
+    fig_res_scenarios.show(renderer='browser')
