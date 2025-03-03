@@ -246,11 +246,15 @@ class TimeSeriesDashboardGenerator:
             level_0 = 0
         if level_1 is None:
             level_1 = 1
+
+        # FIXED: Only auto-assign facets if BOTH are None
+        # This prevents overriding your explicit settings
         if (processing_kwargs['facet_row'] is None) and (processing_kwargs['facet_col'] is None):
             if len(set(data.columns.get_level_values(level_0))) > len(set(data.columns.get_level_values(level_1))):
                 processing_kwargs['facet_row'], processing_kwargs['facet_col'] = level_0, level_1
             else:
                 processing_kwargs['facet_row'], processing_kwargs['facet_col'] = level_1, level_0
+        # Only assign the missing one if just one is None
         elif processing_kwargs['facet_row'] is None:
             if processing_kwargs['facet_col'] == level_0:
                 processing_kwargs['facet_row'] = level_1
@@ -261,6 +265,8 @@ class TimeSeriesDashboardGenerator:
                 processing_kwargs['facet_col'] = level_1
             else:
                 processing_kwargs['facet_col'] = level_0
+
+        # Set orders if not provided, but don't override
         if processing_kwargs['facet_col_order'] is None:
             processing_kwargs['facet_col_order'] = data.columns.get_level_values(
                 processing_kwargs['facet_col']).unique().to_list()
@@ -345,18 +351,23 @@ class TimeSeriesDashboardGenerator:
 
         data_columns = data.columns.to_list()
 
+        # FIXED: The _get_subplot_title function had a logic error
+        # that was swapping row and column names
         def _get_subplot_title(column):
-            if set(data.columns.get_level_values(0)) == set(data.columns.get_level_values(facet_col)):
-                col_name, row_name = 0, 1
-            else:
-                col_name, row_name = 1, 0
+            # FIXED: Don't rely on set comparison that can cause swapping
+            # Use the explicitly defined facet_col and facet_row instead
+            facet_row = processing_kwargs['facet_row']
 
-            if column[0] and column[1]:
-                return f'{column[col_name]} - {column[row_name]}'
-            elif column[0]:
-                return f'{column[0]}'
+            # Get the indices of each facet in the column tuple
+            col_idx = data.columns.names.index(facet_col) if facet_col in data.columns.names else 0
+            row_idx = data.columns.names.index(facet_row) if facet_row in data.columns.names else 1
+
+            if column[col_idx] and column[row_idx]:
+                return f'{column[col_idx]} - {column[row_idx]}'
+            elif column[col_idx]:
+                return f'{column[col_idx]}'
             else:
-                return f'{column[1]}'
+                return f'{column[row_idx]}'
 
         subplot_titles = [x for c in data_columns for x in [_get_subplot_title(c), None]]
         num_variables = len(data.columns)
