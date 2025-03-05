@@ -160,7 +160,7 @@ In Visual Studio Code, you can add the submodules to the python.analysis.extraPa
     {
         "python.analysis.extraPaths": [
           "submodules/mescal",
-          "submodules/mescal-interface",
+          "submodules/mescal-interface"
         ]
     }
     ```
