@@ -1,11 +1,10 @@
-
 [![Python >=3.10](https://img.shields.io/badge/python-≥3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 
-# <img src="assets/logo_no_text_no_bg.svg" width="70" height="70" alt="logo"> MESCAL 
+# MESCAL <img src="assets/logo_no_text_no_bg.svg" width="70" height="70" alt="logo">
 **M**odular **E**nergy **S**cenario **C**omparison **A**nalysis **L**ibrary
 
-A Python framework for energy market data analysis, with a focus on scenario comparison and KPI calculation.
+A modular Python framework for energy market data analysis, with a focus on scenario comparison, KPI calculation and interactive visualizations.
 
 ## Overview
 
@@ -22,8 +21,8 @@ This is the foundation package for a whole suite of libraries and repositories.
 In most cases, you will want to combine this foundation package with at least one mescal-platform-interface (e.g. mescal-pypsa, mescal-plexos, ...)
 
 To view a hands-on repository and see how the MESCAL-suite is used in action, please visit the vanilla-studies repository. For platform-interfaces, visit those, respectively. The full list of the current MESCAL-suite is:
-- [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git)
 - [mescal](https://github.com/helgeesch/mescal)
+- [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies)
 - [mescal-pypsa](https://github.com/helgeesch/mescal-pypsa)
 - [mescal-plexos](https://github.com/helgeesch/mescal-plexos) (to be released)
 - [mescal-etp](https://github.com/helgeesch/mescal-etp) (to be released)
@@ -31,6 +30,8 @@ To view a hands-on repository and see how the MESCAL-suite is used in action, pl
 
 [//]: # (- [mescal-antares]&#40;https://github.com/helgeesch/mescal-antares&#41; &#40;to be released&#41;)
 [//]: # (- [mescal-bid3]&#40;https://github.com/helgeesch/mescal-bid3&#41; &#40;to be released&#41;)
+
+---
 
 ## Minimum usage examples
 
@@ -87,10 +88,13 @@ df_bus_model = study.scen.get_dataset('base').fetch('buses')
 
 For more elaborate and practical examples, please visit the [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git) repository.
 
+---
 
 ## Requirements
 - Python ≥ 3.10
 - Dependencies listed in requirements.txt
+
+---
 
 ## Architecture
 MESCAL follows a modular design where platform-specific implementations are handled through separate packages:
@@ -109,7 +113,7 @@ The core package provides:
 - Scenario comparison tools
 - KPI calculation framework
 - Visualization modules
-- Data transformation utilities
+- Data transformation modules and utilities
 - Pandas / Plotly / Folium utilities
 
 ## Integrate mescal and mescal-interface packages in your project
@@ -177,9 +181,7 @@ pip install -r submodules/mescal-interface/requirements.txt
 ```
 
 ## Attribution and Licenses
-
-This project is primarily licensed under the LGPL License - see the LICENSE file for details.
+This project is licensed under the LGPL License - see the LICENSE file for details.
 
 ### Third-party assets:
 - `countries.geojson`: Made with [Natural Earth](https://github.com/nvkelso/natural-earth-vector.git)
-
