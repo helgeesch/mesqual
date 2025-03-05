@@ -1,4 +1,5 @@
 from typing import Union, List, Literal, Callable, Dict, Any
+from itertools import product
 from datetime import time
 import calendar
 import math
@@ -6,9 +7,6 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-
-from mescal.utils.pandas_utils.sort_multiindex import sort_multiindex
-
 
 X_AXIS_AGGS = Literal['date', 'year_month', 'year_week', 'month', 'year']
 X_AXIS_TYPES = Union[X_AXIS_AGGS, List[X_AXIS_AGGS]]
@@ -27,6 +25,7 @@ def _insert_empty_column_index_level(df: pd.DataFrame, level_name: str = None) -
 
 
 class TimeSeriesDashboardGenerator:
+
     DEFAULT_STATISTICS: Dict[str, Callable[[pd.Series], Union[float, int]]] = {
         'Datums': lambda x: len(x),
         'Abs max': lambda x: x.abs().max(),
@@ -52,6 +51,9 @@ class TimeSeriesDashboardGenerator:
         'Q0.01': lambda x: x.quantile(0.01),
         'Std': lambda x: x.std(),
     }
+
+    _FACET_ROW_LEVEL = 0
+    _FACET_COL_LEVEL = 1
 
     def __init__(
             self,
@@ -124,12 +126,9 @@ class TimeSeriesDashboardGenerator:
 
         self._check_data_input(data, processing_kwargs)
         data = self._prepare_dataframe_in_case_of_method_call_facet(data, processing_kwargs)
-        data = self._ensure_dataframe_format_with_two_column_levels(data)
+        data = self._ensure_dataframe_format_with_two_column_levels(data, processing_kwargs)
 
         self._update_facet_kwargs(data, processing_kwargs)
-
-        data = sort_multiindex(data, processing_kwargs['facet_col_order'], level=processing_kwargs['facet_col'], axis=1)
-        data = sort_multiindex(data, processing_kwargs['facet_row_order'], level=processing_kwargs['facet_row'], axis=1)
 
         x_axis = processing_kwargs['x_axis']
         facet_col_wrap = processing_kwargs['facet_col_wrap']
@@ -141,12 +140,17 @@ class TimeSeriesDashboardGenerator:
         fig = self._get_figure_layout(data, processing_kwargs)
 
         fig_row, fig_col = 0, 0
-        for i, data_col in enumerate(data.columns):
+        for i, (row_key, col_key) in enumerate(product(processing_kwargs['facet_row_order'], processing_kwargs['facet_col_order'])):
             if (i % facet_col_wrap) == 0:
                 fig_row += 1
                 fig_col = 1
             else:
                 fig_col += 2
+
+            data_col = (row_key, col_key)
+
+            if data_col not in data.columns:
+                continue
 
             temp_ts = data[data_col]
 
@@ -225,54 +229,31 @@ class TimeSeriesDashboardGenerator:
         return temp_data
 
     @staticmethod
-    def _ensure_dataframe_format_with_two_column_levels(data: pd.DataFrame) -> pd.DataFrame:
+    def _ensure_dataframe_format_with_two_column_levels(data: pd.DataFrame, processing_kwargs: Dict) -> pd.DataFrame:
         if isinstance(data, pd.Series):
-            _name = data.name
-            if _name is None:
-                _name = 'Time series'
-            data = data.to_frame(_name)
+            data = data.to_frame(data.name or 'Time series')
         if data.columns.nlevels == 1:
-            if data.columns.name is None:
-                data.columns.name = 'variable'
+            data.columns.name = data.columns.name or 'variable'
             data = _insert_empty_column_index_level(data)
-        # TODO: ensure each combination of the columns exist so that facet col doesn't get out of order in case of missing data
+
+        if processing_kwargs['facet_col'] in [data.columns.names[0]]:
+            data.columns = data.columns.reorder_levels([1, 0])
         return data
 
     @staticmethod
     def _update_facet_kwargs(data: pd.DataFrame, processing_kwargs: Dict):
-        level_0, level_1 = data.columns.names
-
-        if level_0 is None:
-            level_0 = 0
-        if level_1 is None:
-            level_1 = 1
-
-        # FIXED: Only auto-assign facets if BOTH are None
-        # This prevents overriding your explicit settings
-        if (processing_kwargs['facet_row'] is None) and (processing_kwargs['facet_col'] is None):
-            if len(set(data.columns.get_level_values(level_0))) > len(set(data.columns.get_level_values(level_1))):
-                processing_kwargs['facet_row'], processing_kwargs['facet_col'] = level_0, level_1
-            else:
-                processing_kwargs['facet_row'], processing_kwargs['facet_col'] = level_1, level_0
-        # Only assign the missing one if just one is None
-        elif processing_kwargs['facet_row'] is None:
-            if processing_kwargs['facet_col'] == level_0:
-                processing_kwargs['facet_row'] = level_1
-            else:
-                processing_kwargs['facet_row'] = level_0
-        elif processing_kwargs['facet_col'] is None:
-            if processing_kwargs['facet_row'] == level_0:
-                processing_kwargs['facet_col'] = level_1
-            else:
-                processing_kwargs['facet_col'] = level_0
-
-        # Set orders if not provided, but don't override
+        unique_facet_col_keys = data.columns.get_level_values(processing_kwargs['facet_col']).unique().to_list()
         if processing_kwargs['facet_col_order'] is None:
-            processing_kwargs['facet_col_order'] = data.columns.get_level_values(
-                processing_kwargs['facet_col']).unique().to_list()
+            processing_kwargs['facet_col_order'] = unique_facet_col_keys
+        else:
+            processing_kwargs['facet_col_order'] += [c for c in unique_facet_col_keys if c not in processing_kwargs['facet_col_order']]
+
+        unique_facet_row_keys = data.columns.get_level_values(processing_kwargs['facet_row']).unique().to_list()
         if processing_kwargs['facet_row_order'] is None:
-            processing_kwargs['facet_row_order'] = data.columns.get_level_values(
-                processing_kwargs['facet_row']).unique().to_list()
+            processing_kwargs['facet_row_order'] = unique_facet_row_keys
+        else:
+            processing_kwargs['facet_row_order'] += [c for c in unique_facet_row_keys if c not in processing_kwargs['facet_row_order']]
+
         if processing_kwargs['facet_col_wrap'] is None:
             processing_kwargs['facet_col_wrap'] = len(processing_kwargs['facet_col_order'])
 
@@ -345,32 +326,20 @@ class TimeSeriesDashboardGenerator:
 
     @staticmethod
     def _get_figure_layout(data: pd.DataFrame, processing_kwargs: Dict) -> go.Figure:
-        facet_col = processing_kwargs['facet_col']
         facet_col_wrap = processing_kwargs['facet_col_wrap']
         ratio_of_stat_col = processing_kwargs['ratio_of_stat_col']
 
-        data_columns = data.columns.to_list()
-
-        # FIXED: The _get_subplot_title function had a logic error
-        # that was swapping row and column names
-        def _get_subplot_title(column):
-            # FIXED: Don't rely on set comparison that can cause swapping
-            # Use the explicitly defined facet_col and facet_row instead
-            facet_row = processing_kwargs['facet_row']
-
-            # Get the indices of each facet in the column tuple
-            col_idx = data.columns.names.index(facet_col) if facet_col in data.columns.names else 0
-            row_idx = data.columns.names.index(facet_row) if facet_row in data.columns.names else 1
-
-            if column[col_idx] and column[row_idx]:
-                return f'{column[col_idx]} - {column[row_idx]}'
-            elif column[col_idx]:
-                return f'{column[col_idx]}'
+        subplot_titles = []
+        row_keys = processing_kwargs['facet_row_order']
+        col_keys = processing_kwargs['facet_col_order']
+        for row_name, col_name in product(row_keys, col_keys):
+            if row_name and col_name:
+                title = f'{row_name} - {col_name}'
             else:
-                return f'{column[row_idx]}'
+                title = row_name or col_name
+            subplot_titles += [title, None]
 
-        subplot_titles = [x for c in data_columns for x in [_get_subplot_title(c), None]]
-        num_variables = len(data.columns)
+        num_variables = sum(1 for _ in product(row_keys, col_keys))
         num_rows = math.ceil(num_variables / facet_col_wrap)
         column_widths = [(1 - ratio_of_stat_col) / facet_col_wrap, ratio_of_stat_col / facet_col_wrap] * facet_col_wrap
         fig = make_subplots(num_rows, facet_col_wrap * 2, subplot_titles=subplot_titles, column_widths=column_widths)
@@ -457,6 +426,16 @@ if __name__ == '__main__':
     fig_raw = generator_raw.get_figure(ts_res*100, title='Variables')
     fig_raw.show(renderer='browser')
 
+    generator_facet_col_wrap = TimeSeriesDashboardGenerator(
+        x_axis='date',
+        color_continuous_scale='viridis',
+        facet_col='variable',
+        facet_col_order=['solar', 'onwind', 'offwind'],
+        facet_col_wrap=2
+    )
+    fig_raw_facet_col_wrap = generator_facet_col_wrap.get_figure(ts_res*100, title='Variables')
+    fig_raw_facet_col_wrap.show(renderer='browser')
+
     # Multiple scenarios
     ts_res_scenarios = pd.concat(
         {
@@ -468,6 +447,8 @@ if __name__ == '__main__':
         names=['dataset']
     )
     ts_res_scenarios = ts_res_scenarios * 100  # to percent
+    ts_res_scenarios = ts_res_scenarios.drop(('scen1', 'offwind'), axis=1)
+    ts_res_scenarios.columns = ts_res_scenarios.columns.reorder_levels([1, 0])
 
     stats = TimeSeriesDashboardGenerator.DEFAULT_STATISTICS.copy()
     stats['Std'] = TimeSeriesDashboardGenerator.STATISTICS_LIBRARY['Std']
@@ -476,8 +457,8 @@ if __name__ == '__main__':
         x_axis='date',
         facet_col='dataset',
         facet_row='variable',
-        facet_col_order=['scen2', 'base', 'scen1'],
-        facet_row_order=['solar', 'onwind', 'offwind'],
+        facet_col_order=['base', 'scen1', 'scen2'],
+        facet_row_order=['onwind', 'solar', 'offwind'],
         color_continuous_scale='viridis',
     )
     fig_res_scenarios = generator_res_scenarios.get_figure(ts_res_scenarios, title='Variable per Scenario')
