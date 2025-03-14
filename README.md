@@ -132,16 +132,14 @@ Step 3: Configure submodules as source root
 Step 4: Install requirements of repo + submodules
 Step 5: Explore
 
-### Step 1: Clone mescal-vanilla-studies
-In your console, navigate to the directory in which you want to clone this repo. Then perform the clone:
-```bash
-git clone https://github.com/helgeesch/mescal-vanilla-studies.git
-```
+### Step 1: Navigate to your study-repository
+In your console, navigate to the repository to which you want to add mescal submodules. This could be a study-repo similar to [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git) or any git repo in which you handle your studies. 
 
-### Step 2: Add submodules
+### Step 2: Add mescal submodules
+Add all required mescal packages as submodules. If you want to build your own interface, just start by including the foundation package and start building your-custom-mescal-interface. If you want to integrate an existing interface, just add that one as a submodule, respectively.
 ```bash
 git submodule add https://github.com/helgeesch/mescal.git submodules/mescal
-git submodule add https://github.com/helgeesch/mescal-interface.git submodules/mescal-interface
+git submodule add https://github.com/path/to/any/mescal-interface.git submodules/mescal-interface
 git submodule update --init --recursive
 ```
 The folder `submodules/` should now include the respective packages.
@@ -150,7 +148,7 @@ The folder `submodules/` should now include the respective packages.
 #### PyCharm Configuration
 If you're using PyCharm, ensure that the submodule directories are properly recognized as part of the source code by setting them as "Sources Root":
 
-1. In PyCharm's Project Explorer, locate the submodule directories:
+1. In PyCharm's Project Explorer, locate all submodule directories:
    - `submodules/mescal`
    - `submodules/mescal-interface`
 2. Right-click on each of the directories above.
@@ -180,7 +178,6 @@ sys.path.append("submodules/mescal-interface")
 
 ### Step 4: Install requirements
 ```bash
-pip install -r requirements.txt
 pip install -r submodules/mescal/requirements.txt
 pip install -r submodules/mescal-interface/requirements.txt
 ```
@@ -190,3 +187,8 @@ This project is licensed under the LGPL License - see the LICENSE file for detai
 
 ### Third-party assets:
 - `countries.geojson`: Made with [Natural Earth](https://github.com/nvkelso/natural-earth-vector.git)
+
+## Contact
+For questions or feedback, don't hesitate to [open an issue](https://github.com/helgeesch/mescal/issues) or reach out via LinkedIn.
+
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/helge-e-8201041a7/)
