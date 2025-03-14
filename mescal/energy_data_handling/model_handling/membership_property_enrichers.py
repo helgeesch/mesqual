@@ -272,8 +272,8 @@ class DirectionalMembershipPropertyEnricher:
 
 
 if __name__ == "__main__":
-    # TODO: mescal_mock
-    from mescal.mock.mock_dataset import MockDataset
+    # TODO: replace with pypsa example
+    from mescal_mock import MockDataset
 
     # Initialize mock dataset and appenders
     mock_ds = MockDataset()
