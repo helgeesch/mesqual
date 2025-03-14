@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="35 70 320 320">
+  <!-- Background -->
+  <rect width="900" height="900" fill="white"/>
+
+  <!-- Base/Core Module -->
+  <path d="M160 280 L200 260 L240 280 L240 300 L200 320 L160 300 Z"
+        fill="#00b894" stroke="#2d3436" stroke-width="2"/>
+
+  <!-- Agave Leaves / Data Points -->
+  <!-- Each leaf contains a gradient and a data line -->
+  <defs>
+    <linearGradient id="leafGradient1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00b894;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#55efc4;stop-opacity:0.9"/>
+    </linearGradient>
+    <linearGradient id="leafGradient2" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#00cec9;stop-opacity:0.8"/>
+      <stop offset="100%" style="stop-color:#74b9ff;stop-opacity:0.9"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Central Leaves -->
+  <path d="M200 260 L200 100 Q180 140 185 180 L200 260"
+        fill="url(#leafGradient1)" stroke="#2d3436" stroke-width="2"/>
+  <path d="M200 260 L200 100 Q220 140 215 180 L200 260"
+        fill="url(#leafGradient2)" stroke="#2d3436" stroke-width="2"/>
+
+  <!-- Left Leaves -->
+  <path d="M185 240 Q140 180 130 120 Q160 170 180 200 Z"
+        fill="url(#leafGradient1)" stroke="#2d3436" stroke-width="2"/>
+  <path d="M180 260 Q120 200 100 150 Q140 190 170 220 Z"
+        fill="url(#leafGradient2)" stroke="#2d3436" stroke-width="2"/>
+
+  <!-- Right Leaves -->
+  <path d="M215 240 Q260 180 270 120 Q240 170 220 200 Z"
+        fill="url(#leafGradient1)" stroke="#2d3436" stroke-width="2"/>
+  <path d="M220 260 Q280 200 300 150 Q260 190 230 220 Z"
+        fill="url(#leafGradient2)" stroke="#2d3436" stroke-width="2"/>
+
+  <!-- Text -->
+  <text x="200" y="370"
+        font-family="Arial, sans-serif"
+        font-size="48"
+        font-weight="bold"
+        text-anchor="middle"
+        fill="#2d3436">mescal</text>
+</svg>
