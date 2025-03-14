@@ -125,13 +125,6 @@ The core package provides:
 
 MESCAL is designed to be used as a Git submodule. To include it in your project:
 
-Step 1: Git clone repo
-Step 2: Add submodules
-Step 2.1: In case you want to build a new mescal-interface to a new platform, set up a new repo for the interface include it, for example as a submodule like it is done with the other interfaces.
-Step 3: Configure submodules as source root
-Step 4: Install requirements of repo + submodules
-Step 5: Explore
-
 ### Step 1: Navigate to your study-repository
 In your console, navigate to the repository to which you want to add mescal submodules. This could be a study-repo similar to [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git) or any git repo in which you handle your studies. 
 
