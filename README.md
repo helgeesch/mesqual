@@ -132,7 +132,7 @@ In your console, navigate to the repository to which you want to add mescal subm
 Add all required mescal packages as submodules. If you want to build your own interface, just start by including the foundation package and start building your-custom-mescal-interface. If you want to integrate an existing interface, just add that one as a submodule, respectively.
 ```bash
 git submodule add https://github.com/helgeesch/mescal.git submodules/mescal
-git submodule add https://github.com/path/to/any/mescal-interface.git submodules/mescal-interface
+git submodule add https://github.com/path/to/any/mescal-any-interface.git submodules/mescal-any-interface
 git submodule update --init --recursive
 ```
 The folder `submodules/` should now include the respective packages.
@@ -143,7 +143,7 @@ If you're using PyCharm, ensure that the submodule directories are properly reco
 
 1. In PyCharm's Project Explorer, locate all submodule directories:
    - `submodules/mescal`
-   - `submodules/mescal-interface`
+   - `submodules/mescal-any-interface`
 2. Right-click on each of the directories above.
 3. Select Mark Directory as -> Sources Root.
 
@@ -156,7 +156,7 @@ In Visual Studio Code, you can add the submodules to the python.analysis.extraPa
     {
         "python.analysis.extraPaths": [
           "submodules/mescal",
-          "submodules/mescal-interface"
+          "submodules/mescal-any-interface"
         ]
     }
     ```
@@ -166,13 +166,13 @@ If you work with Jupyter, extend the sys.path directly in your notebook:
 ```python
 import sys
 sys.path.append("submodules/mescal")
-sys.path.append("submodules/mescal-interface")
+sys.path.append("submodules/mescal-any-interface")
 ```
 
 ### Step 4: Install requirements
 ```bash
 pip install -r submodules/mescal/requirements.txt
-pip install -r submodules/mescal-interface/requirements.txt
+pip install -r submodules/mescal-any-interface/requirements.txt
 ```
 
 ## Attribution and Licenses
