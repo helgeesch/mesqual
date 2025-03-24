@@ -54,8 +54,7 @@ class StudyManager:
 
     @staticmethod
     def _ensure_folder_exists(folder: str):
-        if not os.path.exists(folder):
-            os.mkdir(folder)
+        os.makedirs(folder, exist_ok=True)
 
     def export_path(self, file_name: str) -> str:
         if self._export_folder is None:
