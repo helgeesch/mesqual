@@ -40,24 +40,6 @@ To view a hands-on repository and see how the MESCAL-suite is used in action, pl
 
 ## Minimum usage examples
 
-#### Example using Plexos interface to set up simple dataset and fetch data
-```python
-from mescal_plexos import PlexosDataset
-
-# Initialize dataset
-dataset = PlexosDataset.from_xml_and_solution_zip(
-   model='path/to/my_plexos_model.xml', 
-   solution='path/to/my_plexos_solution.zip',
-   name='my_name',
-)
-
-# Fetch data as DataFrame
-df_prices = dataset.fetch("ST.Node.Price")
-df_nodes = dataset.fetch("Node.Model")
-```
-
-
-
 #### Example using PyPSA interface to set up a study with multiple scenarios and scenario comparisons
 
 ```python
@@ -89,6 +71,22 @@ df_price_deltas = study.comp.fetch("buses_t.marginal_price")
 
 # Access buses model df of base case
 df_bus_model = study.scen.get_dataset('base').fetch('buses')
+```
+
+#### Example using Plexos interface to set up simple dataset and fetch data
+```python
+from mescal_plexos import PlexosDataset
+
+# Initialize dataset
+dataset = PlexosDataset.from_xml_and_solution_zip(
+   model='path/to/my_plexos_model.xml', 
+   solution='path/to/my_plexos_solution.zip',
+   name='my_name',
+)
+
+# Fetch data as DataFrame
+df_prices = dataset.fetch("ST.Node.Price")
+df_nodes = dataset.fetch("Node.Model")
 ```
 
 For more elaborate and practical examples, please visit the [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git) repository.
