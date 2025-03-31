@@ -131,8 +131,8 @@ class PlatformDataset(
     @classmethod
     def register_interpreter(cls, interpreter: Type[DatasetType]) -> Type['DatasetType']:
         cls._validate_interpreter_type(interpreter)
-        cls._validate_interpreter_not_registered(interpreter)
-        cls._add_interpreter_to_registry(interpreter)
+        if interpreter not in cls._interpreter_registry:
+            cls._add_interpreter_to_registry(interpreter)
         return interpreter
 
     @classmethod
