@@ -288,8 +288,18 @@ class DatasetConcatCollection(
         self.concat_level_name = concat_level_name or self.DEFAULT_CONCAT_LEVEL_NAME
 
     def get_attributes_concat_df(self) -> pd.DataFrame:
+        if all(isinstance(ds, DatasetConcatCollection) for ds in self.datasets):
+            use_att_df_instead_of_series = True
+        else:
+            use_att_df_instead_of_series = False
+
+        atts_per_dataset = dict()
+        for ds in self.datasets:
+            atts = ds.get_attributes_concat_df().T if use_att_df_instead_of_series else ds.get_attributes_series()
+            atts_per_dataset[ds.name] = atts
+
         return pd.concat(
-            {ds.name: ds.get_attributes_series() for ds in self.datasets},
+            atts_per_dataset,
             axis=1,
             names=[self.concat_level_name]
         ).rename_axis(self.DEFAULT_ATT_LEVEL_NAME).T
