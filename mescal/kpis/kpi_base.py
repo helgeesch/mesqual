@@ -306,7 +306,7 @@ class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComp
     def get_attributed_object_info_from_model(self) -> pd.Series:
         from mescal.datasets.dataset_collection import DatasetMergeCollection
         model_flag = self.get_attributed_model_flag()
-        tmp_merged_col = DatasetMergeCollection([self._variation_kpi._dataset, self._reference_kpi._dataset])
+        tmp_merged_col = DatasetMergeCollection([self._variation_kpi.dataset, self._reference_kpi.dataset])
         model_df = tmp_merged_col.fetch(model_flag)
         object_name = self.get_attributed_object_name()
         if object_name in model_df.index:
