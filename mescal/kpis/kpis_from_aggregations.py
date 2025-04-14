@@ -53,6 +53,34 @@ class FlagAggKPI(Generic[DatasetType], KPI):
 
         super().__init__(dataset=dataset)
 
+    @property
+    def flag(self) -> FlagType:
+        return self._flag
+
+    @property
+    def aggregation(self) -> Aggregation:
+        return self._aggregation
+
+    @property
+    def column_subset(self) -> Hashable | list[Hashable]:
+        return self._column_subset
+
+    @property
+    def model_query(self) -> str:
+        return self._model_query
+
+    @property
+    def kpi_name_prefix(self) -> str:
+        return self._kpi_name_prefix
+
+    @property
+    def kpi_name_suffix(self) -> str:
+        return self._kpi_name_suffix
+
+    @property
+    def kpi_name(self) -> str:
+        return self._kpi_name
+
     def _get_kpi_attributes(self) -> KPIAttributes:
         atts = super()._get_kpi_attributes()
         atts.flag = self._flag
@@ -118,8 +146,12 @@ class FlagAggKPI(Generic[DatasetType], KPI):
         return self._dataset.flag_index.get_unit(self._flag)
 
     def _fetch_filtered_data(self, dataset: DatasetType) -> pd.DataFrame:
+        from mescal.datasets.dataset_comparison import DatasetComparison
         flag = self._flag
-        data = dataset.fetch(flag)
+        if isinstance(dataset, DatasetComparison):
+            data = dataset.fetch(flag, fill_value=0)
+        else:
+            data = dataset.fetch(flag)
 
         if self._model_query:
             model_flag = dataset.flag_index.get_linked_model_flag(flag)

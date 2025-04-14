@@ -92,6 +92,10 @@ class KPI(ABC):
         pass
 
     @property
+    def dataset(self) -> DatasetType:
+        return self._dataset
+
+    @property
     def attributes(self) -> KPIAttributes:
         if self._attributes is None:
             self._attributes = self._get_kpi_attributes()
@@ -145,7 +149,10 @@ class KPI(ABC):
 
     def get_attributed_object_info_from_model(self) -> pd.Series:
         model_flag = self.get_attributed_model_flag()
-        model_df = self._dataset.fetch(model_flag)
+        if isinstance(self._dataset, DatasetComparison):
+            model_df = self._dataset.fetch_merged(model_flag)
+        else:
+            model_df = self._dataset.fetch(model_flag)
         object_name = self.get_attributed_object_name()
         if object_name in model_df.index:
             return model_df.loc[object_name]
@@ -297,8 +304,10 @@ class ValueComparisonKPI(Generic[KPIType], _ValueOperationKPI[KPIType, ValueComp
         return self._variation_kpi.get_attributed_model_flag()
 
     def get_attributed_object_info_from_model(self) -> pd.Series:
+        from mescal.datasets.dataset_collection import DatasetMergeCollection
         model_flag = self.get_attributed_model_flag()
-        model_df = self._variation_kpi._dataset.fetch(model_flag)
+        tmp_merged_col = DatasetMergeCollection([self._variation_kpi.dataset, self._reference_kpi.dataset])
+        model_df = tmp_merged_col.fetch(model_flag)
         object_name = self.get_attributed_object_name()
         if object_name in model_df.index:
             return model_df.loc[object_name]

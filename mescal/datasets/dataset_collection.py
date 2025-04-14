@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Generic, Iterable, TYPE_CHECKING
+from typing import Generic, Iterable, TYPE_CHECKING, Iterator
 from abc import ABC, abstractmethod
 
 import pandas as pd
@@ -51,6 +51,11 @@ class DatasetCollection(
             config=config,
         )
         self.datasets: list[DatasetType] = datasets if datasets else []
+
+    @property
+    def dataset_iterator(self) -> Iterator[DatasetType]:
+        for ds in self.datasets:
+            yield ds
 
     @property
     def flag_index(self) -> FlagIndex:
@@ -147,6 +152,24 @@ class DatasetCollection(
     def get_child_dataset_type(cls) -> type[DatasetType]:
         return Dataset
 
+    def fetch_merged(
+            self,
+            flag: FlagType,
+            config: dict | DatasetConfigType = None,
+            keep_first: bool = True,
+            **kwargs
+    ) -> pd.Series | pd.DataFrame:
+        """Fetch method that merges dataframes from all child datasets, similar to DatasetMergeCollection."""
+        temp_merge_collection = self.get_merged_dataset_collection(keep_first)
+        return temp_merge_collection.fetch(flag, config, **kwargs)
+
+    def get_merged_dataset_collection(self, keep_first: bool = True) -> 'DatasetMergeCollection':
+        return DatasetMergeCollection(
+            datasets=self.datasets,
+            name=f"{self.name} merged",
+            keep_first=keep_first
+        )
+
 
 class DatasetLinkCollection(
     Generic[DatasetType, DatasetConfigType, FlagType, FlagIndexType],
@@ -203,6 +226,13 @@ class DatasetLinkCollection(
                 f"Only the first one will be used! This might lead to unexpected behavior. \n"
                 f"A potential reason could be the use of an inappropriate DatasetCollection Type."
             )
+
+    def get_dataset_by_type(self, ds_type: type[Dataset]) -> DatasetType:
+        """Returns instance of child dataset that matches the ds_type."""
+        for ds in self.datasets:
+            if isinstance(ds, ds_type):
+                return ds
+        raise KeyError(f'No Dataset of type {ds_type.__name__} found in {self.name}.')
 
 
 class DatasetMergeCollection(
@@ -303,24 +333,6 @@ class DatasetConcatCollection(
             axis=1,
             names=[self.concat_level_name]
         ).rename_axis(self.DEFAULT_ATT_LEVEL_NAME).T
-
-    def fetch_merged(
-            self,
-            flag: FlagType,
-            config: dict | DatasetConfigType = None,
-            keep_first: bool = True,
-            **kwargs
-    ) -> pd.Series | pd.DataFrame:
-        """Fetch method that merges dataframes from all child datasets, similar to DatasetMergeCollection."""
-        temp_merge_collection = self.get_merged_dataset_collection(keep_first)
-        return temp_merge_collection.fetch(flag, config, **kwargs)
-
-    def get_merged_dataset_collection(self, keep_first: bool = True) -> 'DatasetMergeCollection':
-        return DatasetMergeCollection(
-            datasets=self.datasets,
-            name=f"{self.name} merged",
-            keep_first=keep_first
-        )
 
     def _fetch(
             self,
