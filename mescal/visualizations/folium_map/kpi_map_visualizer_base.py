@@ -26,7 +26,7 @@ class KPIToMapVisualizerBase:
         self.study_manager = study_manager
         self.print_values_on_map = print_values_on_map
         self.include_related_kpis_in_tooltip = include_related_kpis_in_tooltip
-        self.category_orders = kpi_attribute_category_orders or dict()
+        self.kpi_attribute_category_orders = kpi_attribute_category_orders or dict()
         self.kpi_attribute_keys_to_exclude_from_grouping = ['name', 'object_name', 'column_subset']
         self.kpi_attribute_sort_order = [
             'name_prefix',
@@ -74,7 +74,7 @@ class KPIToMapVisualizerBase:
         attribute_value_rank: dict[str, dict[str, int]] = {}
         for attr in ordered_keys:
             existing_values = set(relevant_attribute_sets.get(attr, []))
-            manual_order = [v for v in self.category_orders.get(attr, []) if v in existing_values]
+            manual_order = [v for v in self.kpi_attribute_category_orders.get(attr, []) if v in existing_values]
             remaining = sorted(existing_values - set(manual_order))
             full_order = manual_order + remaining
             attribute_value_rank[attr] = {val: idx for idx, val in enumerate(full_order)}
