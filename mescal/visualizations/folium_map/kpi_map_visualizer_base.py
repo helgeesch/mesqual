@@ -20,11 +20,27 @@ class KPIToMapVisualizerBase:
             self,
             study_manager: StudyManager,
             print_values_on_map: bool = True,
-            include_related_kpis_in_tooltip: bool = False
+            include_related_kpis_in_tooltip: bool = False,
+            kpi_attribute_category_orders: dict[str, list[str]] | None = None
     ):
         self.study_manager = study_manager
         self.print_values_on_map = print_values_on_map
         self.include_related_kpis_in_tooltip = include_related_kpis_in_tooltip
+        self.category_orders = kpi_attribute_category_orders or dict()
+        self.kpi_attribute_keys_to_exclude_from_grouping = ['name', 'object_name', 'column_subset']
+        self.kpi_attribute_sort_order = [
+            'name_prefix',
+            'model_flag',
+            'flag',
+            'model_query',
+            'aggregation',
+            'reference_dataset',
+            'variation_dataset',
+            'dataset',
+            'value_comparison',
+            'value_operation',
+            'name_suffix',
+        ]
 
     def get_feature_groups(self, kpi_collection: KPICollection) -> list[folium.FeatureGroup]:
         feature_groups = []
@@ -33,7 +49,6 @@ class KPIToMapVisualizerBase:
             for kpi_group in self._get_kpi_groups(kpi_collection):
                 group_name = self._get_feature_group_name(kpi_group)
                 fg = folium.FeatureGroup(name=group_name, overlay=False, show=False)
-                # TODO: consistent category_orders
                 for kpi in kpi_group:
                     try:
                         self._add_kpi_to_feature_group(kpi, fg)
@@ -43,19 +58,42 @@ class KPIToMapVisualizerBase:
                 feature_groups.append(fg)
         return feature_groups
 
-    def _get_kpi_groups(self, kpi_collection: KPICollection) -> list[KPICollection]:
-        attribute_sets = kpi_collection.get_all_kpi_attributes_and_value_sets()
+    def _get_kpi_groups(
+            self,
+            kpi_collection: KPICollection,
+    ) -> list[KPICollection]:
+        attribute_sets = kpi_collection.get_all_kpi_attributes_and_value_sets(primitive_values=True)
         relevant_attribute_sets = {
             k: v
             for k, v in attribute_sets.items()
-            if k not in ['name', 'object_name', 'column_subset']  # TODO: could be something to set in __init__
+            if k not in self.kpi_attribute_keys_to_exclude_from_grouping
         }
 
+        ordered_keys = [k for k in self.kpi_attribute_sort_order if k in relevant_attribute_sets]
+
+        attribute_value_rank: dict[str, dict[str, int]] = {}
+        for attr in ordered_keys:
+            existing_values = set(relevant_attribute_sets.get(attr, []))
+            manual_order = [v for v in self.category_orders.get(attr, []) if v in existing_values]
+            remaining = sorted(existing_values - set(manual_order))
+            full_order = manual_order + remaining
+            attribute_value_rank[attr] = {val: idx for idx, val in enumerate(full_order)}
+
+        def sorting_index(group_kwargs: dict[str, str]) -> tuple:
+            return tuple(
+                attribute_value_rank[attr].get(group_kwargs.get(attr), float("inf"))
+                for attr in ordered_keys
+            )
+
+        group_kwargs_list = list(dict_combination_iterator(relevant_attribute_sets))
+        group_kwargs_list.sort(key=sorting_index)
+
         groups: list[KPICollection] = []
-        for group_kwargs in dict_combination_iterator(relevant_attribute_sets):
+        for group_kwargs in group_kwargs_list:
             g = kpi_collection.get_filtered_kpi_collection_by_attributes(**group_kwargs)
             if not g.empty:
                 groups.append(g)
+
         return groups
 
     def _get_feature_group_name(self, kpi_group: KPICollection) -> str:
