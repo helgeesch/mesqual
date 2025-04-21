@@ -66,7 +66,7 @@ class HTMLDashboard:
             table_html = table.get_html(include_dependencies=include_dependencies)
 
             if name is None:
-                name = f"tabulator_{table.title.lower().replace(' ', '_')}" if table.title else table.table_id
+                name = f"table_{table.title.lower().replace(' ', '_')}" if table.title else table.table_id
 
             self.add_html(table_html, name=name)
             return name
