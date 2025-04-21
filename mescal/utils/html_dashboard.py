@@ -7,7 +7,7 @@ from mescal.utils.logging import get_logger
 
 if TYPE_CHECKING:
     import folium
-    from mescal.visualizations.tabulator_table import TabulatorTable
+    from mescal.visualizations.html_table import HTMLTable
 
 logger = get_logger(__name__)
 
@@ -58,7 +58,7 @@ class HTMLDashboard:
 
     def add_table(
             self,
-            table: 'TabulatorTable',
+            table: 'HTMLTable',
             name: str = None,
             include_dependencies: bool = True
     ) -> str:
@@ -157,7 +157,7 @@ class HTMLDashboard:
 
 
 if __name__ == '__main__':
-    from mescal.visualizations.tabulator_table import TabulatorTable
+    from mescal.visualizations.html_table import HTMLTable
     import plotly.express as px
 
     data = px.data.iris()
@@ -175,7 +175,7 @@ if __name__ == '__main__':
         dashboard.add_plotly_figure(f)
 
     dashboard.add_section_divider('Now on to the TabulatorTable integration')
-    dashboard.add_table(TabulatorTable(data))
+    dashboard.add_table(HTMLTable(data))
 
 
     dashboard.add_section_divider('Now some custom HTML content')

@@ -5,7 +5,7 @@ import uuid
 import pandas as pd
 
 
-class TabulatorTable:
+class HTMLTable:
     """
     A class to create interactive Tabulator tables from pandas DataFrames.
 
