@@ -221,7 +221,6 @@ class HTMLTable:
         </html>
         """
 
-        # Write to file
         with open(filepath, 'w', encoding='utf-8') as f:
             f.write(html)
 
