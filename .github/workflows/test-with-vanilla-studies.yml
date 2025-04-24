@@ -1,0 +1,53 @@
+name: Test with Vanilla Studies
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  test-vanilla-studies-notebooks:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Clone vanilla-studies repo
+      run: |
+        git clone https://github.com/helgeesch/mescal-vanilla-studies.git
+        cd mescal-vanilla-studies
+        git submodule update --init --recursive
+
+    - name: Update mescal submodule to current code
+      run: |
+        cd mescal-vanilla-studies/submodules/mescal
+        
+        # Configure git to fetch PR refs
+        git config --add remote.origin.fetch "+refs/pull/*/head:refs/remotes/origin/pr/*"
+        
+        # Fetch from upstream
+        git fetch origin
+        
+        # Checkout the appropriate code
+        if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+          git checkout "origin/pr/${{ github.event.pull_request.number }}"
+        else
+          git checkout ${{ github.sha }}
+        fi
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install dependencies
+      run: |
+        cd mescal-vanilla-studies
+        python -m pip install --upgrade pip
+        pip install -r requirements-dev.txt
+        pip install -r submodules/mescal/requirements.txt
+        pip install -r submodules/mescal-pypsa/requirements.txt
+    
+    - name: Run notebook tests
+      run: |
+        cd mescal-vanilla-studies
+        python -m pytest tests/test_notebooks.py -v
