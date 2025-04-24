@@ -1,5 +1,6 @@
 [![Python >=3.10](https://img.shields.io/badge/python-≥3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
+![Notebook Tests](https://github.com/helgeesch/mescal/actions/workflows/test-with-vanilla-studies.yml/badge.svg)
 
 # MESCAL <img src="assets/logo_no_text_no_bg.svg" width="70" height="70" alt="logo">
 **M**odular **E**nergy **S**cenario **C**omparison **A**nalysis **L**ibrary
