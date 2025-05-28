@@ -2,6 +2,22 @@ import pandas as pd
 
 
 def sort_multiindex(df: pd.DataFrame, custom_order: list[str | int], level: str | int, axis: int = 0) -> pd.DataFrame:
+    """
+    Sort a DataFrame's MultiIndex at a specific level using a custom order.
+
+    Reorders the specified level according to custom_order while preserving
+    the existing order of all other levels. This allows for sequential sorting
+    operations where each sort maintains previous orderings.
+
+    Values in the target level that are not included in custom_order will be
+    appended at the end, maintaining their original relative order.
+
+    Examples
+    --------
+    >>> idx = pd.MultiIndex.from_arrays([['A', 'A', 'B', 'B'], [1, 2, 1, 2]])
+    >>> df = pd.DataFrame({'val': [10, 20, 30, 40]}, index=idx)
+    >>> sort_multiindex(df, [2, 1], level=1)  # Sort second level
+    """
     if axis not in [0, 1]:
         raise ValueError("axis must be 0 (rows) or 1 (columns)")
 
