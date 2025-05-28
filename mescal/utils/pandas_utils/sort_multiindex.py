@@ -14,9 +14,9 @@ def sort_multiindex(df: pd.DataFrame, custom_order: list[str | int], level: str 
 
     idx = df.axes[axis]
     idx_tuples = idx.to_list()
-
+    remaining_values_in_level_to_sort = [i for i in idx.get_level_values(level_num).unique() if i not in custom_order]
     ordered_tuples = []
-    for value in custom_order:
+    for value in custom_order + remaining_values_in_level_to_sort:
         for tuple_item in idx_tuples:
             if tuple_item[level_num] == value:
                 ordered_tuples.append(tuple_item)
