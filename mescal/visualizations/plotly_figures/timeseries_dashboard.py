@@ -184,12 +184,6 @@ class DataProcessor:
         if isinstance(data, pd.Series):
             data = data.to_frame(data.name or 'Time series')
 
-        if data.columns.nlevels > 2:
-            raise ValueError(
-                f'{TimeSeriesDashboardGenerator.__name__} module does not accept more than 2 column levels. '
-                f'Please reduce your data to maximum 2 Index levels on the columns.'
-            )
-
         if data.columns.nlevels == 1:
             data.columns.name = data.columns.name or 'variable'
             data = DataProcessor._insert_empty_column_index_level(data)
@@ -458,6 +452,7 @@ class TimeSeriesDashboardGenerator:
             if hasattr(self.config, key):
                 setattr(self.config, key, value)
 
+        DataProcessor.validate_input_data_and_config(data, self.config)
         data = DataProcessor.prepare_dataframe_for_facet(data, self.config)
         data = DataProcessor.ensure_df_has_two_column_levels(data, self.config)
         DataProcessor.update_facet_config(data, self.config)
