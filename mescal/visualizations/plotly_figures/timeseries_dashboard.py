@@ -52,7 +52,7 @@ class DashboardConfig:
             stat_aggs: Dict[str, Callable[[pd.Series], float | int]] = None,
             groupby_aggregation: GROUPBY_AGG_TYPES = 'mean',
             title: str = None,
-            color_continuous_scale: str | list[str] | list[tuple[float, str]] = None,
+            color_continuous_scale: str | list[str] | list[tuple[float, str]] = 'Turbo',
             color_continuous_midpoint: int | float = None,
             range_color: list[int | float] = None,
             per_facet_col_colorscale: bool = False,
