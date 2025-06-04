@@ -1,7 +1,7 @@
 import pandas as pd
 
 
-def merge_levels(
+def merge_multi_index_levels(
         multi_index: pd.MultiIndex,
         levels: list[str],
         name_of_new_level: str,
@@ -31,5 +31,5 @@ if __name__ == '__main__':
     ], names=['country', 'technology', 'year'])
 
     df = pd.DataFrame(index=index)
-    new_index = merge_levels(df.index, ['technology', 'country'], 'asset', join_levels_by=' - ')
+    new_index = merge_multi_index_levels(df.index, ['technology', 'country'], 'asset', join_levels_by=' - ')
     print(new_index)
