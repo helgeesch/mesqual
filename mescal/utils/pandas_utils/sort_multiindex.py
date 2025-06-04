@@ -21,23 +21,33 @@ def sort_multiindex(df: pd.DataFrame, custom_order: list[str | int], level: str 
     if axis not in [0, 1]:
         raise ValueError("axis must be 0 (rows) or 1 (columns)")
 
-    if isinstance(level, str):
-        level_num = df.axes[axis].names.index(level)
-    elif isinstance(level, int):
-        level_num = level
-    else:
-        raise ValueError("level must be a string (level name) or an integer (level number)")
-
     idx = df.axes[axis]
-    idx_tuples = idx.to_list()
-    remaining_values_in_level_to_sort = [i for i in idx.get_level_values(level_num).unique() if i not in custom_order]
-    ordered_tuples = []
-    for value in custom_order + remaining_values_in_level_to_sort:
-        for tuple_item in idx_tuples:
-            if tuple_item[level_num] == value:
-                ordered_tuples.append(tuple_item)
+    if isinstance(idx, pd.MultiIndex):
+        if isinstance(level, str):
+            level_num = idx.names.index(level)
+        elif isinstance(level, int):
+            level_num = level
+        else:
+            raise ValueError("level must be a string (level name) or an integer (level number)")
 
-    new_index = pd.MultiIndex.from_tuples(ordered_tuples, names=idx.names)
+        idx_tuples = idx.to_list()
+        remaining_values_in_level_to_sort = [i for i in idx.get_level_values(level_num).unique() if
+                                             i not in custom_order]
+        ordered_tuples = []
+        for value in custom_order + remaining_values_in_level_to_sort:
+            for tuple_item in idx_tuples:
+                if tuple_item[level_num] == value:
+                    ordered_tuples.append(tuple_item)
+        new_index = pd.MultiIndex.from_tuples(ordered_tuples, names=idx.names)
+    else:
+        idx_values = idx.to_list()
+        remaining_values = [i for i in idx.unique() if i not in custom_order]
+        ordered_values = []
+        for value in custom_order + remaining_values:
+            for idx_value in idx_values:
+                if idx_value == value:
+                    ordered_values.append(idx_value)
+        new_index = pd.Index(ordered_values, name=idx.name)
 
     if axis == 0:
         return df.reindex(new_index)
