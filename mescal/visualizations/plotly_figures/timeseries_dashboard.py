@@ -1,6 +1,6 @@
 from typing import Union, List, Literal, Callable, Dict, Any
-from itertools import product
 from datetime import time
+import copy
 import calendar
 import math
 import numpy as np
@@ -445,7 +445,6 @@ class TimeSeriesDashboardGenerator:
         )
 
     def get_figure(self, data: pd.DataFrame, **kwargs):
-        import copy
         original_config = copy.deepcopy(self.config)
 
         for key, value in kwargs.items():
@@ -489,6 +488,8 @@ class TimeSeriesDashboardGenerator:
         """
         Generate multiple figures by splitting facet rows into chunks.
         """
+        original_config = copy.deepcopy(self.config)
+
         if sum(x is not None for x in [max_n_rows_per_figure, n_figures]) != 1:
             raise ValueError("Provide exactly one of: max_n_rows_per_figure or n_figures")
 
@@ -540,6 +541,8 @@ class TimeSeriesDashboardGenerator:
 
             fig = self.get_figure(data_chunk, **chunk_kwargs)
             figures.append(fig)
+
+        self.config = original_config
 
         return figures
 
