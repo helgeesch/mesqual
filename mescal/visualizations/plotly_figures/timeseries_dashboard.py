@@ -184,6 +184,12 @@ class DataProcessor:
         if isinstance(data, pd.Series):
             data = data.to_frame(data.name or 'Time series')
 
+        if data.columns.nlevels > 2:
+            raise ValueError(
+                f'{TimeSeriesDashboardGenerator.__name__} module does not accept more than 2 column levels. '
+                f'Please reduce your data to maximum 2 Index levels on the columns.'
+            )
+
         if data.columns.nlevels == 1:
             data.columns.name = data.columns.name or 'variable'
             data = DataProcessor._insert_empty_column_index_level(data)
@@ -445,6 +451,9 @@ class TimeSeriesDashboardGenerator:
         )
 
     def get_figure(self, data: pd.DataFrame, **kwargs):
+        import copy
+        original_config = copy.deepcopy(self.config)
+
         for key, value in kwargs.items():
             if hasattr(self.config, key):
                 setattr(self.config, key, value)
@@ -470,17 +479,84 @@ class TimeSeriesDashboardGenerator:
                 title_x=0.5,
             )
 
+        self.config = original_config
+
         return fig
 
+    def get_figures_chunked(
+            self,
+            data: pd.DataFrame,
+            max_n_rows_per_figure: int = None,
+            n_figures: int = None,
+            chunk_title_suffix: bool = True,
+            **kwargs
+    ) -> list[go.Figure]:
+        """
+        Generate multiple figures by splitting facet rows into chunks.
+        """
+        if sum(x is not None for x in [max_n_rows_per_figure, n_figures]) != 1:
+            raise ValueError("Provide exactly one of: max_n_rows_per_figure or n_figures")
+
+        for key, value in kwargs.items():
+            if hasattr(self.config, key):
+                setattr(self.config, key, value)
+
+        data = DataProcessor.prepare_dataframe_for_facet(data, self.config)
+        data = DataProcessor.ensure_df_has_two_column_levels(data, self.config)
+        DataProcessor.update_facet_config(data, self.config)
+
+        if self.config.facet_row is None:
+            return [self.get_figure(data, **kwargs)]
+
+        total_rows = len(self.config.facet_row_order)
+
+        if max_n_rows_per_figure:
+            n_chunks = math.ceil(total_rows / max_n_rows_per_figure)
+            chunk_size = max_n_rows_per_figure
+        else:
+            n_chunks = n_figures
+            chunk_size = math.ceil(total_rows / n_figures)
+
+        figures = []
+        original_title = self.config.title
+
+        for i in range(n_chunks):
+            start_idx = i * chunk_size
+            end_idx = min(start_idx + chunk_size, total_rows)
+            chunk_rows = self.config.facet_row_order[start_idx:end_idx]
+
+            if not chunk_rows:
+                continue
+
+            chunk_kwargs = kwargs.copy()
+            chunk_kwargs['facet_row_order'] = chunk_rows
+
+            if chunk_title_suffix and original_title:
+                chunk_kwargs['title'] = f"{original_title} (Part {i + 1}/{n_chunks})"
+            elif chunk_title_suffix:
+                chunk_kwargs['title'] = f"Part {i + 1}/{n_chunks}"
+
+            cols_in_chunk = [
+                c for c, facet_row_category in
+                zip(data.columns, data.columns.get_level_values(self.config.facet_row))
+                if facet_row_category in chunk_rows
+            ]
+            data_chunk = data[cols_in_chunk]
+
+            fig = self.get_figure(data_chunk, **chunk_kwargs)
+            figures.append(fig)
+
+        return figures
+
     def _create_figure_layout_with_subplots(self, data: pd.DataFrame) -> go.Figure:
-        facet_col_wrap = self.config.facet_col_wrap
+        facet_col_wrap = max([1, self.config.facet_col_wrap])
         ratio_of_stat_col = self.config.ratio_of_stat_col
 
         has_colorscale_col = self.config.per_facet_row_colorscale
         has_colorscale_row = self.config.per_facet_col_colorscale
 
-        num_facet_rows = len(self.config.facet_row_order)
-        num_facet_cols = len(self.config.facet_col_order)
+        num_facet_rows = max([1, len(self.config.facet_row_order)])
+        num_facet_cols = max([1, len(self.config.facet_col_order)])
 
         num_rows = math.ceil(num_facet_cols / facet_col_wrap) * num_facet_rows
         num_cols = facet_col_wrap * 2  # Each facet gets a heatmap + stats column
