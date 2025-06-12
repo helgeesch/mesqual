@@ -1,59 +1,13 @@
-from dataclasses import dataclass
 from enum import Enum
 import pandas as pd
 import networkx as nx
+
+from mescal.energy_data_handling.line_flow_data import NetworkLineFlowsData
 
 
 class FlowType(Enum):
     PRE_LOSS = "pre_loss"
     POST_LOSS = "post_loss"
-
-
-# TODO: use also in CongestionRent
-@dataclass
-class LineFlowData:
-    sent_up: pd.DataFrame
-    received_up: pd.DataFrame
-    sent_down: pd.DataFrame
-    received_down: pd.DataFrame
-
-    def __post_init__(self):
-        for s in [self.received_up, self.sent_down, self.received_down]:
-            if not self.sent_up.index.equals(s.index):
-                raise ValueError(f'All indices must be equal!')
-
-    def from_mw_to_mwh(self) -> 'LineFlowData':
-        # TODO
-        raise NotImplementedError
-
-    def from_mwh_to_mw(self) -> 'LineFlowData':
-        # TODO
-        raise NotImplementedError
-
-    @classmethod
-    def from_net_flow_without_losses(cls, net_flow: pd.DataFrame) -> "LineFlowData":
-        positive_flow = net_flow.clip(lower=0)
-        negative_flow = -net_flow.clip(upper=0)
-
-        return cls(
-            sent_up=positive_flow,
-            received_up=positive_flow,
-            sent_down=negative_flow,
-            received_down=negative_flow
-        )
-
-    @classmethod
-    def from_up_and_down_flow_without_losses(
-            cls,
-            flow_up: pd.DataFrame,
-            flow_down: pd.DataFrame
-    ) -> "LineFlowData":
-        return cls(
-            sent_up=flow_up,
-            received_up=flow_up,
-            sent_down=flow_down,
-            received_down=flow_down
-        )
 
 
 class RegionalTradeBalanceCalculator:
@@ -127,7 +81,7 @@ class RegionalTradeBalanceCalculator:
 
         return graph
 
-    def _get_net_exp_for_couple(self, primary, secondary, flow_data: LineFlowData, flow_type: FlowType) -> pd.Series:
+    def _get_net_exp_for_couple(self, primary, secondary, flow_data: NetworkLineFlowsData, flow_type: FlowType) -> pd.Series:
         mask_forward = (
                 (self.line_model_df[self.node_from_col].map(self.node_to_agg_region_map) == primary) &
                 (self.line_model_df[self.node_to_col].map(self.node_to_agg_region_map) == secondary)
@@ -157,7 +111,7 @@ class RegionalTradeBalanceCalculator:
 
     def get_trade_balance(
             self,
-            flow_data: LineFlowData,
+            flow_data: NetworkLineFlowsData,
             flow_type: FlowType = FlowType.POST_LOSS
     ) -> pd.DataFrame:
         flows_list = []
@@ -239,7 +193,7 @@ if __name__ == "__main__":
     flow_down = -raw_flows.clip(upper=0)  # convert negative to positive, rest zero
 
     # Add 2% losses to received flows
-    flow_data = LineFlowData(
+    flow_data = NetworkLineFlowsData(
         sent_up=flow_up,
         received_up=flow_up * 0.98,  # 2% losses
         sent_down=flow_down,
