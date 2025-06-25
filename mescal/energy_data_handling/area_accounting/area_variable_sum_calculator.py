@@ -13,6 +13,10 @@ class AreaSumCalculator(AreaVariableCalculatorBase):
     def calculate(self, node_data_df: pd.DataFrame) -> pd.DataFrame:
         """Calculate area sums from node-level data.
 
+        In case you want to exclude certain nodes from the aggregation
+        (e.g. because they are virtual or synthetic nodes), you can simply
+        remove them from the node_data_df before passing it to this method.
+
         Args:
             node_data_df: A single DataFrame to sum all nodes per area.
 

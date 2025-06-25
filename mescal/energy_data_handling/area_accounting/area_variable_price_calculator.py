@@ -15,7 +15,11 @@ class AreaPriceCalculator(AreaVariableCalculatorBase):
         weighting_factor_df: pd.DataFrame = None,
     ) -> pd.DataFrame:
         """Calculate area prices with different weighting options.
-        
+
+        In case you want to exclude certain nodes from the aggregation
+        (e.g. because they are virtual or synthetic nodes), you can simply
+        remove them from the node_price_df before passing it to this method.
+
         Args:
             node_price_df: Node-level price time series
             weighting_factor_df: Optional weighting factor (e.g. node_demand_df, or node_supply_df)
