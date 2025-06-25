@@ -3,7 +3,7 @@ from typing import Hashable
 
 import pandas as pd
 
-from mescal.energy_data_handling.area_border.border_model_generator import AreaBorderNamingConventions
+from mescal.energy_data_handling.area_accounting.border_model_generator import AreaBorderNamingConventions
 from mescal.utils.logging import get_logger
 
 logger = get_logger(__name__)

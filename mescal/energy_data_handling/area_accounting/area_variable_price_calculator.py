@@ -3,7 +3,7 @@ from typing import Literal
 import numpy as np
 import pandas as pd
 
-from mescal.energy_data_handling.area_border.area_variable_base import AreaVariableCalculatorBase
+from mescal.energy_data_handling.area_accounting.area_variable_base import AreaVariableCalculatorBase
 
 
 class AreaPriceCalculator(AreaVariableCalculatorBase):

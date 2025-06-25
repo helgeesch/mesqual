@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 from mescal.energy_data_handling.network_lines_data import NetworkLineFlowsData
-from mescal.energy_data_handling.area_border.border_variable_base import AreaBorderVariableCalculatorBase
+from mescal.energy_data_handling.area_accounting.border_variable_base import AreaBorderVariableCalculatorBase
 
 
 class BorderFlowCalculator(AreaBorderVariableCalculatorBase):

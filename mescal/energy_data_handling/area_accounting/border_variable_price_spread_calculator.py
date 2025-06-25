@@ -1,7 +1,7 @@
 from typing import Literal
 import pandas as pd
 
-from .border_variable_base import AreaBorderVariableCalculatorBase
+from mescal.energy_data_handling.area_accounting.border_variable_base import AreaBorderVariableCalculatorBase
 
 
 class BorderPriceSpreadCalculator(AreaBorderVariableCalculatorBase):

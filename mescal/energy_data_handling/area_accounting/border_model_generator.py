@@ -2,7 +2,7 @@ from typing import Tuple
 import pandas as pd
 import networkx as nx
 
-from mescal.energy_data_handling.area_border.border_model_geometry_calculator import AreaBorderGeometryCalculator
+from mescal.energy_data_handling.area_accounting.border_model_geometry_calculator import AreaBorderGeometryCalculator
 
 
 class AreaBorderNamingConventions:

@@ -2,7 +2,8 @@
 MESCAL Area and AreaBorder Accounting Package
 
 This package provides tools for working with area and area border models and variables
-in energy market analysis.
+in energy market analysis. It enables you to project a raw topology of nodes and lines
+to an area layer of areas and links between areas (area-borders).
 """
 
 from .area_model_generator import AreaModelGenerator
