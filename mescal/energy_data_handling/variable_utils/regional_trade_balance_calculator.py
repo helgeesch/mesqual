@@ -2,7 +2,7 @@ from enum import Enum
 import pandas as pd
 import networkx as nx
 
-from mescal.energy_data_handling.line_flow_data import NetworkLineFlowsData
+from mescal.energy_data_handling.network_lines_data import NetworkLineFlowsData
 
 
 class FlowType(Enum):

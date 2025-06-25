@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import numpy as np
 import pandas as pd
 
-from mescal.energy_data_handling.line_flow_data import NetworkLineFlowsData
+from mescal.energy_data_handling.network_lines_data import NetworkLineFlowsData
 from mescal.energy_data_handling.area_border.border_variable_base import AreaBorderVariableCalculatorBase
 
 

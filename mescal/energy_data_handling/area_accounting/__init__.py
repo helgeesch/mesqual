@@ -1,5 +1,5 @@
 """
-MESCAL Area and Border Package
+MESCAL Area and AreaBorder Accounting Package
 
 This package provides tools for working with area and area border models and variables
 in energy market analysis.
