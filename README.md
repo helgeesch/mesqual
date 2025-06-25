@@ -19,6 +19,7 @@ MESCAL provides a flexible framework for handling energy market data from variou
 - Extensible KPI calculation framework with unit handling
 - Visualization modules for interactive maps, time-series dashboards, and more
 - Library of flexible data aggregation and transformation tools
+- Package for area layer accounting (topological aggregation), enabling spatial and temporal comparison between simulations of different raw topologies
 - Support for time series analysis and topology-based variable computations
 - Library of common utilities for handling pandas, plotly, colors, string-conventions
 - And so much more...
