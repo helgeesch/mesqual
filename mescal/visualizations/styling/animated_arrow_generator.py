@@ -5,12 +5,12 @@ class AnimatedFlowArrowGenerator:
     def __init__(
             self,
             color: str = "#2563eb",
-            stroke_width: int = 10,
+            stroke_width: int = 15,
             width: int = 100,
             height: int = 100,
-            speed: float = 3.0,
-            direction: str = "down",
-            num_arrows: int = 3,
+            speed: float = 20.0,  # pixels_per_second
+            direction: str = "right",
+            num_arrows: int = 4,
             animation: Literal["linear", "ease", "ease-in", "ease-out", "ease-in-out"] = "ease-in-out",
     ):
         self.color = color
@@ -56,21 +56,24 @@ class AnimatedFlowArrowGenerator:
         """
 
     def _generate_arrow_classes(self) -> str:
+        duration = self._calculate_animation_duration()
         classes = []
         for i in range(1, self.num_arrows + 1):
-            classes.append(f"    .arrow{i} {{\n      animation: flow{i} {self.speed}s {self.animation} infinite;\n    }}")
+            classes.append(
+                f"    .arrow{i} {{\n      animation: flow{i} {duration:.2f}s {self.animation} infinite;\n    }}")
         return "\n    \n".join(classes)
 
     def _generate_arrow_elements(self) -> str:
         arrow_points = self._get_arrow_points()
+        duration = self._calculate_animation_duration()
         elements = []
 
         for i in range(1, self.num_arrows + 1):
             if i == 1:
                 delay = ""
             else:
-                delay_value = -((i - 1) * self.speed / self.num_arrows)
-                delay = f' style="animation-delay: {delay_value:.1f}s;"'
+                delay_value = -((i - 1) * duration / self.num_arrows)
+                delay = f' style="animation-delay: {delay_value:.2f}s;"'
 
             elements.append(
                 f'    <g class="arrow arrow{i}"{delay}>\n      <polyline points="{arrow_points}"/>\n    </g>')
@@ -118,6 +121,11 @@ class AnimatedFlowArrowGenerator:
         else:
             return self.width // 2
 
+    def _calculate_animation_duration(self) -> float:
+        transform_distance = self._get_transform_distance()
+        total_distance = 2 * transform_distance
+        return total_distance / self.speed
+
     def _generate_animations(self) -> str:
         distance = self._get_transform_distance()
 
@@ -133,23 +141,27 @@ class AnimatedFlowArrowGenerator:
         elif self.direction == "left":
             start_transform = f"translateX({distance}px)"
             end_transform = f"translateX(-{distance}px)"
+        else:
+            raise ValueError(f"Direction {self.direction} not accepted")
 
-        animation_template = """@keyframes {animation_name} {{
-      0% {{
-        transform: {start_transform};
-        opacity: 0;
-      }}
-      20% {{
-        opacity: 1;
-      }}
-      80% {{
-        opacity: 1;
-      }}
-      100% {{
-        transform: {end_transform};
-        opacity: 0;
-      }}
-    }}"""
+        animation_template = """
+        @keyframes {animation_name} {{
+          0% {{
+            transform: {start_transform};
+            opacity: 0;
+          }}
+          20% {{
+            opacity: 1;
+          }}
+          80% {{
+            opacity: 1;
+          }}
+          100% {{
+            transform: {end_transform};
+            opacity: 0;
+          }}
+        }}
+        """
 
         animations = []
         for i in range(1, self.num_arrows + 1):
@@ -161,28 +173,20 @@ class AnimatedFlowArrowGenerator:
 
         return "\n    ".join(animations)
 
-    def save_to_file(self, file_path: str) -> None:
+    def save_to_file(self, filename: str) -> None:
         svg_content = self.generate_svg()
-        with open(file_path, 'w') as file:
+        with open(filename, 'w') as file:
             file.write(svg_content)
 
 
 if __name__ == "__main__":
-    generator = AnimatedFlowArrowGenerator(
-        color="red",
-        stroke_width=15,
-        width=100,
-        height=100,
-        speed=3,
-        direction="right",
-        num_arrows=3
-    )
+    generator = AnimatedFlowArrowGenerator()
 
     print("Generated SVG for green right-pointing arrow with 5 arrows (200x100):")
     print(generator.generate_svg())
 
     print(f"\nSaving red upward arrow with 2 arrows (100x100) to file...")
-    generator.save_to_file("_tmp/arrow_3_right.svg")
+    generator.save_to_file("_tmp/arrow_default.svg")
 
     configurations = [
         {"direction": "down", "color": "#3b82f6", "num_arrows": 3, "width": 60, "height": 120, "animation": "linear"},
