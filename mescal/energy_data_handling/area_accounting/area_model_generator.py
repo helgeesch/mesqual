@@ -80,7 +80,7 @@ class AreaModelGenerator:
                 nodes = node_model_df.loc[node_model_df[self.area_column] == area, self.geo_location_column]
                 nodes = nodes.dropna()
                 if not nodes.empty:
-                    locations = list(nodes.values)
+                    locations = [n for n in nodes.values if n is not None]
                     if not all(isinstance(i, Point) for i in locations):
                         raise TypeError(f'Can only handle Point objects in node_point_column {self.geo_location_column}.')
                     representative_point = self._compute_representative_point_from_cloud_of_2d_points(locations)
