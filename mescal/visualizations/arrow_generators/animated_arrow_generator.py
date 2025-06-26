@@ -1,7 +1,7 @@
 from typing import Literal
 
 
-class AnimatedFlowArrowGenerator:
+class MovingFlowArrowGenerator:
     def __init__(
             self,
             color: str = "#2563eb",
@@ -9,7 +9,7 @@ class AnimatedFlowArrowGenerator:
             width: int = 100,
             height: int = 100,
             speed: float = 20.0,  # pixels_per_second
-            direction: str = "right",
+            direction: Literal["right", "left", "up", "down"] = "right",
             num_arrows: int = 4,
             animation: Literal["linear", "ease", "ease-in", "ease-out", "ease-in-out"] = "ease-in-out",
     ):
@@ -180,7 +180,7 @@ class AnimatedFlowArrowGenerator:
 
 
 if __name__ == "__main__":
-    generator = AnimatedFlowArrowGenerator()
+    generator = MovingFlowArrowGenerator()
 
     print("Generated SVG for green right-pointing arrow with 5 arrows (200x100):")
     print(generator.generate_svg())
@@ -196,7 +196,7 @@ if __name__ == "__main__":
     ]
 
     for config in configurations:
-        gen = AnimatedFlowArrowGenerator(**config)
-        f_path = f"_tmp/arrow_{config['num_arrows']}_{config['direction']}.svg"
-        gen.save_to_file(f_path)
-        print(f"Created {f_path} with {config['num_arrows']} arrows ({config['width']}x{config['height']})")
+        gen = MovingFlowArrowGenerator(**config)
+        file = f"_tmp/arrow_{config['num_arrows']}_{config['direction']}.svg"
+        gen.save_to_file(file)
+        print(f"Created {file} with {config['num_arrows']} arrows ({config['width']}x{config['height']})")
