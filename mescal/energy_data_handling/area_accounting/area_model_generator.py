@@ -121,7 +121,7 @@ class AreaModelGenerator:
         self,
         area_model_df: pd.DataFrame,
         area_gdf: gpd.GeoDataFrame
-    ) -> pd.DataFrame:
+    ) -> gpd.GeoDataFrame:
         """Enhance area model with geometries from a GeoDataFrame."""
         enhanced_df = area_model_df.copy()
         if 'geometry' not in enhanced_df.columns:
