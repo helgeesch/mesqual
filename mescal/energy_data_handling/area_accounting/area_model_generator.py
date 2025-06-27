@@ -124,9 +124,13 @@ class AreaModelGenerator:
     ) -> pd.DataFrame:
         """Enhance area model with geometries from a GeoDataFrame."""
         enhanced_df = area_model_df.copy()
+        if 'geometry' not in enhanced_df.columns:
+            enhanced_df['geometry'] = None
         for area in area_model_df.index:
             if area in area_gdf.index:
                 enhanced_df.loc[area, 'geometry'] = area_gdf.loc[area, 'geometry']
+        if not isinstance(enhanced_df, gpd.GeoDataFrame):
+            enhanced_df = gpd.GeoDataFrame(enhanced_df, geometry='geometry')
         return enhanced_df
 
 
