@@ -3,8 +3,10 @@ import pandas as pd
 from shapely.geometry import Point, Polygon, MultiPolygon
 import geopandas as gpd
 
+from mescal.energy_data_handling.area_accounting.model_generator_base import GeoModelGeneratorBase
 
-class AreaModelGenerator:
+
+class AreaModelGenerator(GeoModelGeneratorBase):
     """Generates area model DataFrame from node-to-area mapping."""
     
     def __init__(
@@ -75,9 +77,9 @@ class AreaModelGenerator:
             if 'geometry' in enhanced_df.columns:
                 geo = enhanced_df.loc[area, 'geometry']
                 if pd.notna(geo) and isinstance(geo, (Polygon, MultiPolygon)):
-                    enhanced_df.loc[area, target_column_name] = round_point(geo.representative_point())
-            if self.geo_location_column:
-                nodes = node_model_df.loc[node_model_df[self.area_column] == area, self.geo_location_column]
+                    enhanced_df.loc[area, target_column_name] = round_point(self.get_representative_area_point(geo))
+            elif self.geo_location_column:
+                nodes = self.node_model_df.loc[self.node_model_df[self.area_column] == area, self.geo_location_column]
                 nodes = nodes.dropna()
                 if not nodes.empty:
                     locations = [n for n in nodes.values if n is not None]
@@ -86,30 +88,6 @@ class AreaModelGenerator:
                     representative_point = self._compute_representative_point_from_cloud_of_2d_points(locations)
                     enhanced_df.loc[area, target_column_name] = round_point(representative_point)
         return enhanced_df
-
-    @staticmethod
-    def _compute_representative_point_from_cloud_of_2d_points(points: List[Point]) -> Point:
-        """
-        Computes the geometric centroid of a cloud of 2D shapely Points.
-
-        - If the input has 1 point, returns that point.
-        - If 2 points, returns their midpoint.
-        - If ≥3 points, computes the convex hull and returns the polygon centroid.
-        """
-        from scipy.spatial import ConvexHull
-        n = len(points)
-        if n == 0:
-            raise ValueError("Empty point list")
-        if n == 1:
-            return points[0]
-        if n == 2:
-            return Point((points[0].x + points[1].x) / 2, (points[0].y + points[1].y) / 2)
-
-        coords = [(p.x, p.y) for p in points]
-        hull = ConvexHull(coords)
-        hull_coords = [coords[i] for i in hull.vertices]
-        polygon = Polygon(hull_coords)
-        return polygon.representative_point()
 
     def generate_area_model(self) -> pd.DataFrame:
         area_model_df = self.generate_base_area_model_from_area_names_in_node_model_df()

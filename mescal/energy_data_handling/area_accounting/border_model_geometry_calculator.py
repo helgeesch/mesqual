@@ -3,11 +3,13 @@ import math
 import itertools
 from tqdm import tqdm
 import geopandas as gpd
-from shapely.geometry import Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon
+from shapely.geometry import Point, MultiPoint, LineString, MultiLineString, Polygon, MultiPolygon, GeometryCollection
 from shapely.ops import nearest_points, linemerge
 
+from mescal.energy_data_handling.area_accounting.model_generator_base import GeoModelGeneratorBase
 
-class AreaBorderGeometryCalculator:
+
+class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
     """Calculates geometric properties for area borders including midpoints, angles, and line representations.
     
     This class provides sophisticated geometric calculations for both physical borders (touching areas)
@@ -19,9 +21,13 @@ class AreaBorderGeometryCalculator:
     BORDER_IS_PHYSICAL_IDENTIFIER = 'is_physical'
     BORDER_LINE_STRING_IDENTIFIER = 'geo_line_string'
     
-    def __init__(self, area_model_gdf: gpd.GeoDataFrame):
+    def __init__(self, area_model_gdf: gpd.GeoDataFrame, non_crossing_path_finder: 'NonCrossingPathFinder' = None):
         self.area_model_gdf = area_model_gdf
+        self.non_crossing_path_finder = non_crossing_path_finder or NonCrossingPathFinder()
         self._validate_geometries()
+
+        self._centroid_cache: dict[str, Point] = {}
+        self._line_cache: dict[Tuple[str, str], LineString] = {}
     
     def _validate_geometries(self):
         """Ensure all geometries are valid."""
@@ -49,7 +55,7 @@ class AreaBorderGeometryCalculator:
         """
         midpoint, angle = self.get_area_border_midpoint_and_angle(area_from, area_to)
         
-        if self.areas_touch(area_from, area_to):
+        if self.areas_touch(area_from, area_to) or self.areas_intersect(area_from, area_to):
             geom_from = self.get_area_geometry(area_from)
             geom_to = self.get_area_geometry(area_to)
             border_line = self._get_continuous_border_line(geom_from, geom_to)
@@ -70,6 +76,12 @@ class AreaBorderGeometryCalculator:
         geom_from = self.get_area_geometry(area_from)
         geom_to = self.get_area_geometry(area_to)
         return geom_from.touches(geom_to)
+
+    def areas_intersect(self, area_from: str, area_to: str) -> bool:
+        """Check if two areas intersect."""
+        geom_from = self.get_area_geometry(area_from)
+        geom_to = self.get_area_geometry(area_to)
+        return geom_from.intersects(geom_to)
     
     def get_area_border_midpoint_and_angle(
         self, 
@@ -87,7 +99,7 @@ class AreaBorderGeometryCalculator:
         geom_from = self.get_area_geometry(area_from)
         geom_to = self.get_area_geometry(area_to)
         
-        if self.areas_touch(area_from, area_to):
+        if self.areas_touch(area_from, area_to) or self.areas_intersect(area_from, area_to):
             midpoint, angle = self._get_midpoint_and_angle_for_touching_areas(geom_from, geom_to)
         else:
             straight_line = self.get_straight_line_between_areas(area_from, area_to)
@@ -102,23 +114,27 @@ class AreaBorderGeometryCalculator:
     def get_area_geometry(self, area: str) -> Union[Polygon, MultiPolygon]:
         """Get the geometry for an area."""
         return self.area_model_gdf.loc[area].geometry.buffer(0)
-    
+
     def get_straight_line_between_areas(self, area_from: str, area_to: str) -> LineString:
         """Get a straight line connecting two areas.
-        
+
         For non-touching areas, finds the best line that avoids crossing other areas
         if possible.
         """
+
+        key = tuple(sorted((area_from, area_to)))
+        if key in self._line_cache:
+            return self._line_cache[key]
+
         if self.areas_touch(area_from, area_to):
             raise ValueError(f"Areas {area_from} and {area_to} touch - use border line instead")
         
         geom_from = self._get_largest_polygon(self.get_area_geometry(area_from))
         geom_to = self._get_largest_polygon(self.get_area_geometry(area_to))
         
-        # Try centroid-to-centroid line first
-        centroid_from = geom_from.centroid
-        centroid_to = geom_to.centroid
-        
+        centroid_from = self.get_representative_area_point(geom_from)
+        centroid_to = self.get_representative_area_point(geom_to)
+
         line_full = LineString([centroid_from, centroid_to])
         
         # Find intersection points with area boundaries
@@ -133,7 +149,8 @@ class AreaBorderGeometryCalculator:
             better_line = self._find_non_crossing_line(area_from, area_to)
             if better_line is not None:
                 straight_line = better_line
-        
+
+        self._line_cache[key] = straight_line
         return straight_line
     
     def _get_midpoint_and_angle_for_touching_areas(
@@ -166,8 +183,8 @@ class AreaBorderGeometryCalculator:
         angle: float
     ) -> bool:
         """Check if angle points from source to target geometry."""
-        centroid_from = geom_from.centroid
-        centroid_to = geom_to.centroid
+        centroid_from = self.get_representative_area_point(geom_from)
+        centroid_to = self.get_representative_area_point(geom_to)
         
         bearing_to_from = self._calculate_bearing(LineString([midpoint, centroid_from]))
         bearing_to_to = self._calculate_bearing(LineString([midpoint, centroid_to]))
@@ -183,17 +200,42 @@ class AreaBorderGeometryCalculator:
         geom_b: Union[Polygon, MultiPolygon]
     ) -> LineString:
         """Get the shared border between two touching geometries."""
-        if not geom_a.touches(geom_b):
-            raise ValueError("Geometries do not touch")
+        if not (geom_a.touches(geom_b) or geom_a.intersects(geom_b)):
+            raise ValueError("Geometries do not touch or intersect")
         
         border = geom_a.intersection(geom_b)
-        
+
+        if isinstance(border, GeometryCollection):
+            extracted_lines = []
+
+            for g in border.geoms:
+                if isinstance(g, LineString):
+                    extracted_lines.append(g)
+                elif isinstance(g, Polygon):
+                    extracted_lines.append(g.boundary)
+                elif isinstance(g, MultiLineString):
+                    extracted_lines.extend(g.geoms)
+                elif isinstance(g, MultiPolygon):
+                    extracted_lines.extend([p.boundary for p in g.geoms])
+
+            if not extracted_lines:
+                raise TypeError(f"GeometryCollection could not be converted into line: {type(border)}")
+
+            border = linemerge(extracted_lines)
+
+        if isinstance(border, MultiPolygon):
+            border = linemerge([p.boundary for p in border.geoms])
+
+        if isinstance(border, Polygon):
+            border = border.boundary
+
+        if isinstance(border, MultiLineString):
+            border = self._merge_multilinestring(border)
+
         if isinstance(border, LineString):
             return border
-        elif isinstance(border, MultiLineString):
-            return self._merge_multilinestring(border)
-        else:
-            raise TypeError(f"Unexpected border type: {type(border)}")
+
+        raise TypeError(f"Unexpected border type: {type(border)}")
     
     def _get_boundary_intersection(
         self,
@@ -232,9 +274,7 @@ class AreaBorderGeometryCalculator:
     def _find_non_crossing_line(
         self,
         area_from: str,
-        area_to: str,
-        min_clearance: float = 50000,  # meters in projected CRS
-        num_points: int = 100
+        area_to: str
     ) -> Union[LineString, None]:
         """Find shortest line between areas that doesn't cross other areas.
         
@@ -249,17 +289,13 @@ class AreaBorderGeometryCalculator:
         """
         poly_from = self._get_largest_polygon(self.get_area_geometry(area_from))
         poly_to = self._get_largest_polygon(self.get_area_geometry(area_to))
-        
-        other_areas = self.area_model_gdf.drop([area_from, area_to])
-        
-        finder = NonCrossingPathFinder(
+
+        return self.non_crossing_path_finder.find_shortest_path(
             poly_from,
             poly_to,
-            other_areas,
+            self.area_model_gdf.drop([area_from, area_to]),
             f"{area_from} to {area_to}"
         )
-        
-        return finder.find_shortest_path(min_clearance, num_points)
     
     def _get_largest_polygon(self, geom: Union[Polygon, MultiPolygon]) -> Polygon:
         """Extract the largest polygon from a MultiPolygon."""
@@ -354,91 +390,63 @@ class AreaBorderGeometryCalculator:
 
 class NonCrossingPathFinder:
     """Finds shortest path between polygons that doesn't cross other areas."""
-    
+
     def __init__(
+        self,
+        num_points: int = 100,
+        min_clearance: float = 50000,
+        show_progress: bool = True
+    ):
+        self.num_points = num_points
+        self.min_clearance = min_clearance
+        self.show_progress = show_progress
+
+    def find_shortest_path(
         self,
         polygon1: Polygon,
         polygon2: Polygon,
         other_areas: gpd.GeoDataFrame,
         name: str = None
-    ):
-        self.polygon1 = polygon1
-        self.polygon2 = polygon2
-        self.other_areas = other_areas
-        self.name = name or "path"
-    
-    def find_shortest_path(
-        self,
-        min_clearance: float = 50000,
-        num_points: int = 100,
-        show_progress: bool = True
     ) -> Union[LineString, None]:
-        """Find shortest path that maintains minimum clearance from other areas.
-        
-        Args:
-            min_clearance: Minimum distance from other areas (in projected CRS units)
-            num_points: Number of points to test on each polygon boundary
-            show_progress: Whether to show progress bar
-            
-        Returns:
-            Shortest valid LineString path, or None if no path found
-        """
-        # Buffer other areas for clearance check
-        buffered_areas = self._buffer_areas(self.other_areas, min_clearance)
-        
-        # Get candidate points on boundaries
-        points1 = self._get_boundary_points(self.polygon1, num_points)
-        points2 = self._get_boundary_points(self.polygon2, num_points)
-        
-        # Generate all possible lines
-        lines = [
-            LineString([p1, p2])
-            for p1, p2 in itertools.product(points1, points2)
-        ]
-        
-        # Find shortest non-crossing line
+        buffered_areas = self._buffer_areas(other_areas, self.min_clearance)
+        points1 = self._get_boundary_points(polygon1, self.num_points)
+        points2 = self._get_boundary_points(polygon2, self.num_points)
+
+        lines = [LineString([p1, p2]) for p1, p2 in itertools.product(points1, points2)]
         shortest_line = None
         min_length = float('inf')
-        
-        iterator = lines
-        if show_progress:
-            iterator = tqdm(lines, desc=f"Finding path for {self.name}")
-        
+
+        iterator = tqdm(lines, desc=f"Finding path for {name or 'path'}") if self.show_progress else lines
+
         for line in iterator:
             if not buffered_areas.geometry.crosses(line).any():
                 if line.length < min_length:
                     shortest_line = line
                     min_length = line.length
-        
+
         return shortest_line
-    
+
     def _buffer_areas(self, areas: gpd.GeoDataFrame, buffer_distance: float) -> gpd.GeoDataFrame:
-        """Buffer areas by specified distance, handling CRS conversion."""
         areas_copy = areas.copy()
-        
-        # Convert to projected CRS for accurate buffering
         original_crs = areas_copy.crs
-        if original_crs and original_crs.to_epsg() == 4326:
-            areas_copy = areas_copy.to_crs(epsg=3857)
+
+        if original_crs is None:
+            raise ValueError("GeoDataFrame must have a valid CRS defined.")
+
+        if original_crs.is_geographic:
+            projected_crs = "EPSG:3857"
+            areas_copy = areas_copy.to_crs(projected_crs)
             areas_copy['geometry'] = areas_copy.buffer(buffer_distance)
             areas_copy = areas_copy.to_crs(original_crs)
         else:
             areas_copy['geometry'] = areas_copy.buffer(buffer_distance)
-        
+
         return areas_copy
-    
+
     def _get_boundary_points(self, polygon: Polygon, num_points: int) -> list[Point]:
-        """Get evenly spaced points along polygon boundary."""
         boundary = polygon.boundary
         total_length = boundary.length
-        
-        points = []
-        for i in range(num_points):
-            distance = (i / num_points) * total_length
-            point = boundary.interpolate(distance)
-            points.append(point)
-        
-        return points
+        return [boundary.interpolate((i / num_points) * total_length) for i in range(num_points)]
 
 
 if __name__ == '__main__':
