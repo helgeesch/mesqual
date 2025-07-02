@@ -44,21 +44,27 @@ def _annualized_sum(df: pd.Series | pd.DataFrame) -> float:
     return tmp.sum() / total_hours * 8760
 
 
+def _sum_df_to_series(df: pd.DataFrame) -> pd.Series:
+    s = df.sum(axis=1)
+    s[df.isna().all(axis=1)] = np.nan
+    return s
+
+
 class Aggregations:
-    Total = Aggregation('Total', lambda df: _ensure_frame_format(df).sum(axis=1).sum())
-    Sum = Aggregation('Sum', lambda df: _ensure_frame_format(df).sum(axis=1).sum())
+    Total = Aggregation('Total', lambda df: _sum_df_to_series(_ensure_frame_format(df)).sum())
+    Sum = Aggregation('Sum', lambda df: _sum_df_to_series(_ensure_frame_format(df)).sum())
     AnnualizedSum = Aggregation('AnnualizedSum', lambda df: _annualized_sum(df))
-    Max = Aggregation('Max', lambda df: _ensure_frame_format(df).sum(axis=1).max())
-    Mean = Aggregation('Mean', lambda df: _ensure_frame_format(df).sum(axis=1).mean())
-    Min = Aggregation('Min', lambda df: _ensure_frame_format(df).sum(axis=1).min())
-    AbsSum = Aggregation('AbsSum', lambda df: _ensure_frame_format(df).abs().sum(axis=1).sum())
-    AbsMax = Aggregation('AbsMax', lambda df: _ensure_frame_format(df).abs().sum(axis=1).max())
-    AbsMean = Aggregation('AbsMean', lambda df: _ensure_frame_format(df).abs().sum(axis=1).mean())
-    AbsMin = Aggregation('AbsMin', lambda df: _ensure_frame_format(df).abs().sum(axis=1).min())
-    SumGeqZero = Aggregation('SumGeqZero', lambda df: _ensure_frame_format(df).clip(0, None).sum(axis=1).sum())
-    SumLeqZero = Aggregation('SumLeqZero', lambda df: _ensure_frame_format(df).clip(None, 0).sum(axis=1).sum())
-    MeanGeqZero = Aggregation('MeanGeqZero', lambda df: _ensure_frame_format(df).clip(0, None).sum(axis=1).mean())
-    MeanLeqZero = Aggregation('MeanLeqZero', lambda df: _ensure_frame_format(df).clip(None, 0).sum(axis=1).mean())
+    Max = Aggregation('Max', lambda df: _sum_df_to_series(_ensure_frame_format(df)).max())
+    Mean = Aggregation('Mean', lambda df: _sum_df_to_series(_ensure_frame_format(df)).mean())
+    Min = Aggregation('Min', lambda df: _sum_df_to_series(_ensure_frame_format(df)).min())
+    AbsSum = Aggregation('AbsSum', lambda df: _sum_df_to_series(_ensure_frame_format(df).abs()).sum())
+    AbsMax = Aggregation('AbsMax', lambda df: _sum_df_to_series(_ensure_frame_format(df).abs()).max())
+    AbsMean = Aggregation('AbsMean', lambda df: _sum_df_to_series(_ensure_frame_format(df).abs()).mean())
+    AbsMin = Aggregation('AbsMin', lambda df: _sum_df_to_series(_ensure_frame_format(df).abs()).min())
+    SumGeqZero = Aggregation('SumGeqZero', lambda df: _sum_df_to_series(_ensure_frame_format(df).clip(0, None)).sum())
+    SumLeqZero = Aggregation('SumLeqZero', lambda df: _sum_df_to_series(_ensure_frame_format(df).clip(None, 0)).sum())
+    MeanGeqZero = Aggregation('MeanGeqZero', lambda df: _sum_df_to_series(_ensure_frame_format(df).clip(0, None)).mean())
+    MeanLeqZero = Aggregation('MeanLeqZero', lambda df: _sum_df_to_series(_ensure_frame_format(df).clip(None, 0)).mean())
     MTUsWithNaN = Aggregation('MTUsWithNaN', lambda df: _ensure_frame_format(df).isna().any(axis=1).sum(), Units.MTU)
     MTUsNonZero = Aggregation('MTUsNonZero', lambda df: ((_ensure_frame_format(df) != 0) & ~_ensure_frame_format(df).isna()).any(axis=1).sum(), Units.MTU)
     MTUsEqZero = Aggregation('MTUsEqZero', lambda df: (_ensure_frame_format(df) == 0).any(axis=1).sum(), Units.MTU)
