@@ -25,8 +25,12 @@ class LineModelVisualizer(StyledModelVisualizerBase):
         super().__init__(color_column, colormap, width_column, widthmap, opacity_column, opacitymap)
         self.geometry_column = geometry_column or self.GEOMETRY_COLUMN
 
-    def _add_model_object_to_feature_group(self, object_id: Any, object_data: pd.Series,
-                                           feature_group: folium.FeatureGroup):
+    def _add_model_object_to_feature_group(
+            self,
+            object_id: Any,
+            object_data: pd.Series,
+            feature_group: folium.FeatureGroup
+    ):
         if self.geometry_column not in object_data or pd.isna(object_data[self.geometry_column]):
             return
 

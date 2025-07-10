@@ -20,6 +20,10 @@ class ModelVisualizerBase(ABC):
     ) -> folium.FeatureGroup:
         """Add all model objects to FeatureGroup."""
 
+        if model_df.empty:
+            logger.info(f'model_df for {feature_group.tile_name} empty.')
+            return feature_group
+
         for idx, row in tqdm(model_df.iterrows(), total=len(model_df), desc=f'Adding {feature_group.tile_name}'):
             try:
                 self._add_model_object_to_feature_group(idx, row, feature_group)
