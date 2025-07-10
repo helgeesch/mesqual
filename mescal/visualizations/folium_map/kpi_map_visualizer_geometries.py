@@ -85,13 +85,3 @@ class LineKPIMapVisualizer(GeometryKPIMapVisualizer):
 
         if self.print_values_on_map:
             self._add_kpi_value_print_to_feature_group(kpi, feature_group)
-
-
-class NodeKPIMapVisualizer:
-    # TODO
-    pass
-
-
-class AreaBorderKPIMapVisualizer:
-    # TODO
-    pass
