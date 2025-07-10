@@ -1,3 +1,7 @@
+"""
+OBSOLETE DUE TO METHODS IN GENERATOR CLASSES; REMOVE!
+"""
+
 from typing import Union
 
 import folium
@@ -31,7 +35,7 @@ class FoliumMapBuilder:
             data_item = ModelDataItem(row)
             gen.generate(data_item, feature_group)
 
-    def add_kpi_data(
+    def add_kpi_collection(
             self,
             generator: Union[str, FoliumObjectGenerator],
             kpi_collection: KPICollection,

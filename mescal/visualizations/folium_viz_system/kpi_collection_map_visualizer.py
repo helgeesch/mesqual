@@ -1,8 +1,13 @@
+from typing import TYPE_CHECKING
+
 import folium
 
 from mescal.kpis import KPICollection, KPI
 from mescal.visualizations.folium_viz_system.folium_generators import FoliumObjectGenerator, TooltipGenerator
 from mescal.visualizations.folium_viz_system.map_data_item import KPIDataItem, MapDataItem
+
+if TYPE_CHECKING:
+    from mescal.study_manager import StudyManager
 
 
 class KPIGroupingManager:
@@ -150,21 +155,15 @@ class KPICollectionMapVisualizer:
     def __init__(
             self,
             generator: FoliumObjectGenerator,
-            study_manager=None,
+            study_manager: 'StudyManager' = None,
             include_related_kpis_in_tooltip: bool = False,
-            kpi_attribute_category_orders: dict[str, list[str]] = None,
-            kpi_attribute_keys_to_exclude_from_grouping: list[str] = None,
-            kpi_attribute_sort_order: list[str] = None
+            kpi_grouping_manager: KPIGroupingManager = None
     ):
         self.generator = generator
         self.study_manager = study_manager
         self.include_related_kpis_in_tooltip = include_related_kpis_in_tooltip
 
-        self.grouping_manager = KPIGroupingManager(
-            kpi_attribute_category_orders,
-            kpi_attribute_keys_to_exclude_from_grouping,
-            kpi_attribute_sort_order
-        )
+        self.grouping_manager = kpi_grouping_manager or KPIGroupingManager()
 
         # Enhanced tooltip if needed
         if self.include_related_kpis_in_tooltip:

@@ -1,12 +1,28 @@
 from abc import ABC, abstractmethod
-from typing import Callable
+from typing import Callable, Generic, TYPE_CHECKING, Type
 
+import pandas as pd
 import folium
 from shapely import Polygon, MultiPolygon, LineString
 
-from mescal.visualizations.folium_viz_system.folium_styling import ResolvedStyle, StyleResolver, ResolvedAreaStyle, \
-    ResolvedLineStyle, ResolvedCircleMarkerStyle, ResolvedTextOverlayStyle
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, KPIDataItem
+from mescal.typevars import StyleResolverType, ResolvedStyleType
+from mescal.visualizations.folium_viz_system.folium_styling import (
+    ResolvedStyle,
+    StyleResolver,
+    ResolvedAreaStyle,
+    AreaStyleResolver,
+    ResolvedLineStyle,
+    LineStyleResolver,
+    ResolvedCircleMarkerStyle,
+    CircleMarkerStyleResolver,
+    ResolvedTextOverlayStyle,
+    TextOverlayStyleResolver,
+)
+from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, ModelDataItem, KPIDataItem
+
+if TYPE_CHECKING:
+    from mescal.study_manager import StudyManager
+    from mescal.kpis import KPI, KPICollection
 
 
 class TooltipGenerator:
@@ -49,27 +65,69 @@ class IconGenerator(ABC):
         pass
 
 
-class FoliumObjectGenerator(ABC):
+class FoliumObjectGenerator(Generic[StyleResolverType], ABC):
     """Abstract base for generating folium objects."""
 
     def __init__(
             self,
-            style_resolver: StyleResolver = None,
+            style_resolver: StyleResolverType = None,
             tooltip_generator: TooltipGenerator = None,
             popup_generator: PopupGenerator = None
     ):
-        self.style_resolver = style_resolver or StyleResolver([])
+        self.style_resolver: StyleResolverType = style_resolver or self._style_resolver_type()()
         self.tooltip_generator = tooltip_generator or TooltipGenerator()
         self.popup_generator = popup_generator
+
+    @abstractmethod
+    def _style_resolver_type(self) -> Type[StyleResolverType]:
+        return StyleResolver
 
     @abstractmethod
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
         """Generate folium object and add it to the feature group."""
         pass
 
+    def generate_objects_for_model_df(
+            self,
+            model_df: pd.DataFrame,
+            feature_group: folium.FeatureGroup
+    ) -> folium.FeatureGroup:
+        """Add model DataFrame data to the map."""
+        for _, row in model_df.iterrows():
+            data_item = ModelDataItem(row)
+            self.generate(data_item, feature_group)
+        return feature_group
 
-class AreaGenerator(FoliumObjectGenerator):
+    def generate_objects_for_kpi_collection(
+            self,
+            kpi_collection: 'KPICollection',
+            feature_group: folium.FeatureGroup,
+            study_manager: 'StudyManager' = None
+    ) -> folium.FeatureGroup:
+        """Add KPI data to the map."""
+        for kpi in kpi_collection:
+            data_item = KPIDataItem(kpi, kpi_collection, study_manager)
+            self.generate(data_item, feature_group)
+        return feature_group
+
+    def generate_object_for_single_kpi(
+            self,
+            kpi: 'KPI',
+            feature_group: folium.FeatureGroup,
+            kpi_collection: 'KPICollection' = None,
+            study_manager: 'StudyManager' = None
+    ) -> folium.FeatureGroup:
+        """Add a single KPI to the map with optional context."""
+        data_item = KPIDataItem(kpi, kpi_collection, study_manager)
+        self.generate(data_item, feature_group)
+        return feature_group
+
+
+class AreaGenerator(FoliumObjectGenerator[AreaStyleResolver]):
     """Generates folium GeoJson objects for area geometries."""
+
+    def _style_resolver_type(self) -> Type[AreaStyleResolver]:
+        return AreaStyleResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
         geometry = data_item.get_geometry()
@@ -80,25 +138,16 @@ class AreaGenerator(FoliumObjectGenerator):
         tooltip = self.tooltip_generator.generate_tooltip(data_item)
         popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
 
-        # Use specialized area style properties if available
-        if isinstance(style, ResolvedAreaStyle):
-            style_dict = {
-                'fillColor': style.fill_color,
-                'color': style.border_color,
-                'weight': style.border_width,
-                'fillOpacity': style.fill_opacity
-            }
-        else:
-            style_dict = {
-                'fillColor': style.color,
-                'color': style.get('border_color', 'white'),
-                'weight': style.width,
-                'fillOpacity': style.opacity
-            }
+        style_dict = {
+            'fillColor': style.fill_color,
+            'color': style.border_color,
+            'weight': style.border_width,
+            'fillOpacity': style.fill_opacity
+        }
 
         highlight_dict = style_dict.copy()
-        highlight_dict['weight'] = style_dict['weight'] * 1.5
-        highlight_dict['fillOpacity'] = min(style_dict['fillOpacity'] * 1.5, 1.0)
+        highlight_dict['weight'] = style.highlight_border_width
+        highlight_dict['fillOpacity'] = style.highlight_fill_opacity
 
         geojson_data = {
             "type": "Feature",
@@ -118,8 +167,11 @@ class AreaGenerator(FoliumObjectGenerator):
         folium.GeoJson(geojson_data, **geojson_kwargs).add_to(feature_group)
 
 
-class LineGenerator(FoliumObjectGenerator):
+class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
     """Generates folium PolyLine objects for line geometries."""
+
+    def _style_resolver_type(self) -> Type[LineStyleResolver]:
+        return LineStyleResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
         geometry = data_item.get_geometry()
@@ -132,27 +184,15 @@ class LineGenerator(FoliumObjectGenerator):
 
         coordinates = [(lat, lon) for lon, lat in geometry.coords]
 
-        # Use specialized line style properties if available
-        if isinstance(style, ResolvedLineStyle):
-            line_kwargs = {
-                'locations': coordinates,
-                'color': style.line_color,
-                'weight': style.line_width,
-                'opacity': style.line_opacity,
-                'tooltip': tooltip
-            }
-            if style.dash_pattern:
-                line_kwargs['dashArray'] = style.dash_pattern
-        else:
-            line_kwargs = {
-                'locations': coordinates,
-                'color': style.color,
-                'weight': style.width,
-                'opacity': style.opacity,
-                'tooltip': tooltip
-            }
-            if 'dash_pattern' in style:
-                line_kwargs['dashArray'] = style['dash_pattern']
+        line_kwargs = {
+            'locations': coordinates,
+            'color': style.line_color,
+            'weight': style.line_width,
+            'opacity': style.line_opacity,
+            'tooltip': tooltip
+        }
+        if style.dash_pattern:
+            line_kwargs['dashArray'] = style.dash_pattern
 
         if popup:
             line_kwargs['popup'] = folium.Popup(popup, max_width=300)
@@ -160,20 +200,11 @@ class LineGenerator(FoliumObjectGenerator):
         folium.PolyLine(**line_kwargs).add_to(feature_group)
 
 
-class NodeGenerator(FoliumObjectGenerator):
-    """Generates folium Marker or CircleMarker objects for point geometries."""
+class CircleMarkerGenerator(FoliumObjectGenerator[CircleMarkerStyleResolver]):
+    """Generates folium CircleMarker objects for point geometries."""
 
-    def __init__(
-            self,
-            style_resolver: StyleResolver = None,
-            tooltip_generator: TooltipGenerator = None,
-            popup_generator: PopupGenerator = None,
-            icon_generator: IconGenerator = None,
-            use_circle_marker: bool = True
-    ):
-        super().__init__(style_resolver, tooltip_generator, popup_generator)
-        self.icon_generator = icon_generator
-        self.use_circle_marker = use_circle_marker
+    def _style_resolver_type(self) -> Type[CircleMarkerStyleResolver]:
+        return CircleMarkerStyleResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
         try:
@@ -189,49 +220,68 @@ class NodeGenerator(FoliumObjectGenerator):
         if popup:
             marker_kwargs['popup'] = folium.Popup(popup, max_width=300)
 
-        if self.icon_generator:
-            icon = self.icon_generator.generate_icon(data_item, style)
-            folium.Marker(
-                icon=icon,
-                **marker_kwargs
-            ).add_to(feature_group)
-        elif self.use_circle_marker:
-            # Use specialized circle marker style properties if available
-            if isinstance(style, ResolvedCircleMarkerStyle):
-                circle_kwargs = {
-                    'radius': style.radius,
-                    'color': style.border_color,
-                    'fillColor': style.fill_color,
-                    'fillOpacity': style.fill_opacity,
-                    'weight': style.border_width,
-                    **marker_kwargs
-                }
-            else:
-                circle_kwargs = {
-                    'radius': style.width,
-                    'color': style.get('border_color', 'white'),
-                    'fillColor': style.color,
-                    'fillOpacity': style.opacity,
-                    'weight': style.get('border_width', 1),
-                    **marker_kwargs
-                }
-            folium.CircleMarker(**circle_kwargs).add_to(feature_group)
-        else:
-            folium.Marker(**marker_kwargs).add_to(feature_group)
+        circle_kwargs = {
+            'radius': style.radius,
+            'color': style.border_color,
+            'fillColor': style.fill_color,
+            'fillOpacity': style.fill_opacity,
+            'weight': style.border_width,
+            **marker_kwargs
+        }
+        folium.CircleMarker(**circle_kwargs).add_to(feature_group)
 
 
-class TextOverlayGenerator(FoliumObjectGenerator):
-    """Generates text overlays for map data items."""
+class _TMPIconGenerator(FoliumObjectGenerator, ABC):
+    """Generates folium Marker or CircleMarker objects for point geometries."""
 
     def __init__(
             self,
             style_resolver: StyleResolver = None,
             tooltip_generator: TooltipGenerator = None,
             popup_generator: PopupGenerator = None,
-            text_formatter: Callable[[MapDataItem], str] = None
+            icon_generator: IconGenerator = None,
     ):
         super().__init__(style_resolver, tooltip_generator, popup_generator)
+        self.icon_generator = icon_generator
+
+    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+        try:
+            location = data_item.get_location()
+        except ValueError:
+            return
+
+        style = self.style_resolver.resolve_style(data_item)
+        tooltip = self.tooltip_generator.generate_tooltip(data_item)
+        popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
+
+        marker_kwargs = {'location': location, 'tooltip': tooltip}
+        if popup:
+            marker_kwargs['popup'] = folium.Popup(popup, max_width=300)
+
+        icon = self.icon_generator.generate_icon(data_item, style)
+        folium.Marker(
+            icon=icon,
+            **marker_kwargs
+        ).add_to(feature_group)
+
+        folium.Marker(**marker_kwargs).add_to(feature_group)
+
+
+class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):
+    """Generates text overlays for map data items."""
+
+    def __init__(
+            self,
+            style_resolver: TextOverlayStyleResolver = None,
+            tooltip_generator: TooltipGenerator = None,
+            popup_generator: PopupGenerator = None,
+            text_formatter: Callable[[MapDataItem], str] = None
+    ):
+        super().__init__(style_resolver or TextOverlayStyleResolver(), tooltip_generator, popup_generator)
         self.text_formatter = text_formatter or self._default_text_formatter
+
+    def _style_resolver_type(self) -> Type[TextOverlayStyleResolver]:
+        return TextOverlayStyleResolver
 
     def _default_text_formatter(self, data_item: MapDataItem) -> str:
         if isinstance(data_item, KPIDataItem):
@@ -248,17 +298,11 @@ class TextOverlayGenerator(FoliumObjectGenerator):
         text = self.text_formatter(data_item)
         popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
 
-        # Use specialized text overlay style properties if available
-        if isinstance(style, ResolvedTextOverlayStyle):
-            text_color = style.text_color
-            shadow_color = style.shadow_color
-            font_size = style.font_size
-            font_weight = style.font_weight
-        else:
-            text_color = style.get('text_color', self._get_contrasting_color(style.color))
-            shadow_color = style.get('shadow_color', self._get_shadow_color(text_color))
-            font_size = style.get('font_size', '10pt')
-            font_weight = style.get('font_weight', 'bold')
+        text_color = style.text_color
+        font_size = style.font_size
+        font_weight = style.font_weight
+        shadow_size = style.shadow_size
+        shadow_color = style.shadow_color
 
         icon_html = f'''
             <div style="
@@ -272,10 +316,10 @@ class TextOverlayGenerator(FoliumObjectGenerator):
                 color: {text_color};
                 white-space: nowrap;
                 text-shadow:
-                   -0.5px -0.5px 0 {shadow_color},  
-                    0.5px -0.5px 0 {shadow_color},
-                   -0.5px  0.5px 0 {shadow_color},
-                    0.5px  0.5px 0 {shadow_color};
+                   -{shadow_size} -{shadow_size} 0 {shadow_color},  
+                    {shadow_size} -{shadow_size} 0 {shadow_color},
+                   -{shadow_size}  {shadow_size} 0 {shadow_color},
+                    {shadow_size}  {shadow_size} 0 {shadow_color};
             ">
                 {text}
             </div>
