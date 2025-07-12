@@ -10,6 +10,10 @@ from mescal.kpis import KPI, KPICollection
 class MapDataItem(ABC):
     """Abstract interface for data items that can be visualized on maps."""
 
+    def __init__(self, **kwargs):
+        for k, v in kwargs.items():
+            setattr(self, k, v)
+
     @abstractmethod
     def get_geometry(self) -> Any:
         """Get the geometric representation of the data."""
@@ -37,9 +41,10 @@ class ModelDataItem(MapDataItem):
     GEOMETRY_COLUMN = 'geometry'
     LOCATION_COLUMN = 'location'
 
-    def __init__(self, object_data: pd.Series):
+    def __init__(self, object_data: pd.Series, **kwargs):
         self.object_data = object_data
         self.object_id = object_data.name
+        super().__init__(**kwargs)
 
     def get_geometry(self) -> Any:
         return self.object_data.get(self.GEOMETRY_COLUMN)
@@ -82,12 +87,12 @@ class KPIDataItem(MapDataItem):
     PROJECTION_POINT_COLUMN = 'projection_point'
     KPI_VALUE_COLUMN = 'kpi_value'
 
-    def __init__(self, kpi: KPI, kpi_collection: KPICollection = None, study_manager=None):
+    def __init__(self, kpi: KPI, kpi_collection: KPICollection = None, **kwargs):
         self.kpi = kpi
         self.kpi_collection = kpi_collection
-        self.study_manager = study_manager
         self._object_info = kpi.get_attributed_object_info_from_model()
         self._model_item = ModelDataItem(self._object_info)
+        super().__init__(**kwargs)
 
     def get_geometry(self) -> Any:
         return self._model_item.get_geometry()

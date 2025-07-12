@@ -90,11 +90,12 @@ class FoliumObjectGenerator(Generic[StyleResolverType], ABC):
     def generate_objects_for_model_df(
             self,
             model_df: pd.DataFrame,
-            feature_group: folium.FeatureGroup
+            feature_group: folium.FeatureGroup,
+            **kwargs
     ) -> folium.FeatureGroup:
         """Add model DataFrame data to the map."""
         for _, row in model_df.iterrows():
-            data_item = ModelDataItem(row)
+            data_item = ModelDataItem(row, **kwargs)
             self.generate(data_item, feature_group)
         return feature_group
 
@@ -102,11 +103,11 @@ class FoliumObjectGenerator(Generic[StyleResolverType], ABC):
             self,
             kpi_collection: 'KPICollection',
             feature_group: folium.FeatureGroup,
-            study_manager: 'StudyManager' = None
+            **kwargs
     ) -> folium.FeatureGroup:
         """Add KPI data to the map."""
         for kpi in kpi_collection:
-            data_item = KPIDataItem(kpi, kpi_collection, study_manager)
+            data_item = KPIDataItem(kpi, kpi_collection, **kwargs)
             self.generate(data_item, feature_group)
         return feature_group
 
@@ -115,10 +116,10 @@ class FoliumObjectGenerator(Generic[StyleResolverType], ABC):
             kpi: 'KPI',
             feature_group: folium.FeatureGroup,
             kpi_collection: 'KPICollection' = None,
-            study_manager: 'StudyManager' = None
+            **kwargs
     ) -> folium.FeatureGroup:
         """Add a single KPI to the map with optional context."""
-        data_item = KPIDataItem(kpi, kpi_collection, study_manager)
+        data_item = KPIDataItem(kpi, kpi_collection, **kwargs)
         self.generate(data_item, feature_group)
         return feature_group
 
