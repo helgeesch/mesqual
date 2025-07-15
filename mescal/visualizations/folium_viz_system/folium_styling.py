@@ -145,6 +145,34 @@ class ResolvedLineStyle(ResolvedStyle):
     def dash_pattern(self) -> str:
         return self.get('dash_pattern')
 
+    @property
+    def line_text_path(self) -> str:
+        return self.get('line_text_path')
+
+    @property
+    def line_text_path_orientation(self) -> int:
+        return self.get('line_text_path_orientation')
+
+    @property
+    def line_text_path_repeat(self) -> bool:
+        return self.get('line_text_path_repeat')
+
+    @property
+    def line_text_path_center(self) -> bool:
+        return self.get('line_text_path_center')
+
+    @property
+    def line_text_path_below(self) -> bool:
+        return self.get('line_text_path_below')
+
+    @property
+    def line_text_path_font_weight(self) -> str:
+        return self.get('line_text_path_font_weight')
+
+    @property
+    def line_text_path_font_size(self) -> int:
+        return self.get('line_text_path_font_size') or self.line_width * 2
+
 
 class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
     def __init__(
@@ -153,6 +181,13 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_width: StyleMapper | float = 3.0,
             line_opacity: StyleMapper | float = 1.0,
             dash_pattern: StyleMapper | str = None,
+            line_text_path: StyleMapper | str = None,
+            line_text_path_orientation: StyleMapper | int = 0,
+            line_text_path_repeat: StyleMapper | bool = False,
+            line_text_path_center: StyleMapper | bool = False,
+            line_text_path_below: StyleMapper | bool = False,
+            line_text_path_font_weight: StyleMapper | str = 'bold',
+            line_text_path_font_size: StyleMapper | int = None,
             *style_mappers: StyleMapper,
     ):
         mappers = dict(
@@ -160,6 +195,13 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_width=line_width,
             line_opacity=line_opacity,
             dash_pattern=dash_pattern,
+            line_text_path=line_text_path,
+            line_text_path_repeat=line_text_path_repeat,
+            line_text_path_center=line_text_path_center,
+            line_text_path_below=line_text_path_below,
+            line_text_path_font_weight=line_text_path_font_weight,
+            line_text_path_font_size=line_text_path_font_size,
+            line_text_path_orientation=line_text_path_orientation,
         )
         mappers = self._transform_static_values_to_style_mappers(mappers)
         self._validate_mapper_namings(mappers)

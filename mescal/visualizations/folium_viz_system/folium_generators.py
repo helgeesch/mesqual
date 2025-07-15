@@ -1,8 +1,10 @@
 from abc import ABC, abstractmethod
 from typing import Callable, Generic, TYPE_CHECKING, Type
+import hashlib
 
 import pandas as pd
 import folium
+from folium.plugins import PolyLineTextPath, PolyLineOffset
 from shapely import Polygon, MultiPolygon, LineString
 
 from mescal.typevars import StyleResolverType, ResolvedStyleType
@@ -21,7 +23,6 @@ from mescal.visualizations.folium_viz_system.folium_styling import (
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, ModelDataItem, KPIDataItem
 
 if TYPE_CHECKING:
-    from mescal.study_manager import StudyManager
     from mescal.kpis import KPI, KPICollection
 
 
@@ -56,6 +57,8 @@ class PopupGenerator:
         return html
 
 
+
+
 class IconGenerator(ABC):
     """Abstract base for generating folium icons."""
 
@@ -72,7 +75,7 @@ class FoliumObjectGenerator(Generic[StyleResolverType], ABC):
             self,
             style_resolver: StyleResolverType = None,
             tooltip_generator: TooltipGenerator = None,
-            popup_generator: PopupGenerator = None
+            popup_generator: PopupGenerator = None,
     ):
         self.style_resolver: StyleResolverType = style_resolver or self._style_resolver_type()()
         self.tooltip_generator = tooltip_generator or TooltipGenerator()
@@ -169,7 +172,25 @@ class AreaGenerator(FoliumObjectGenerator[AreaStyleResolver]):
 
 
 class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
-    """Generates folium PolyLine objects for line geometries."""
+    """Generates folium PolyLine objects for line geometries with optional per-feature-group offset tracking."""
+
+    def __init__(
+            self,
+            style_resolver: LineStyleResolver = None,
+            tooltip_generator: TooltipGenerator = None,
+            popup_generator: PopupGenerator = None,
+            per_feature_group_offset_registry: bool = True,
+            offset_increment: int = 5,
+    ):
+        super().__init__(style_resolver, tooltip_generator, popup_generator)
+        self.offset_increment = offset_increment
+        self.per_feature_group_registry = per_feature_group_offset_registry
+        self._global_registry: dict[str, int] = {}
+        self._group_registry: dict[int, dict[str, int]] = {}
+
+    def reset_registry(self) -> None:
+        self._global_registry.clear()
+        self._group_registry.clear()
 
     def _style_resolver_type(self) -> Type[LineStyleResolver]:
         return LineStyleResolver
@@ -184,25 +205,55 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
         popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
 
         coordinates = [(lat, lon) for lon, lat in geometry.coords]
+        line_hash = self._hash_coordinates(coordinates)
 
-        line_kwargs = {
-            'locations': coordinates,
-            'color': style.line_color,
-            'weight': style.line_width,
-            'opacity': style.line_opacity,
-            'tooltip': tooltip
-        }
-        if style.dash_pattern:
-            line_kwargs['dashArray'] = style.dash_pattern
+        registry = self._get_registry_for_group(feature_group)
 
-        if popup:
-            line_kwargs['popup'] = folium.Popup(popup, max_width=300)
+        offset_index = registry.get(line_hash, 0)
+        registry[line_hash] = offset_index + 1
 
-        folium.PolyLine(**line_kwargs).add_to(feature_group)
+        offset_px = offset_index * self.offset_increment
+        offset_side = 1 if offset_index % 2 == 0 else -1
+        effective_offset = offset_px * offset_side
 
-        # TODO: integrate auto PolylineOffset in case of overlaying lines (https://python-visualization.github.io/folium/latest/user_guide/plugins/polyline_offset.html)
-        #       (register hash of line coordinates, if already existing in registry, create offset in increments of self.OFFSET_INCREMENTS (class attribute) px)
-        # TODO: integrate PolyLineTextPath options (https://python-visualization.github.io/folium/latest/user_guide/plugins/polyline_textpath.html)
+        poly_line = PolyLineOffset(
+            locations=coordinates,
+            color=style.line_color,
+            weight=style.line_width,
+            opacity=style.line_opacity,
+            offset=effective_offset,
+            tooltip=tooltip,
+            dash_array=style.dash_pattern or None,
+            popup=folium.Popup(popup, max_width=300) if popup else None,
+        )
+
+        poly_line.add_to(feature_group)
+
+        if style.line_text_path:
+            PolyLineTextPath(
+                poly_line,
+                text=style.line_text_path,
+                repeat=style.line_text_path_repeat,
+                center=style.line_text_path_center,
+                below=style.line_text_path_below,
+                orientation=style.line_text_path_orientation,
+                attributes={
+                    'font-weight': style.line_text_path_font_weight,
+                    'font-size': str(style.line_text_path_font_size)
+                }
+            ).add_to(feature_group)
+
+    def _get_registry_for_group(self, feature_group: folium.FeatureGroup) -> dict[str, int]:
+        if not self.per_feature_group_registry:
+            return self._global_registry
+        group_id = id(feature_group)
+        if group_id not in self._group_registry:
+            self._group_registry[group_id] = {}
+        return self._group_registry[group_id]
+
+    def _hash_coordinates(self, coordinates: list[tuple[float, float]]) -> str:
+        rounded = [(round(lat, 6), round(lon, 6)) for lat, lon in coordinates]
+        return hashlib.md5(str(rounded).encode("utf-8")).hexdigest()
 
 
 class CircleMarkerGenerator(FoliumObjectGenerator[CircleMarkerStyleResolver]):
