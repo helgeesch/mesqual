@@ -151,7 +151,7 @@ class _SegmentedContinuousInputMapping(_ContinuousInputMapping, ABC):
 
     def _get_all_values(self) -> list[float | int]:
         values = []
-        for val in self._segments.values():
+        for val in self._segments.keys():
             if isinstance(val, Iterable) and not isinstance(val, (str, bytes)):
                 values.extend(val)
             else:
