@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 import folium
 
@@ -154,13 +154,13 @@ class KPICollectionMapVisualizer:
 
     def __init__(
             self,
-            generator: FoliumObjectGenerator,
+            generators: FoliumObjectGenerator | List[FoliumObjectGenerator],
             study_manager: 'StudyManager' = None,
             include_related_kpis_in_tooltip: bool = False,
             kpi_grouping_manager: KPIGroupingManager = None,
             **kwargs
     ):
-        self.generator = generator
+        self.generators: List[FoliumObjectGenerator] = generators if isinstance(generators, list) else [generators]
         self.study_manager = study_manager
         self.include_related_kpis_in_tooltip = include_related_kpis_in_tooltip
 
@@ -168,8 +168,14 @@ class KPICollectionMapVisualizer:
 
         # Enhanced tooltip if needed
         if self.include_related_kpis_in_tooltip:
-            self.generator.tooltip_generator = self._create_enhanced_tooltip_generator()
+            for g in self.generators:
+                g.tooltip_generator = self._create_enhanced_tooltip_generator()
         self.kwargs = kwargs
+
+    def generate_and_add_feature_groups_to_map(self, kpi_collection: KPICollection, folium_map: folium.Map) -> None:
+        fgs = self.get_feature_groups(kpi_collection)
+        for fg in fgs:
+            folium_map.add_child(fg)
 
     def get_feature_groups(self, kpi_collection: KPICollection) -> list[folium.FeatureGroup]:
         """Create feature groups for KPI collection, replicating original functionality."""
@@ -186,12 +192,13 @@ class KPICollectionMapVisualizer:
                 fg = folium.FeatureGroup(name=group_name, overlay=False, show=False)
 
                 for kpi in kpi_group:
-                    try:
-                        data_item = KPIDataItem(kpi, kpi_collection, study_manager=self.study_manager, **self.kwargs)
-                        self.generator.generate(data_item, fg)
-                    except Exception as e:
-                        logger.warning(
-                            f'Exception while trying to add KPI {kpi.name} to FeatureGroup {group_name}: {e}')
+                    data_item = KPIDataItem(kpi, kpi_collection, study_manager=self.study_manager, **self.kwargs)
+                    for generator in self.generators:
+                        try:
+                            generator.generate(data_item, fg)
+                        except Exception as e:
+                            logger.warning(
+                                f'Exception while trying to add KPI {kpi.name} to FeatureGroup {group_name}: {e}')
                     pbar.update(1)
 
                 feature_groups.append(fg)
