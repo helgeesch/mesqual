@@ -157,7 +157,8 @@ class KPICollectionMapVisualizer:
             generator: FoliumObjectGenerator,
             study_manager: 'StudyManager' = None,
             include_related_kpis_in_tooltip: bool = False,
-            kpi_grouping_manager: KPIGroupingManager = None
+            kpi_grouping_manager: KPIGroupingManager = None,
+            **kwargs
     ):
         self.generator = generator
         self.study_manager = study_manager
@@ -168,6 +169,7 @@ class KPICollectionMapVisualizer:
         # Enhanced tooltip if needed
         if self.include_related_kpis_in_tooltip:
             self.generator.tooltip_generator = self._create_enhanced_tooltip_generator()
+        self.kwargs = kwargs
 
     def get_feature_groups(self, kpi_collection: KPICollection) -> list[folium.FeatureGroup]:
         """Create feature groups for KPI collection, replicating original functionality."""
@@ -185,7 +187,7 @@ class KPICollectionMapVisualizer:
 
                 for kpi in kpi_group:
                     try:
-                        data_item = KPIDataItem(kpi, kpi_collection, self.study_manager)
+                        data_item = KPIDataItem(kpi, kpi_collection, study_manager=self.study_manager, **self.kwargs)
                         self.generator.generate(data_item, fg)
                     except Exception as e:
                         logger.warning(
