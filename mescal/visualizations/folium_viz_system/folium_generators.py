@@ -200,6 +200,10 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
 
         folium.PolyLine(**line_kwargs).add_to(feature_group)
 
+        # TODO: integrate auto PolylineOffset in case of overlaying lines (https://python-visualization.github.io/folium/latest/user_guide/plugins/polyline_offset.html)
+        #       (register hash of line coordinates, if already existing in registry, create offset in increments of self.OFFSET_INCREMENTS (class attribute) px)
+        # TODO: integrate PolyLineTextPath options (https://python-visualization.github.io/folium/latest/user_guide/plugins/polyline_textpath.html)
+
 
 class CircleMarkerGenerator(FoliumObjectGenerator[CircleMarkerStyleResolver]):
     """Generates folium CircleMarker objects for point geometries."""
