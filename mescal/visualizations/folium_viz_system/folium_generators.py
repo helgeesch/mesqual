@@ -290,6 +290,7 @@ class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):
 
     def _default_text_formatter(self, data_item: MapDataItem) -> str:
         if isinstance(data_item, KPIDataItem):
+            # TODO: use quantity and pretty value; auto-num-of-decimals and so on...
             return f"{data_item.kpi.value:.1f}"
         return str(data_item.object_id)
 
