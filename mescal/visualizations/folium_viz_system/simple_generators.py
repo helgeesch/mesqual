@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 
 import folium
 
-from mescal.visualizations.folium_viz_system.system_base import ResolvedStyle, StyleResolver, FoliumObjectGenerator
+from mescal.visualizations.folium_viz_system.base_system import ResolvedStyle, StyleResolver, FoliumObjectGenerator
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
 from mescal.utils.logging import get_logger
 

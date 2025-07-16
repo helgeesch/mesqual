@@ -6,12 +6,12 @@ from folium.plugins import PolyLineTextPath
 from shapely import LineString
 
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, KPIDataItem
-from mescal.visualizations.folium_viz_system.system_base import ResolvedStyle, StyleResolver, StyleMapper, \
+from mescal.visualizations.folium_viz_system.base_system import ResolvedStyle, StyleResolver, StyleMapper, \
     FoliumObjectGenerator
 
 
 @dataclass
-class ResolvedLineTextStyle(ResolvedStyle):
+class ResolvedLineTextOverlayStyle(ResolvedStyle):
     @property
     def text_offset(self) -> float:
         offset = self.get('text_offset')
@@ -52,7 +52,7 @@ class ResolvedLineTextStyle(ResolvedStyle):
         return self.get('reverse_path_direction', False)
 
 
-class LineTextStyleResolver(StyleResolver[ResolvedLineTextStyle]):
+class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
     def __init__(
             self,
             text_offset: StyleMapper | float = None,
@@ -79,28 +79,25 @@ class LineTextStyleResolver(StyleResolver[ResolvedLineTextStyle]):
         )
         mappers = self._transform_static_values_to_style_mappers(mappers)
         self._validate_mapper_namings(mappers)
-        super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedLineTextStyle)
+        super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedLineTextOverlayStyle)
 
 
-class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextStyleResolver]):
+class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayStyleResolver]):
     def __init__(
             self,
-            style_resolver: LineTextStyleResolver = None,
+            style_resolver: LineTextOverlayStyleResolver = None,
             tooltip_generator=None,
             popup_generator=None,
             text_formatter: Callable[[MapDataItem], str] = None
     ):
-        super().__init__(style_resolver or LineTextStyleResolver(), tooltip_generator, popup_generator)
+        super().__init__(style_resolver or LineTextOverlayStyleResolver(), tooltip_generator, popup_generator)
         self.text_formatter = text_formatter or self._default_text_formatter
 
     def _default_text_formatter(self, data_item: MapDataItem) -> str:
-        if isinstance(data_item, KPIDataItem):
-            # TODO: use quantity and pretty value; auto-num-of-decimals and so on...
-            return f"{data_item.kpi.value:.1f}"
-        return str(data_item.object_id)
+        return data_item.get_text_representation()
 
-    def _style_resolver_type(self) -> Type[LineTextStyleResolver]:
-        return LineTextStyleResolver
+    def _style_resolver_type(self) -> Type[LineTextOverlayStyleResolver]:
+        return LineTextOverlayStyleResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
         geometry = data_item.get_geometry()

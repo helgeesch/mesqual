@@ -3,10 +3,10 @@ from typing import Callable, Type
 
 import folium
 
-from mescal.visualizations.folium_viz_system.folium_generators import TooltipGenerator, PopupGenerator
+from mescal.visualizations.folium_viz_system.simple_generators import TooltipGenerator, PopupGenerator
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, KPIDataItem
 
-from mescal.visualizations.folium_viz_system.system_base import ResolvedStyle, StyleResolver, StyleMapper, \
+from mescal.visualizations.folium_viz_system.base_system import ResolvedStyle, StyleResolver, StyleMapper, \
     FoliumObjectGenerator
 
 
@@ -80,10 +80,7 @@ class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):
         return TextOverlayStyleResolver
 
     def _default_text_formatter(self, data_item: MapDataItem) -> str:
-        if isinstance(data_item, KPIDataItem):
-            # TODO: use quantity and pretty value; auto-num-of-decimals and so on...
-            return f"{data_item.kpi.value:.1f}"
-        return str(data_item.object_id)
+        return data_item.get_text_representation()
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
         try:

@@ -5,7 +5,7 @@ import folium
 from shapely import Polygon, MultiPolygon
 
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
-from mescal.visualizations.folium_viz_system.system_base import ResolvedStyle, StyleResolver, StyleMapper, \
+from mescal.visualizations.folium_viz_system.base_system import ResolvedStyle, StyleResolver, StyleMapper, \
     FoliumObjectGenerator
 
 

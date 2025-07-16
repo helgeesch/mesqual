@@ -20,6 +20,11 @@ class MapDataItem(ABC):
         pass
 
     @abstractmethod
+    def get_text_representation(self) -> str:
+        """Get a representative text for the object."""
+        pass
+
+    @abstractmethod
     def get_geometry(self) -> Any:
         """Get the geometric representation of the data."""
         pass
@@ -53,6 +58,9 @@ class ModelDataItem(MapDataItem):
 
     def get_name(self) -> str:
         return str(self.object_id)
+
+    def get_text_representation(self) -> str:
+        return self.get_name()
 
     def get_geometry(self) -> Any:
         return self.object_data.get(self.GEOMETRY_COLUMN)
@@ -104,6 +112,9 @@ class KPIDataItem(MapDataItem):
 
     def get_name(self) -> str:
         return str(self.kpi.name)
+
+    def get_text_representation(self) -> str:
+        return f"{self.kpi.value:.1f}"  # TODO: use pretty formatting and quantities etc.
 
     def get_geometry(self) -> Any:
         return self._model_item.get_geometry()
