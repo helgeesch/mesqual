@@ -19,6 +19,8 @@ from mescal.visualizations.folium_viz_system.folium_styling import (
     CircleMarkerStyleResolver,
     ResolvedTextOverlayStyle,
     TextOverlayStyleResolver,
+    ResolvedLineTextStyle,
+    LineTextStyleResolver,
 )
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, ModelDataItem, KPIDataItem
 from mescal.utils.logging import get_logger
@@ -243,31 +245,6 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
 
         poly_line.add_to(feature_group)
 
-        if style.line_text_path:
-            if style.line_ant_path:
-                _poly_line_for_text = folium.PolyLine(
-                    locations=line_kwargs['locations'],
-                    color=None,
-                    opacity=0.0,
-                )
-                _poly_line_for_text.add_to(feature_group)
-            else:
-                _poly_line_for_text = poly_line
-            PolyLineTextPath(
-                _poly_line_for_text,
-                text=style.line_text_path,
-                repeat=style.line_text_path_repeat,
-                center=style.line_text_path_center,
-                below=style.line_text_path_below,
-                orientation=style.line_text_path_orientation,
-                offset=style.line_text_path_offset,
-                attributes={
-                    'font-weight': style.line_text_path_font_weight,
-                    'font-size': str(style.line_text_path_font_size),
-                    'fill': style.line_text_path_font_color,
-                }
-            ).add_to(feature_group)
-
     def _get_line_offset(self, coordinates: list[tuple[float, float]], feature_group: folium.FeatureGroup) -> float:
         line_hash = self._hash_coordinates(coordinates)
         registry = self._get_registry_for_group(feature_group)
@@ -289,6 +266,64 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
     def _hash_coordinates(self, coordinates: list[tuple[float, float]]) -> str:
         rounded = [(round(lat, 6), round(lon, 6)) for lat, lon in coordinates]
         return hashlib.md5(str(rounded).encode("utf-8")).hexdigest()
+
+
+class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextStyleResolver]):
+    def __init__(
+            self,
+            style_resolver: LineTextStyleResolver = None,
+            tooltip_generator=None,
+            popup_generator=None,
+            text_formatter: Callable[[MapDataItem], str] = None
+    ):
+        super().__init__(style_resolver or LineTextStyleResolver(), tooltip_generator, popup_generator)
+        self.text_formatter = text_formatter or self._default_text_formatter
+
+    def _default_text_formatter(self, data_item: MapDataItem) -> str:
+        if isinstance(data_item, KPIDataItem):
+            # TODO: use quantity and pretty value; auto-num-of-decimals and so on...
+            return f"{data_item.kpi.value:.1f}"
+        return str(data_item.object_id)
+
+    def _style_resolver_type(self) -> Type[LineTextStyleResolver]:
+        return LineTextStyleResolver
+
+    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+        geometry = data_item.get_geometry()
+        if not isinstance(geometry, LineString):
+            return
+
+        text = self.text_formatter(data_item)
+        if not text:
+            return
+
+        style = self.style_resolver.resolve_style(data_item)
+        coordinates = [(lat, lon) for lon, lat in geometry.coords]
+
+        if style.reverse_path_direction:
+            coordinates = coordinates[::-1]
+
+        invisible_line = folium.PolyLine(
+            locations=coordinates,
+            color=None,
+            opacity=0.0,
+        )
+        invisible_line.add_to(feature_group)
+
+        PolyLineTextPath(
+            invisible_line,
+            text=text,
+            repeat=style.text_repeat,
+            center=style.text_center,
+            below=style.text_below,
+            orientation=style.text_orientation,
+            offset=style.text_offset,
+            attributes={
+                'font-weight': style.font_weight,
+                'font-size': str(style.font_size),
+                'fill': style.font_color,
+            }
+        ).add_to(feature_group)
 
 
 class CircleMarkerGenerator(FoliumObjectGenerator[CircleMarkerStyleResolver]):

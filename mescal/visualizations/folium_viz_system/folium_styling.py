@@ -146,45 +146,6 @@ class ResolvedLineStyle(ResolvedStyle):
         return self.get('dash_pattern')
 
     @property
-    def line_text_path(self) -> str:
-        return self.get('line_text_path')
-
-    @property
-    def line_text_path_offset(self) -> float:
-        offset = self.get('line_text_path_offset')
-        if offset is None:
-            return self.line_text_path_font_size / 2
-        return offset
-
-    @property
-    def line_text_path_orientation(self) -> int:
-        return self.get('line_text_path_orientation')
-
-    @property
-    def line_text_path_repeat(self) -> bool:
-        return self.get('line_text_path_repeat')
-
-    @property
-    def line_text_path_center(self) -> bool:
-        return self.get('line_text_path_center')
-
-    @property
-    def line_text_path_below(self) -> bool:
-        return self.get('line_text_path_below')
-
-    @property
-    def line_text_path_font_weight(self) -> str:
-        return self.get('line_text_path_font_weight')
-
-    @property
-    def line_text_path_font_size(self) -> int:
-        return self.get('line_text_path_font_size') or self.line_width * 2
-
-    @property
-    def line_text_path_font_color(self) -> str:
-        return self.get('line_text_path_font_color')
-
-    @property
     def reverse_path_direction(self) -> bool:
         return self.get('reverse_path_direction')
 
@@ -208,19 +169,10 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_width: StyleMapper | float = 3.0,
             line_opacity: StyleMapper | float = 1.0,
             dash_pattern: StyleMapper | List[int] = None,
-            reverse_path_direction: StyleMapper | bool = False,
-            line_text_path: StyleMapper | str = None,
-            line_text_path_offset: StyleMapper | float = None,
-            line_text_path_orientation: StyleMapper | int = 0,
-            line_text_path_repeat: StyleMapper | bool = False,
-            line_text_path_center: StyleMapper | bool = False,
-            line_text_path_below: StyleMapper | bool = False,
-            line_text_path_font_weight: StyleMapper | str = 'bold',
-            line_text_path_font_size: StyleMapper | int = None,
-            line_text_path_font_color: StyleMapper | str = '#000000',
             line_ant_path: StyleMapper | bool = False,
             line_ant_path_delay: StyleMapper | int = 1500,
             line_ant_path_pulse_color: StyleMapper | str = '#DBDBDB',
+            reverse_path_direction: StyleMapper | bool = False,
             *style_mappers: StyleMapper,
     ):
         mappers = dict(
@@ -228,23 +180,86 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_width=line_width,
             line_opacity=line_opacity,
             dash_pattern=dash_pattern,
-            line_text_path=line_text_path,
-            line_text_path_offset=line_text_path_offset,
-            line_text_path_repeat=line_text_path_repeat,
-            line_text_path_center=line_text_path_center,
-            line_text_path_below=line_text_path_below,
-            line_text_path_font_weight=line_text_path_font_weight,
-            line_text_path_font_size=line_text_path_font_size,
-            line_text_path_orientation=line_text_path_orientation,
-            line_text_path_font_color=line_text_path_font_color,
-            reverse_path_direction=reverse_path_direction,
             line_ant_path=line_ant_path,
             line_ant_path_delay=line_ant_path_delay,
             line_ant_path_pulse_color=line_ant_path_pulse_color,
+            reverse_path_direction=reverse_path_direction,
         )
         mappers = self._transform_static_values_to_style_mappers(mappers)
         self._validate_mapper_namings(mappers)
         super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedLineStyle)
+
+
+@dataclass
+class ResolvedLineTextStyle(ResolvedStyle):
+    @property
+    def text_offset(self) -> float:
+        offset = self.get('text_offset')
+        if offset is None:
+            return self.font_size / 2
+        return offset
+
+    @property
+    def text_orientation(self) -> int:
+        return self.get('text_orientation', 0)
+
+    @property
+    def text_repeat(self) -> bool:
+        return self.get('text_repeat', False)
+
+    @property
+    def text_center(self) -> bool:
+        return self.get('text_center', False)
+
+    @property
+    def text_below(self) -> bool:
+        return self.get('text_below', False)
+
+    @property
+    def font_weight(self) -> str:
+        return self.get('font_weight', 'bold')
+
+    @property
+    def font_size(self) -> int:
+        return self.get('font_size', 12)
+
+    @property
+    def font_color(self) -> str:
+        return self.get('font_color', '#000000')
+
+    @property
+    def reverse_path_direction(self) -> bool:
+        return self.get('reverse_path_direction', False)
+
+
+class LineTextStyleResolver(StyleResolver[ResolvedLineTextStyle]):
+    def __init__(
+            self,
+            text_offset: StyleMapper | float = None,
+            text_orientation: StyleMapper | int = 0,
+            text_repeat: StyleMapper | bool = False,
+            text_center: StyleMapper | bool = False,
+            text_below: StyleMapper | bool = False,
+            font_weight: StyleMapper | str = 'bold',
+            font_size: StyleMapper | int = 12,
+            font_color: StyleMapper | str = '#000000',
+            reverse_path_direction: StyleMapper | bool = False,
+            *style_mappers: StyleMapper,
+    ):
+        mappers = dict(
+            text_offset=text_offset,
+            text_orientation=text_orientation,
+            text_repeat=text_repeat,
+            text_center=text_center,
+            text_below=text_below,
+            font_weight=font_weight,
+            font_size=font_size,
+            font_color=font_color,
+            reverse_path_direction=reverse_path_direction,
+        )
+        mappers = self._transform_static_values_to_style_mappers(mappers)
+        self._validate_mapper_namings(mappers)
+        super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedLineTextStyle)
 
 
 @dataclass
