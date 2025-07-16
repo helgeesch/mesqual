@@ -8,7 +8,7 @@ import folium
 import pandas as pd
 
 from mescal.kpis import KPICollection, KPI
-from mescal.visualizations.folium_viz_system.folium_generators import FoliumObjectGenerator
+from mescal.visualizations.folium_viz_system.system_base import FoliumObjectGenerator
 from mescal.visualizations.folium_viz_system.map_data_item import ModelDataItem, KPIDataItem
 
 

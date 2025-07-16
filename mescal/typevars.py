@@ -10,8 +10,7 @@ if TYPE_CHECKING:
     from mescal.kpis.kpi_base import KPI
     from mescal.kpis.aggs import OperationOfTwoValues
     from mescal.kpis.kpi_collection import KPICollection
-    from mescal.visualizations.folium_viz_system.folium_styling import StyleResolver, ResolvedStyle
-
+    from mescal.visualizations.folium_viz_system.system_base import ResolvedStyle, StyleResolver
 
 FlagType = TypeVar('FlagType', bound='FlagTypeProtocol')
 DatasetType = TypeVar('DatasetType', bound='Dataset')

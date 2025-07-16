@@ -1,75 +1,7 @@
-from typing import Union, Callable, Any, List, Dict, Generic, Type
-from dataclasses import dataclass, field
+from typing import List
+from dataclasses import dataclass
 
-from mescal.typevars import ResolvedStyleType
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
-
-
-@dataclass
-class StyleMapper:
-    """Maps a data column to a visual property using a mapping function."""
-    property: str  # e.g., 'color', 'width', 'opacity', 'height', 'arrow_speed', 'shadow_color'
-    column: str | None = None  # column to get value from data source, None for static values
-    mapping: Union[Callable, Any] = None  # mapper function or static value
-    return_type: type = str  # expected return type for validation
-
-
-@dataclass
-class ResolvedStyle:
-    """Container for resolved style properties."""
-    properties: dict = field(default_factory=dict)
-
-    def get(self, property: str, default=None):
-        return self.properties.get(property, default)
-
-    def __getitem__(self, key):
-        return self.properties[key]
-
-    def __setitem__(self, key, value):
-        self.properties[key] = value
-
-    def __contains__(self, key):
-        return key in self.properties
-
-
-class StyleResolver(Generic[ResolvedStyleType]):
-    """Resolves styling for map data items using flexible property mappings."""
-
-    def __init__(self, style_mappers: List[StyleMapper] = None, style_type: Type[ResolvedStyleType] = ResolvedStyle):
-        self.style_mappers = {mapper.property: mapper for mapper in style_mappers}
-        self.style_type = style_type
-
-    def resolve_style(self, data_item: MapDataItem) -> ResolvedStyleType:
-        """Resolve styling for a data item."""
-        resolved = self.style_type()
-
-        for prop, mapper in self.style_mappers.items():
-            if mapper.column:
-                value = data_item.get_styling_value(mapper.column)
-            else:
-                value = None
-
-            if callable(mapper.mapping):
-                resolved[prop] = mapper.mapping(value)
-            else:
-                resolved[prop] = mapper.mapping
-
-        return resolved
-
-    @classmethod
-    def _validate_mapper_namings(cls, mappers: Dict[str, StyleMapper]) -> None:
-        for key, mapper in mappers.items():
-            if mapper.property != key:
-                raise ValueError(
-                    f"StyleMapper property not set correctly; StyleMapper for {key} must have property set to '{key}'."
-                )
-
-    @classmethod
-    def _transform_static_values_to_style_mappers(cls, mappers: Dict[str, Any]) -> Dict[str, StyleMapper]:
-        for key, mapper in list(mappers.items()):
-            if not isinstance(mapper, StyleMapper):
-                mappers[key] = StyleMapper(key, None, mapper, type(mapper) if mapper is not None else object)
-        return mappers
+from mescal.visualizations.folium_viz_system.system_base import StyleMapper, ResolvedStyle, StyleResolver
 
 
 @dataclass

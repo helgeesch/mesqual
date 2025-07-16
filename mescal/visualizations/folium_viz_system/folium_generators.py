@@ -1,32 +1,24 @@
 from abc import ABC, abstractmethod
-from typing import Callable, Generic, TYPE_CHECKING, Type, List
+from typing import Callable, TYPE_CHECKING, Type
 import hashlib
 
-import pandas as pd
 import folium
 from folium.plugins import PolyLineTextPath, PolyLineOffset, AntPath
 from shapely import Polygon, MultiPolygon, LineString
 
-from mescal.typevars import StyleResolverType, ResolvedStyleType
 from mescal.visualizations.folium_viz_system.folium_styling import (
-    ResolvedStyle,
-    StyleResolver,
-    ResolvedAreaStyle,
     AreaStyleResolver,
-    ResolvedLineStyle,
     LineStyleResolver,
-    ResolvedCircleMarkerStyle,
     CircleMarkerStyleResolver,
-    ResolvedTextOverlayStyle,
     TextOverlayStyleResolver,
-    ResolvedLineTextStyle,
     LineTextStyleResolver,
 )
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, ModelDataItem, KPIDataItem
+from mescal.visualizations.folium_viz_system.system_base import ResolvedStyle, StyleResolver, FoliumObjectGenerator
+from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, KPIDataItem
 from mescal.utils.logging import get_logger
 
 if TYPE_CHECKING:
-    from mescal.kpis import KPI, KPICollection
+    pass
 
 logger = get_logger(__name__)
 
@@ -71,65 +63,6 @@ class IconGenerator(ABC):
     def generate_icon(self, data_item: MapDataItem, style: ResolvedStyle) -> folium.DivIcon:
         """Generate a folium icon for the data item."""
         pass
-
-
-class FoliumObjectGenerator(Generic[StyleResolverType], ABC):
-    """Abstract base for generating folium objects."""
-
-    def __init__(
-            self,
-            style_resolver: StyleResolverType = None,
-            tooltip_generator: TooltipGenerator = None,
-            popup_generator: PopupGenerator = None,
-    ):
-        self.style_resolver: StyleResolverType = style_resolver or self._style_resolver_type()()
-        self.tooltip_generator = tooltip_generator or TooltipGenerator()
-        self.popup_generator = popup_generator
-
-    @abstractmethod
-    def _style_resolver_type(self) -> Type[StyleResolverType]:
-        return StyleResolver
-
-    @abstractmethod
-    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        """Generate folium object and add it to the feature group."""
-        pass
-
-    def generate_objects_for_model_df(
-            self,
-            model_df: pd.DataFrame,
-            feature_group: folium.FeatureGroup,
-            **kwargs
-    ) -> folium.FeatureGroup:
-        """Add model DataFrame data to the map."""
-        for _, row in model_df.iterrows():
-            data_item = ModelDataItem(row, **kwargs)
-            self.generate(data_item, feature_group)
-        return feature_group
-
-    def generate_objects_for_kpi_collection(
-            self,
-            kpi_collection: 'KPICollection',
-            feature_group: folium.FeatureGroup,
-            **kwargs
-    ) -> folium.FeatureGroup:
-        """Add KPI data to the map."""
-        for kpi in kpi_collection:
-            data_item = KPIDataItem(kpi, kpi_collection, **kwargs)
-            self.generate(data_item, feature_group)
-        return feature_group
-
-    def generate_object_for_single_kpi(
-            self,
-            kpi: 'KPI',
-            feature_group: folium.FeatureGroup,
-            kpi_collection: 'KPICollection' = None,
-            **kwargs
-    ) -> folium.FeatureGroup:
-        """Add a single KPI to the map with optional context."""
-        data_item = KPIDataItem(kpi, kpi_collection, **kwargs)
-        self.generate(data_item, feature_group)
-        return feature_group
 
 
 class AreaGenerator(FoliumObjectGenerator[AreaStyleResolver]):
