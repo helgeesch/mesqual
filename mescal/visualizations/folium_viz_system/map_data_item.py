@@ -15,6 +15,11 @@ class MapDataItem(ABC):
             setattr(self, k, v)
 
     @abstractmethod
+    def get_name(self) -> str:
+        """Get a representative name for the object."""
+        pass
+
+    @abstractmethod
     def get_geometry(self) -> Any:
         """Get the geometric representation of the data."""
         pass
@@ -45,6 +50,9 @@ class ModelDataItem(MapDataItem):
         self.object_data = object_data
         self.object_id = object_data.name
         super().__init__(**kwargs)
+
+    def get_name(self) -> str:
+        return str(self.object_id)
 
     def get_geometry(self) -> Any:
         return self.object_data.get(self.GEOMETRY_COLUMN)
@@ -93,6 +101,9 @@ class KPIDataItem(MapDataItem):
         self._object_info = kpi.get_attributed_object_info_from_model()
         self._model_item = ModelDataItem(self._object_info)
         super().__init__(**kwargs)
+
+    def get_name(self) -> str:
+        return str(self.kpi.name)
 
     def get_geometry(self) -> Any:
         return self._model_item.get_geometry()

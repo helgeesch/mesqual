@@ -68,7 +68,7 @@ class StyleResolver(Generic[ResolvedStyleType]):
     def _transform_static_values_to_style_mappers(cls, mappers: Dict[str, Any]) -> Dict[str, StyleMapper]:
         for key, mapper in list(mappers.items()):
             if not isinstance(mapper, StyleMapper):
-                mappers[key] = StyleMapper(key, None, mapper, type(mapper))
+                mappers[key] = StyleMapper(key, None, mapper, type(mapper) if mapper is not None else object)
         return mappers
 
 
@@ -139,15 +139,22 @@ class ResolvedLineStyle(ResolvedStyle):
 
     @property
     def line_opacity(self) -> float:
-        return min(self.get('line_opacity'), 1.0)
+        return max(min(self.get('line_opacity'), 1.0), 0.0)
 
     @property
-    def dash_pattern(self) -> str:
+    def dash_pattern(self) -> List[int]:
         return self.get('dash_pattern')
 
     @property
     def line_text_path(self) -> str:
         return self.get('line_text_path')
+
+    @property
+    def line_text_path_offset(self) -> float:
+        offset = self.get('line_text_path_offset')
+        if offset is None:
+            return self.line_text_path_font_size / 2
+        return offset
 
     @property
     def line_text_path_orientation(self) -> int:
@@ -173,6 +180,26 @@ class ResolvedLineStyle(ResolvedStyle):
     def line_text_path_font_size(self) -> int:
         return self.get('line_text_path_font_size') or self.line_width * 2
 
+    @property
+    def line_text_path_font_color(self) -> str:
+        return self.get('line_text_path_font_color')
+
+    @property
+    def reverse_path_direction(self) -> bool:
+        return self.get('reverse_path_direction')
+
+    @property
+    def line_ant_path(self) -> bool:
+        return self.get('line_ant_path')
+
+    @property
+    def line_ant_path_delay(self) -> int:
+        return self.get('line_ant_path_delay')
+
+    @property
+    def line_ant_path_pulse_color(self) -> str:
+        return self.get('line_ant_path_pulse_color')
+
 
 class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
     def __init__(
@@ -180,14 +207,20 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_color: StyleMapper | str = '#000000',
             line_width: StyleMapper | float = 3.0,
             line_opacity: StyleMapper | float = 1.0,
-            dash_pattern: StyleMapper | str = None,
+            dash_pattern: StyleMapper | List[int] = None,
+            reverse_path_direction: StyleMapper | bool = False,
             line_text_path: StyleMapper | str = None,
+            line_text_path_offset: StyleMapper | float = None,
             line_text_path_orientation: StyleMapper | int = 0,
             line_text_path_repeat: StyleMapper | bool = False,
             line_text_path_center: StyleMapper | bool = False,
             line_text_path_below: StyleMapper | bool = False,
             line_text_path_font_weight: StyleMapper | str = 'bold',
             line_text_path_font_size: StyleMapper | int = None,
+            line_text_path_font_color: StyleMapper | str = '#000000',
+            line_ant_path: StyleMapper | bool = False,
+            line_ant_path_delay: StyleMapper | int = 1500,
+            line_ant_path_pulse_color: StyleMapper | str = '#DBDBDB',
             *style_mappers: StyleMapper,
     ):
         mappers = dict(
@@ -196,12 +229,18 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_opacity=line_opacity,
             dash_pattern=dash_pattern,
             line_text_path=line_text_path,
+            line_text_path_offset=line_text_path_offset,
             line_text_path_repeat=line_text_path_repeat,
             line_text_path_center=line_text_path_center,
             line_text_path_below=line_text_path_below,
             line_text_path_font_weight=line_text_path_font_weight,
             line_text_path_font_size=line_text_path_font_size,
             line_text_path_orientation=line_text_path_orientation,
+            line_text_path_font_color=line_text_path_font_color,
+            reverse_path_direction=reverse_path_direction,
+            line_ant_path=line_ant_path,
+            line_ant_path_delay=line_ant_path_delay,
+            line_ant_path_pulse_color=line_ant_path_pulse_color,
         )
         mappers = self._transform_static_values_to_style_mappers(mappers)
         self._validate_mapper_namings(mappers)
