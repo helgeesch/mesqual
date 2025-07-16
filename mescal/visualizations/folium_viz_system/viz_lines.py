@@ -6,11 +6,15 @@ import folium
 from folium.plugins import AntPath, PolyLineOffset
 from shapely import LineString
 
-from mescal.visualizations.folium_viz_system.simple_generators import TooltipGenerator, PopupGenerator, logger
+from mescal.visualizations.folium_viz_system.element_generators import TooltipGenerator, PopupGenerator, logger
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
 
-from mescal.visualizations.folium_viz_system.base_system import ResolvedStyle, StyleResolver, StyleMapper, \
-    FoliumObjectGenerator
+from mescal.visualizations.folium_viz_system.base_viz_system import (
+    ResolvedStyle,
+    StyleResolver,
+    StyleMapper,
+    FoliumObjectGenerator,
+)
 
 
 @dataclass

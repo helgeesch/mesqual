@@ -4,8 +4,12 @@ from typing import Type
 import folium
 
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
-from mescal.visualizations.folium_viz_system.base_system import ResolvedStyle, StyleResolver, StyleMapper, \
-    FoliumObjectGenerator
+from mescal.visualizations.folium_viz_system.base_viz_system import (
+    ResolvedStyle,
+    StyleResolver,
+    StyleMapper,
+    FoliumObjectGenerator,
+)
 
 
 @dataclass

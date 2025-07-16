@@ -2,9 +2,9 @@ from abc import ABC
 
 import folium
 
-from mescal.visualizations.folium_viz_system.base_system import FoliumObjectGenerator, StyleResolver
+from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator, StyleResolver
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
-from mescal.visualizations.folium_viz_system.simple_generators import TooltipGenerator, PopupGenerator, IconGenerator
+from mescal.visualizations.folium_viz_system.element_generators import TooltipGenerator, PopupGenerator, IconGenerator
 
 
 class PELIMINARY_IconGenerator(FoliumObjectGenerator, ABC):

@@ -3,12 +3,11 @@ from typing import TYPE_CHECKING
 
 import folium
 
-from mescal.visualizations.folium_viz_system.base_system import ResolvedStyle
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
 from mescal.utils.logging import get_logger
 
 if TYPE_CHECKING:
-    pass
+    from mescal.visualizations.folium_viz_system.base_viz_system import ResolvedStyle
 
 logger = get_logger(__name__)
 
@@ -48,8 +47,6 @@ class IconGenerator(ABC):
     """Abstract base for generating folium icons."""
 
     @abstractmethod
-    def generate_icon(self, data_item: MapDataItem, style: ResolvedStyle) -> folium.DivIcon:
+    def generate_icon(self, data_item: MapDataItem, style: 'ResolvedStyle') -> folium.DivIcon:
         """Generate a folium icon for the data item."""
         pass
-
-

@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING, List
 import folium
 
 from mescal.kpis import KPICollection, KPI
-from mescal.visualizations.folium_viz_system.simple_generators import TooltipGenerator
-from mescal.visualizations.folium_viz_system.base_system import FoliumObjectGenerator
+from mescal.visualizations.folium_viz_system.element_generators import TooltipGenerator
+from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator
 from mescal.visualizations.folium_viz_system.map_data_item import KPIDataItem, MapDataItem
 
 if TYPE_CHECKING:
