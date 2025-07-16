@@ -17,7 +17,7 @@ class StyleMapper:
     property: str  # e.g., 'color', 'width', 'opacity', 'height', 'arrow_speed', 'shadow_color'
     column: str | None = None  # column to get value from data source, None for static values
     mapping: Union[Callable, Any] = None  # mapper function or static value
-    return_type: type = str  # expected return type for validation
+    return_type: type = object  # expected return type for validation
 
 
 @dataclass
