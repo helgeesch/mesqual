@@ -7,7 +7,7 @@ from mescal.study_manager import StudyManager
 from mescal.visualizations.styling.segmented_colormap import SegmentedColorMapLegend
 from mescal.visualizations.styling.segmented_line_width_map import SegmentedLineWidthMapLegend
 from mescal.visualizations.styling.segmented_opacity_map import SegmentedOpacityMapLegend
-from mescal.visualizations.folium_map.kpi_map_visualizer_base import KPIToMapVisualizerBase
+from mescal.visualizations.folium_modules_deprecated.kpi_map_visualizer_base import KPIToMapVisualizerBase
 
 
 class GeometryKPIMapVisualizer(KPIToMapVisualizerBase, ABC):

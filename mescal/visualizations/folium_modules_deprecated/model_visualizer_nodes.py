@@ -4,7 +4,7 @@ import folium
 import pandas as pd
 from shapely import Point
 
-from mescal.visualizations.folium_map.model_visualizer_base import StyledModelVisualizerBase
+from mescal.visualizations.folium_modules_deprecated.model_visualizer_base import StyledModelVisualizerBase
 from mescal.visualizations.styling.icon_styling import IconMap
 
 
