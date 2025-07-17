@@ -55,6 +55,8 @@ class AreaStyleResolver(StyleResolver[ResolvedAreaStyle]):
             fill_opacity: StyleMapper | float = 0.8,
             highlight_border_width: StyleMapper | float = 3.0,
             highlight_fill_opacity: StyleMapper | float = 1.0,
+            tooltip: StyleMapper | str | bool = True,
+            popup: StyleMapper | folium.Popup | bool = False,
             geometry: StyleMapper | Polygon = None,
             **style_mappers: StyleMapper | Any,
     ):
@@ -65,6 +67,8 @@ class AreaStyleResolver(StyleResolver[ResolvedAreaStyle]):
             fill_opacity=fill_opacity,
             highlight_border_width=highlight_border_width,
             highlight_fill_opacity=highlight_fill_opacity,
+            tooltip=tooltip,
+            popup=popup,
             geometry=self._explicit_or_fallback(geometry, self._default_geometry_mapper()),
             **style_mappers
         )
@@ -84,9 +88,6 @@ class AreaGenerator(FoliumObjectGenerator[AreaStyleResolver]):
         if not isinstance(geometry, (Polygon, MultiPolygon)):
             return
 
-        tooltip = self.tooltip_generator.generate_tooltip(data_item)
-        popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
-
         style_dict = {
             'fillColor': style.fill_color,
             'color': style.border_color,
@@ -101,19 +102,16 @@ class AreaGenerator(FoliumObjectGenerator[AreaStyleResolver]):
         geojson_data = {
             "type": "Feature",
             "geometry": geometry.__geo_interface__,
-            "properties": {"tooltip": tooltip}
+            "properties": {"tooltip": style.tooltip}
         }
 
-        geojson_kwargs = {
-            'style_function': lambda x, s=style_dict: s,
-            'highlight_function': lambda x, h=highlight_dict: h,
-            'tooltip': folium.GeoJsonTooltip(fields=['tooltip'], aliases=[''], sticky=True)
-        }
-
-        if popup:
-            geojson_kwargs['popup'] = folium.Popup(popup, max_width=300)
-
-        folium.GeoJson(geojson_data, **geojson_kwargs).add_to(feature_group)
+        folium.GeoJson(
+            geojson_data,
+            style_function=lambda x, s=style_dict: s,
+            highlight_function=lambda x, h=highlight_dict: h,
+            tooltip=folium.GeoJsonTooltip(fields=['tooltip'], aliases=[''], sticky=True) if style.tooltip else None,
+            popup=style.popup
+        ).add_to(feature_group)
 
 
 if __name__ == '__main__':
@@ -123,7 +121,6 @@ if __name__ == '__main__':
     from shapely.geometry import Polygon
     import folium
 
-    from mescal.visualizations.folium_viz_system.map_data_item import ModelDataItem
     from mescal.visualizations.value_mapping_system import (
         SegmentedContinuousColorscale,
         SegmentedContinuousOpacityMapping,
@@ -156,6 +153,7 @@ if __name__ == '__main__':
             fill_opacity=StyleMapper.for_attribute('value', opacity_map),
             border_color='#ABABAB',
             border_width=10,
+            tooltip=True,
         )
     )
 

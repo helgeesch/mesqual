@@ -80,6 +80,8 @@ class ArrowIconStyleResolver(StyleResolver[ResolvedArrowIconStyle]):
             num_arrows: StyleMapper | int = 3,
             opacity: StyleMapper | float = 0.8,
             reverse_direction: StyleMapper | bool = False,
+            tooltip: StyleMapper | str | bool = True,
+            popup: StyleMapper | folium.Popup | bool = False,
             location: StyleMapper | Point = None,
             rotation_angle: StyleMapper | float = None,
             **style_mappers: StyleMapper | Any,
@@ -95,6 +97,8 @@ class ArrowIconStyleResolver(StyleResolver[ResolvedArrowIconStyle]):
             num_arrows=num_arrows,
             opacity=opacity,
             reverse_direction=reverse_direction,
+            tooltip=tooltip,
+            popup=popup,
             location=self._explicit_or_fallback(location, self._default_location_mapper()),
             rotation_angle=self._explicit_or_fallback(rotation_angle, self._default_rotation_angle_mapper()),
             **style_mappers
@@ -123,9 +127,6 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconStyleResolver]):
         if style.location is None:
             return
 
-        tooltip = self.tooltip_generator.generate_tooltip(data_item)
-        popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
-
         svg_content = self._generate_arrow_svg(style, data_item)
         encoded_svg = base64.b64encode(svg_content.encode()).decode()
 
@@ -146,20 +147,17 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconStyleResolver]):
             </div>
         '''
 
-        marker_kwargs = {
-            'location': (style.location.y, style.location.x),
-            'icon': folium.DivIcon(
-                html=icon_html,
-                icon_size=(style.width, style.height),
-                icon_anchor=(style.width // 2, style.height // 2)
-            ),
-            'tooltip': tooltip
-        }
-
-        if popup:
-            marker_kwargs['popup'] = folium.Popup(popup, max_width=300)
-
-        folium.Marker(**marker_kwargs).add_to(feature_group)
+        icon = folium.DivIcon(
+            html=icon_html,
+            icon_size=(style.width, style.height),
+            icon_anchor=(style.width // 2, style.height // 2)
+        )
+        folium.Marker(
+            location=(style.location.y, style.location.x),
+            icon=icon,
+            tooltip=style.tooltip,
+            popup=style.popup
+        ).add_to(feature_group)
 
     def _generate_arrow_svg(self, style: ResolvedArrowIconStyle, data_item: MapDataItem) -> str:
         from inspect import signature

@@ -75,6 +75,9 @@ class DataItemStyleMapper(StyleMapper):
 class ResolvedStyle:
     """Container for resolved style properties."""
     properties: dict = field(default_factory=dict)
+    tooltip: str = None
+    popup: folium.Popup = None
+    text_print_content: str = None
 
     def get(self, property: str, default=None):
         return self.properties.get(property, default)
@@ -100,12 +103,26 @@ class ResolvedStyle:
 class StyleResolver(Generic[ResolvedStyleType]):
     def __init__(self, style_type: Type[ResolvedStyleType] = None, **style_mappers: StyleMapper | Any):
         self.style_type: Type[ResolvedStyleType] = style_type or ResolvedStyleType.__constraints__[0]
+
+        _defaults_if_true = dict(
+            tooltip=self._default_tooltip_generator,
+            popup=self._default_popup_generator,
+            text_print_content=self._default_text_print_generator,
+        )
+        for k, mapper in _defaults_if_true.items():
+            if style_mappers.get(k, None) is True:
+                style_mappers[k] = mapper()
+            elif style_mappers.get(k, None) is False:
+                style_mappers[k] = None
+
         self.style_mappers: dict[str, StyleMapper] = self._normalize_style_mappers(style_mappers)
 
     def resolve_style(self, data_item: MapDataItem) -> ResolvedStyleType:
         resolved = self.style_type()
         for prop, mapper in self.style_mappers.items():
             resolved[prop] = mapper.resolve(data_item)
+            if prop in ['tooltip', 'popup', 'text_print_content']:
+                setattr(resolved, prop, mapper.resolve(data_item))
         return resolved
 
     @staticmethod
@@ -120,6 +137,42 @@ class StyleResolver(Generic[ResolvedStyleType]):
         if explicit is not None:
             return explicit
         return fallback
+
+    @staticmethod
+    def _default_tooltip_generator() -> DataItemStyleMapper:
+
+        def get_tooltip(data_item: MapDataItem) -> str:
+            tooltip_data = data_item.get_tooltip_data()
+
+            html = '<table style="border-collapse: collapse;">\n'
+            for key, value in tooltip_data.items():
+                html += f'  <tr><td style="padding: 4px 8px;"><strong>{key}</strong></td>' \
+                        f'<td style="text-align: right; padding: 4px 8px;">{value}</td></tr>\n'
+            html += '</table>'
+
+            return html
+
+        return DataItemStyleMapper(get_tooltip)
+
+    @staticmethod
+    def _default_popup_generator() -> DataItemStyleMapper:
+
+        def get_popup(data_item: MapDataItem) -> folium.Popup:
+            tooltip_data = data_item.get_tooltip_data()
+
+            html = '<table style="border-collapse: collapse;">\n'
+            for key, value in tooltip_data.items():
+                html += f'  <tr><td style="padding: 4px 8px;"><strong>{key}</strong></td>' \
+                        f'<td style="text-align: right; padding: 4px 8px;">{value}</td></tr>\n'
+            html += '</table>'
+
+            return folium.Popup(html, max_width=300)
+
+        return DataItemStyleMapper(get_popup)
+
+    @staticmethod
+    def _default_text_print_generator() -> DataItemStyleMapper:
+        return DataItemStyleMapper(lambda d: d.get_text_representation())
 
     @staticmethod
     def _default_geometry_mapper() -> DataItemStyleMapper:
@@ -180,12 +233,8 @@ class FoliumObjectGenerator(Generic[StyleResolverType], ABC):
     def __init__(
             self,
             style_resolver: StyleResolverType = None,
-            tooltip_generator: TooltipGenerator = None,
-            popup_generator: PopupGenerator = None,
     ):
         self.style_resolver: StyleResolverType = style_resolver or self._style_resolver_type()()
-        self.tooltip_generator = tooltip_generator or TooltipGenerator()
-        self.popup_generator = popup_generator
 
     @abstractmethod
     def _style_resolver_type(self) -> Type[StyleResolverType]:

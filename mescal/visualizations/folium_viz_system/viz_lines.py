@@ -69,6 +69,8 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_ant_path_delay: StyleMapper | int = 1500,
             line_ant_path_pulse_color: StyleMapper | str = '#DBDBDB',
             reverse_path_direction: StyleMapper | bool = False,
+            tooltip: StyleMapper | str | bool = True,
+            popup: StyleMapper | folium.Popup | bool = False,
             geometry: StyleMapper | LineString = None,
             **style_mappers: StyleMapper | Any,
     ):
@@ -81,6 +83,8 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_ant_path_delay=line_ant_path_delay,
             line_ant_path_pulse_color=line_ant_path_pulse_color,
             reverse_path_direction=reverse_path_direction,
+            tooltip=tooltip,
+            popup=popup,
             geometry=self._explicit_or_fallback(geometry, self._default_line_string_mapper()),
             **style_mappers
         )
@@ -93,12 +97,10 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
     def __init__(
             self,
             style_resolver: LineStyleResolver = None,
-            tooltip_generator: TooltipGenerator = None,
-            popup_generator: PopupGenerator = None,
             per_feature_group_offset_registry: bool = True,
             offset_increment: int = 5,
     ):
-        super().__init__(style_resolver, tooltip_generator, popup_generator)
+        super().__init__(style_resolver)
         self.offset_increment = offset_increment
         self.per_feature_group_registry = per_feature_group_offset_registry
         self._global_registry: dict[str, int] = {}
@@ -117,9 +119,6 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
         if not isinstance(geometry, (LineString, MultiLineString)):
             return
 
-        tooltip = self.tooltip_generator.generate_tooltip(data_item)
-        popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
-
         coordinates = [(lat, lon) for lon, lat in geometry.coords]
         effective_offset = self._get_line_offset(coordinates, feature_group)
 
@@ -132,9 +131,9 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
             weight=style.line_width,
             opacity=style.line_opacity,
             offset=effective_offset,
-            tooltip=tooltip,
+            tooltip=style.tooltip,
             dash_array=style.dash_pattern or None,
-            popup=folium.Popup(popup, max_width=300) if popup else None,
+            popup=style.popup,
         )
 
         if style.line_ant_path:
@@ -177,3 +176,57 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
     def _hash_coordinates(self, coordinates: list[tuple[float, float]]) -> str:
         rounded = [(round(lat, 6), round(lon, 6)) for lat, lon in coordinates]
         return hashlib.md5(str(rounded).encode("utf-8")).hexdigest()
+
+
+if __name__ == '__main__':
+    import os
+    import webbrowser
+    import pandas as pd
+    from shapely.geometry import Polygon, LineString
+    import folium
+
+    from mescal.visualizations.value_mapping_system import (
+        SegmentedContinuousColorscale,
+        SegmentedContinuousOpacityMapping,
+    )
+
+    line_df = pd.DataFrame({
+        'geometry': [
+            LineString([(7.0, 50.0), (7.5, 52.0)]),
+            LineString([(8.0, 50.0), (8.5, 52.0)]),
+            LineString([(9.0, 50.0), (9.5, 52.0)]),
+            LineString([(9.0, 50.0), (9.5, 52.0)]),
+        ],
+        'flow': [10, 20, 30, 29]
+    }, index=['line1', 'line2', 'line3.1', 'line3.2'])
+
+    m = folium.Map(location=[50.25, 8.0], zoom_start=7, tiles='CartoDB Positron')
+
+    color_map = SegmentedContinuousColorscale.single_segment_autoscale_factory_from_array(
+        values=line_df['flow'].values,
+        colorscale=['green', 'blue', 'red']
+    )
+
+    opacity_map = SegmentedContinuousOpacityMapping.single_segment_autoscale_factory_from_array(
+        values=line_df['flow'].values,
+        output_range=(0.4, 0.9)
+    )
+
+    line_generator = LineGenerator(
+        style_resolver=LineStyleResolver(
+            line_color=StyleMapper.for_attribute('flow', color_map),
+            line_opacity=StyleMapper.for_attribute('flow', opacity_map),
+            line_width=10,
+            tooltip=False,
+            popup=True,
+        ),
+        offset_increment=15,
+    )
+
+    fg = folium.FeatureGroup(name='Test Lines')
+    line_generator.generate_objects_for_model_df(line_df, fg)
+    fg.add_to(m)
+
+    m.add_child(folium.LayerControl())
+    m.save('_tmp/map.html')
+    webbrowser.open('file://' + os.path.abspath('_tmp/map.html'))

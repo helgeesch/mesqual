@@ -72,6 +72,9 @@ class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
             font_size: StyleMapper | int = 12,
             font_color: StyleMapper | str = '#000000',
             reverse_path_direction: StyleMapper | bool = False,
+            text_print_content: StyleMapper | str = True,
+            tooltip: StyleMapper | str | bool = True,
+            popup: StyleMapper | folium.Popup | bool = False,
             geometry: StyleMapper | LineString = None,
             **style_mappers: StyleMapper | Any,
     ):
@@ -85,6 +88,9 @@ class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
             font_size=font_size,
             font_color=font_color,
             reverse_path_direction=reverse_path_direction,
+            text_print_content=text_print_content,
+            tooltip=tooltip,
+            popup=popup,
             geometry=self._explicit_or_fallback(geometry, self._default_line_string_mapper()),
             **style_mappers
         )
@@ -92,33 +98,18 @@ class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
 
 
 class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayStyleResolver]):
-    def __init__(
-            self,
-            style_resolver: LineTextOverlayStyleResolver = None,
-            tooltip_generator=None,
-            popup_generator=None,
-            text_formatter: Callable[[MapDataItem], str] = None
-    ):
-        super().__init__(style_resolver, tooltip_generator, popup_generator)
-        self.text_formatter = text_formatter or self._default_text_formatter
-
-    def _default_text_formatter(self, data_item: MapDataItem) -> str:
-        return data_item.get_text_representation()
-
     def _style_resolver_type(self) -> Type[LineTextOverlayStyleResolver]:
         return LineTextOverlayStyleResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
         style = self.style_resolver.resolve_style(data_item)
-        geometry = style.geometry
-        if not isinstance(geometry, LineString):
+        if not isinstance(style.geometry, LineString):
             return
 
-        text = self.text_formatter(data_item)
-        if not text:
+        if not style.text_print_content:
             return
 
-        coordinates = [(lat, lon) for lon, lat in geometry.coords]
+        coordinates = [(lat, lon) for lon, lat in style.geometry.coords]
 
         if style.reverse_path_direction:
             coordinates = coordinates[::-1]
@@ -132,7 +123,7 @@ class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayStyleResolve
 
         PolyLineTextPath(
             invisible_line,
-            text=text,
+            text=style.text_print_content,
             repeat=style.text_repeat,
             center=style.text_center,
             below=style.text_below,
@@ -144,3 +135,66 @@ class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayStyleResolve
                 'fill': style.font_color,
             }
         ).add_to(feature_group)
+
+
+if __name__ == '__main__':
+    import os
+    import webbrowser
+    import pandas as pd
+    from shapely.geometry import Polygon, LineString
+    import folium
+
+    from mescal.visualizations.value_mapping_system import (
+        SegmentedContinuousColorscale,
+        SegmentedContinuousOpacityMapping,
+    )
+    from mescal.visualizations.folium_viz_system.viz_lines import LineGenerator, LineStyleResolver
+
+    line_df = pd.DataFrame({
+        'geometry': [
+            LineString([(7.0, 50.0), (7.5, 52.0)]),
+            LineString([(8.0, 50.0), (8.5, 52.0)]),
+            LineString([(9.0, 50.0), (9.5, 52.0)]),
+        ],
+        'flow': [10, -20, 30]
+    }, index=['line1', 'line2', 'line3.1'])
+
+    m = folium.Map(location=[50.25, 8.0], zoom_start=7, tiles='CartoDB Positron')
+
+    color_map = SegmentedContinuousColorscale.single_segment_autoscale_factory_from_array(
+        values=line_df['flow'].values,
+        colorscale=['green', 'blue', 'red']
+    )
+
+    opacity_map = SegmentedContinuousOpacityMapping.single_segment_autoscale_factory_from_array(
+        values=line_df['flow'].values,
+        output_range=(0.4, 0.9)
+    )
+
+    line_generator = LineGenerator(
+        style_resolver=LineStyleResolver(
+            line_color=StyleMapper.for_attribute('flow', color_map),
+            line_opacity=StyleMapper.for_attribute('flow', opacity_map),
+            line_width=10,
+            tooltip=False,
+            popup=True,
+        ),
+        offset_increment=15,
+    )
+
+    line_text_generator = LineTextOverlayGenerator(
+        style_resolver=LineTextOverlayStyleResolver(
+            text_print_content=StyleMapper.for_attribute('flow', lambda x: f"\u25B6 {abs(x):.0f} MW \u25B6"),
+            reverse_path_direction=StyleMapper.for_attribute('flow', lambda x: x < 0),
+            text_center=True,
+        ),
+    )
+
+    fg = folium.FeatureGroup(name='Test LineTextOverlay')
+    line_generator.generate_objects_for_model_df(line_df, fg)
+    line_text_generator.generate_objects_for_model_df(line_df, fg)
+    fg.add_to(m)
+
+    m.add_child(folium.LayerControl())
+    m.save('_tmp/map.html')
+    webbrowser.open('file://' + os.path.abspath('_tmp/map.html'))

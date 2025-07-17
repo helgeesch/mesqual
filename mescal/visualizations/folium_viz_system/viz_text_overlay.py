@@ -57,6 +57,9 @@ class TextOverlayStyleResolver(StyleResolver[ResolvedTextOverlayStyle]):
             background_color: StyleMapper | str = None,
             shadow_size: StyleMapper | str = '0.5px',
             shadow_color: StyleMapper | str = '#F2F2F2',
+            text_print_content: StyleMapper | str | bool = True,
+            tooltip: StyleMapper | str | bool = True,
+            popup: StyleMapper | folium.Popup | bool = False,
             location: StyleMapper | Point = None,
             **style_mappers: StyleMapper | Any,
     ):
@@ -67,6 +70,9 @@ class TextOverlayStyleResolver(StyleResolver[ResolvedTextOverlayStyle]):
             background_color=background_color,
             shadow_size=shadow_size,
             shadow_color=shadow_color,
+            text_print_content=text_print_content,
+            tooltip=tooltip,
+            popup=popup,
             location=self._explicit_or_fallback(location, self._default_location_mapper()),
             **style_mappers
         )
@@ -76,29 +82,18 @@ class TextOverlayStyleResolver(StyleResolver[ResolvedTextOverlayStyle]):
 class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):
     """Generates text overlays for map data items."""
 
-    def __init__(
-            self,
-            style_resolver: TextOverlayStyleResolver = None,
-            tooltip_generator: TooltipGenerator = None,
-            popup_generator: PopupGenerator = None,
-            text_formatter: Callable[[MapDataItem], str] = None
-    ):
-        super().__init__(style_resolver or TextOverlayStyleResolver(), tooltip_generator, popup_generator)
-        self.text_formatter = text_formatter or self._default_text_formatter
-
     def _style_resolver_type(self) -> Type[TextOverlayStyleResolver]:
         return TextOverlayStyleResolver
-
-    def _default_text_formatter(self, data_item: MapDataItem) -> str:
-        return data_item.get_text_representation()
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
         style = self.style_resolver.resolve_style(data_item)
         if not isinstance(style.location, Point):
             return
-        text = self.text_formatter(data_item)
-        popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
 
+        if not style.text_print_content:
+            return
+
+        text_content = style.text_print_content
         text_color = style.text_color
         font_size = style.font_size
         font_weight = style.font_weight
@@ -122,19 +117,16 @@ class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):
                    -{shadow_size}  {shadow_size} 0 {shadow_color},
                     {shadow_size}  {shadow_size} 0 {shadow_color};
             ">
-                {text}
+                {text_content}
             </div>
         '''
 
-        marker_kwargs = {
-            'location': (style.location.y, style.location.x),
-            'icon': folium.DivIcon(html=icon_html)
-        }
-
-        if popup:
-            marker_kwargs['popup'] = folium.Popup(popup, max_width=300)
-
-        folium.Marker(**marker_kwargs).add_to(feature_group)
+        folium.Marker(
+            location=(style.location.y, style.location.x),
+            icon=folium.DivIcon(html=icon_html),
+            tooltip=style.tooltip,
+            popup=style.popup,
+        ).add_to(feature_group)
 
     def _get_contrasting_color(self, surface_color: str) -> str:
         """Get contrasting text color for a surface color."""
@@ -158,3 +150,59 @@ class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):
             return (0.299 * r + 0.587 * g + 0.114 * b) < 160
         except (ValueError, IndexError):
             return False
+
+
+if __name__ == '__main__':
+    import os
+    import webbrowser
+    import pandas as pd
+    from shapely.geometry import Polygon
+    import folium
+
+    from mescal.visualizations.value_mapping_system import (
+        SegmentedContinuousColorscale,
+        SegmentedContinuousOpacityMapping,
+    )
+    from mescal.visualizations.folium_viz_system.viz_areas import AreaGenerator, AreaStyleResolver
+
+    area_df = pd.DataFrame({
+        'geometry': [
+            Polygon([(7.0, 50.0), (7.5, 50.0), (7.5, 50.5), (7.0, 50.5)]),
+            Polygon([(8.0, 50.0), (8.5, 50.0), (8.5, 50.5), (8.0, 50.5)]),
+            Polygon([(9.0, 50.0), (9.5, 50.0), (9.5, 50.5), (9.0, 50.5)])
+        ],
+        'value': [10, 20, 30]
+    }, index=['area1', 'area2', 'area3'])
+
+    m = folium.Map(location=[50.25, 8.0], zoom_start=8, tiles='CartoDB Positron')
+
+    color_map = SegmentedContinuousColorscale.single_segment_autoscale_factory_from_array(
+        values=area_df['value'].values,
+        colorscale=['green', 'blue', 'red']
+    )
+
+    opacity_map = SegmentedContinuousOpacityMapping.single_segment_autoscale_factory_from_array(
+        values=area_df['value'].values,
+        output_range=(0.4, 0.9)
+    )
+
+    area_generator = AreaGenerator(
+        style_resolver=AreaStyleResolver(
+            fill_color=StyleMapper.for_attribute('value', color_map),
+            fill_opacity=StyleMapper.for_attribute('value', opacity_map),
+            border_color='#ABABAB',
+            border_width=10,
+            tooltip=True,
+        )
+    )
+
+    text_generator = TextOverlayGenerator()
+
+    fg = folium.FeatureGroup(name='Test Areas')
+    area_generator.generate_objects_for_model_df(area_df, fg)
+    text_generator.generate_objects_for_model_df(area_df, fg)
+    fg.add_to(m)
+
+    m.add_child(folium.LayerControl())
+    m.save('_tmp/map.html')
+    webbrowser.open('file://' + os.path.abspath('_tmp/map.html'))

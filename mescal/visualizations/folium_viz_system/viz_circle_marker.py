@@ -50,6 +50,8 @@ class CircleMarkerStyleResolver(StyleResolver[ResolvedCircleMarkerStyle]):
             radius: StyleMapper | float = 8.0,
             border_width: StyleMapper | float = 1.0,
             fill_opacity: StyleMapper | float = 1.0,
+            tooltip: StyleMapper | str | bool = True,
+            popup: StyleMapper | folium.Popup | bool = False,
             location: StyleMapper | Point = None,
             **style_mappers: StyleMapper | Any,
     ):
@@ -59,6 +61,8 @@ class CircleMarkerStyleResolver(StyleResolver[ResolvedCircleMarkerStyle]):
             radius=radius,
             border_width=border_width,
             fill_opacity=fill_opacity,
+            tooltip=tooltip,
+            popup=popup,
             location=self._explicit_or_fallback(location, self._default_location_mapper()),
             **style_mappers
         )
@@ -76,22 +80,16 @@ class CircleMarkerGenerator(FoliumObjectGenerator[CircleMarkerStyleResolver]):
         if style.location is None:
             return
 
-        tooltip = self.tooltip_generator.generate_tooltip(data_item)
-        popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
-
-        marker_kwargs = {'location': (style.location.y, style.location.x), 'tooltip': tooltip}
-        if popup:
-            marker_kwargs['popup'] = folium.Popup(popup, max_width=300)
-
-        circle_kwargs = {
-            'radius': style.radius,
-            'color': style.border_color,
-            'fillColor': style.fill_color,
-            'fillOpacity': style.fill_opacity,
-            'weight': style.border_width,
-            **marker_kwargs
-        }
-        folium.CircleMarker(**circle_kwargs).add_to(feature_group)
+        folium.CircleMarker(
+            location=(style.location.y, style.location.x),
+            tooltip=style.tooltip,
+            popup=style.popup,
+            radius=style.radius,
+            color=style.border_color,
+            fillColor=style.fill_color,
+            fillOpacity=style.fill_opacity,
+            weight=style.border_width,
+        ).add_to(feature_group)
 
 
 if __name__ == '__main__':
