@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, Type
+from typing import Callable, Type, Any
 
 import folium
 from folium.plugins import PolyLineTextPath
@@ -68,7 +68,7 @@ class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
             font_size: StyleMapper | int = 12,
             font_color: StyleMapper | str = '#000000',
             reverse_path_direction: StyleMapper | bool = False,
-            *style_mappers: StyleMapper,
+            **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
             text_offset=text_offset,
@@ -80,10 +80,9 @@ class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
             font_size=font_size,
             font_color=font_color,
             reverse_path_direction=reverse_path_direction,
+            **style_mappers
         )
-        mappers = self._transform_static_values_to_style_mappers(mappers)
-        self._validate_mapper_namings(mappers)
-        super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedLineTextOverlayStyle)
+        super().__init__(style_type=ResolvedLineTextOverlayStyle, **mappers)
 
 
 class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayStyleResolver]):

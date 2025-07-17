@@ -1,10 +1,10 @@
 import hashlib
 from dataclasses import dataclass
-from typing import List, Type
+from typing import List, Type, Any
 
 import folium
 from folium.plugins import AntPath, PolyLineOffset
-from shapely import LineString
+from shapely import LineString, MultiLineString
 
 from mescal.visualizations.folium_viz_system.element_generators import TooltipGenerator, PopupGenerator, logger
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
@@ -65,7 +65,7 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_ant_path_delay: StyleMapper | int = 1500,
             line_ant_path_pulse_color: StyleMapper | str = '#DBDBDB',
             reverse_path_direction: StyleMapper | bool = False,
-            *style_mappers: StyleMapper,
+            **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
             line_color=line_color,
@@ -76,10 +76,9 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_ant_path_delay=line_ant_path_delay,
             line_ant_path_pulse_color=line_ant_path_pulse_color,
             reverse_path_direction=reverse_path_direction,
+            **style_mappers
         )
-        mappers = self._transform_static_values_to_style_mappers(mappers)
-        self._validate_mapper_namings(mappers)
-        super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedLineStyle)
+        super().__init__(style_type=ResolvedLineStyle, **mappers)
 
 
 class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
@@ -108,7 +107,7 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
         geometry = data_item.get_geometry()
-        if not isinstance(geometry, LineString):
+        if not isinstance(geometry, (LineString, MultiLineString)):
             return
 
         style = self.style_resolver.resolve_style(data_item)

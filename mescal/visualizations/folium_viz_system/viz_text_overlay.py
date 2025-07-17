@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Callable, Type
+from typing import Callable, Type, Any
 
 import folium
 
@@ -52,7 +52,7 @@ class TextOverlayStyleResolver(StyleResolver[ResolvedTextOverlayStyle]):
             background_color: StyleMapper | str = None,
             shadow_size: StyleMapper | str = '0.5px',
             shadow_color: StyleMapper | str = '#F2F2F2',
-            *style_mappers: StyleMapper,
+            **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
             text_color=text_color,
@@ -61,10 +61,9 @@ class TextOverlayStyleResolver(StyleResolver[ResolvedTextOverlayStyle]):
             background_color=background_color,
             shadow_size=shadow_size,
             shadow_color=shadow_color,
+            **style_mappers
         )
-        mappers = self._transform_static_values_to_style_mappers(mappers)
-        self._validate_mapper_namings(mappers)
-        super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedTextOverlayStyle)
+        super().__init__(style_type=ResolvedTextOverlayStyle, **mappers)
 
 
 class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):

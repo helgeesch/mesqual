@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Type
+from typing import Type, Any
 
 import folium
 
@@ -45,7 +45,7 @@ class CircleMarkerStyleResolver(StyleResolver[ResolvedCircleMarkerStyle]):
             radius: StyleMapper | float = 8.0,
             border_width: StyleMapper | float = 1.0,
             fill_opacity: StyleMapper | float = 1.0,
-            *style_mappers: StyleMapper,
+            **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
             fill_color=fill_color,
@@ -53,10 +53,9 @@ class CircleMarkerStyleResolver(StyleResolver[ResolvedCircleMarkerStyle]):
             radius=radius,
             border_width=border_width,
             fill_opacity=fill_opacity,
+            **style_mappers
         )
-        mappers = self._transform_static_values_to_style_mappers(mappers)
-        self._validate_mapper_namings(mappers)
-        super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedCircleMarkerStyle)
+        super().__init__(style_type=ResolvedCircleMarkerStyle, **mappers)
 
 
 class CircleMarkerGenerator(FoliumObjectGenerator[CircleMarkerStyleResolver]):

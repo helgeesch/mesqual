@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Type
+from typing import Type, Any
 
 import folium
 from shapely import Polygon, MultiPolygon
@@ -51,7 +51,7 @@ class AreaStyleResolver(StyleResolver[ResolvedAreaStyle]):
             fill_opacity: StyleMapper | float = 0.8,
             highlight_border_width: StyleMapper | float = 3.0,
             highlight_fill_opacity: StyleMapper | float = 1.0,
-            *style_mappers: StyleMapper,
+            **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
             fill_color=fill_color,
@@ -60,10 +60,9 @@ class AreaStyleResolver(StyleResolver[ResolvedAreaStyle]):
             fill_opacity=fill_opacity,
             highlight_border_width=highlight_border_width,
             highlight_fill_opacity=highlight_fill_opacity,
+            **style_mappers
         )
-        mappers = self._transform_static_values_to_style_mappers(mappers)
-        self._validate_mapper_namings(mappers)
-        super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedAreaStyle)
+        super().__init__(style_type=ResolvedAreaStyle, **mappers)
 
 
 class AreaGenerator(FoliumObjectGenerator[AreaStyleResolver]):

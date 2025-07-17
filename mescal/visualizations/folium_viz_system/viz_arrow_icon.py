@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Type, Literal
+from typing import Type, Literal, Any
 from enum import Enum
 
 import folium
@@ -76,8 +76,7 @@ class ArrowIconStyleResolver(StyleResolver[ResolvedArrowIconStyle]):
             rotation_angle: StyleMapper | float = 0.0,  # auto get
             opacity: StyleMapper | float = 0.8,
             reverse_direction: StyleMapper | bool = False,
-            *style_mappers: StyleMapper,
-            **kwargs,
+            **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
             arrow_type=arrow_type,
@@ -91,11 +90,9 @@ class ArrowIconStyleResolver(StyleResolver[ResolvedArrowIconStyle]):
             rotation_angle=rotation_angle,
             opacity=opacity,
             reverse_direction=reverse_direction,
-            **kwargs
+            **style_mappers
         )
-        mappers = self._transform_static_values_to_style_mappers(mappers)
-        self._validate_mapper_namings(mappers)
-        super().__init__(list(mappers.values()) + list(style_mappers), style_type=ResolvedArrowIconStyle)
+        super().__init__(style_type=ResolvedArrowIconStyle, **mappers)
 
 
 class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconStyleResolver]):
@@ -198,18 +195,17 @@ if __name__ == '__main__':
         output_range=(40, 80)
     )
 
-
     arrow_generator = ArrowIconGenerator(
         style_resolver=ArrowIconStyleResolver(
-            arrow_type=StyleMapper('arrow_type', 'border_flow', lambda x: ArrowTypeEnum.SPOTLIGHT_FLOW_ARROW if x > 0 else ArrowTypeEnum.MOVING_FLOW_ARROW),
-            color=StyleMapper('color', 'border_flow', lambda x: flow_color_mapping(abs(x))),
+            arrow_type=StyleMapper.for_attribute('border_flow', lambda x: ArrowTypeEnum.SPOTLIGHT_FLOW_ARROW if x > 0 else ArrowTypeEnum.MOVING_FLOW_ARROW),
+            color=StyleMapper.for_attribute('border_flow', lambda x: flow_color_mapping(abs(x))),
             stroke_width=4,
-            rotation_angle=StyleMapper('rotation_angle', 'projection_angle', lambda x: x),
-            reverse_direction=StyleMapper('reverse_direction', 'border_flow', lambda x: x < 0),
+            rotation_angle=StyleMapper.for_attribute('projection_angle', lambda x: x),
+            reverse_direction=StyleMapper.for_attribute('border_flow', lambda x: x < 0),
             speed_in_px_per_second=None,
             speed_in_duration_seconds=2,
-            width=StyleMapper('width', 'border_flow', lambda x: size_mapping(abs(x))),
-            height=StyleMapper('height', 'border_flow', lambda x: size_mapping(abs(x))/2),
+            width=StyleMapper.for_attribute('border_flow', lambda x: size_mapping(abs(x))),
+            height=StyleMapper.for_attribute('border_flow', lambda x: size_mapping(abs(x))/2),
         )
     )
 
@@ -222,9 +218,3 @@ if __name__ == '__main__':
     fg.add_to(m)
     m.add_child(folium.LayerControl())
     m.save('_tmp/border_flow_arrows_demo.html')
-
-
-# TODO: decide whether we want to define the source for the geometry / location / linestring in the Generator class
-#       maybe default method in DataItem, but customizable in generator initialization, this would also enable to generate the actual geometry at call (e.g. merge two points into a line, or join lat and lon in a point)
-
-# TODO: think about whether the StyleMapper should be a call of the DataItem instead of a specific attribute. that way we could process multiple attributes, or even references in the same call.

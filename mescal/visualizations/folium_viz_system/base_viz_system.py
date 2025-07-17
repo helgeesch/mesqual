@@ -11,13 +11,63 @@ from mescal.visualizations.folium_viz_system.element_generators import TooltipGe
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, ModelDataItem, KPIDataItem
 
 
-@dataclass
-class StyleMapper:
-    """Maps a data column to a visual property using a mapping function."""
-    property: str  # e.g., 'color', 'width', 'opacity', 'height', 'arrow_speed', 'shadow_color'
-    column: str | None = None  # column to get value from data source, None for static values
-    mapping: Union[Callable, Any] = None  # mapper function or static value
-    return_type: type = object  # expected return type for validation
+class StyleMapper(ABC):
+    def __init__(self, return_type: type = object):
+        self.return_type = return_type
+
+    @abstractmethod
+    def resolve(self, data_item: MapDataItem) -> Any:
+        pass
+
+    @classmethod
+    def for_attribute(
+            cls,
+            attribute: str,
+            mapping: Callable[[Any], Any] = None,
+            return_type: type = object
+    ) -> 'AttributeStyleMapper':
+        return AttributeStyleMapper(attribute, mapping, return_type)
+
+    @classmethod
+    def for_data_item(
+            cls,
+            mapping: Callable[[MapDataItem], Any],
+            return_type: type = object
+    ) -> 'DataItemStyleMapper':
+        return DataItemStyleMapper(mapping, return_type)
+
+    @classmethod
+    def for_static(cls, value: Any) -> 'StaticStyleMapper':
+        return StaticStyleMapper(value, type(value))
+
+
+class StaticStyleMapper(StyleMapper):
+    def __init__(self, value: Any, return_type: type = object):
+        super().__init__(return_type)
+        self.value = value
+
+    def resolve(self, data_item: MapDataItem) -> Any:
+        return self.value
+
+
+class AttributeStyleMapper(StyleMapper):
+    def __init__(self, attribute: str, mapping: Callable[[Any], Any] = None, return_type: type = object):
+        super().__init__(return_type)
+        self.attribute = attribute
+        self.mapping = mapping or (lambda x: x)
+
+    def resolve(self, data_item: MapDataItem) -> Any:
+        value = data_item.get_styling_value(self.attribute)
+        return self.mapping(value)
+
+
+class DataItemStyleMapper(StyleMapper):
+    def __init__(self, mapping: Callable[[MapDataItem], Any], return_type: type = object):
+        super().__init__(return_type)
+        self.mapping = mapping
+
+    def resolve(self, data_item: MapDataItem) -> Any:
+        return self.mapping(data_item)
 
 
 @dataclass
@@ -47,43 +97,22 @@ class ResolvedStyle:
 
 
 class StyleResolver(Generic[ResolvedStyleType]):
-    """Resolves styling for map data items using flexible property mappings."""
-
-    def __init__(self, style_mappers: List[StyleMapper] = None, style_type: Type[ResolvedStyleType] = ResolvedStyle):
-        self.style_mappers = {mapper.property: mapper for mapper in style_mappers}
-        self.style_type = style_type
+    def __init__(self, style_type: Type[ResolvedStyleType] = None, **style_mappers: StyleMapper | Any):
+        self.style_type: Type[ResolvedStyleType] = style_type or ResolvedStyleType.__constraints__[0]
+        self.style_mappers: dict[str, StyleMapper] = self._normalize_style_mappers(style_mappers)
 
     def resolve_style(self, data_item: MapDataItem) -> ResolvedStyleType:
-        """Resolve styling for a data item."""
         resolved = self.style_type()
-
         for prop, mapper in self.style_mappers.items():
-            if mapper.column:
-                value = data_item.get_styling_value(mapper.column)
-            else:
-                value = None
-
-            if callable(mapper.mapping):
-                resolved[prop] = mapper.mapping(value)
-            else:
-                resolved[prop] = mapper.mapping
-
+            resolved[prop] = mapper.resolve(data_item)
         return resolved
 
-    @classmethod
-    def _validate_mapper_namings(cls, mappers: Dict[str, StyleMapper]) -> None:
-        for key, mapper in mappers.items():
-            if mapper.property != key:
-                raise ValueError(
-                    f"StyleMapper property not set correctly; StyleMapper for {key} must have property set to '{key}'."
-                )
-
-    @classmethod
-    def _transform_static_values_to_style_mappers(cls, mappers: Dict[str, Any]) -> Dict[str, StyleMapper]:
-        for key, mapper in list(mappers.items()):
-            if not isinstance(mapper, StyleMapper):
-                mappers[key] = StyleMapper(key, None, mapper, type(mapper) if mapper is not None else object)
-        return mappers
+    @staticmethod
+    def _normalize_style_mappers(mappers: dict[str, StyleMapper | Any]) -> dict[str, StyleMapper]:
+        return {
+            key: mapper if isinstance(mapper, StyleMapper) else StyleMapper.for_static(mapper)
+            for key, mapper in mappers.items()
+        }
 
 
 class FoliumObjectGenerator(Generic[StyleResolverType], ABC):
