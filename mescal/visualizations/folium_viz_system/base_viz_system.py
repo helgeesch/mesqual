@@ -37,6 +37,14 @@ class ResolvedStyle:
     def __contains__(self, key):
         return key in self.properties
 
+    def to_dict(self) -> dict[str, Any]:
+        out = dict(self.properties)
+        for name in dir(self.__class__):
+            attr = getattr(self.__class__, name)
+            if isinstance(attr, property):
+                out[name] = getattr(self, name)
+        return out
+
 
 class StyleResolver(Generic[ResolvedStyleType]):
     """Resolves styling for map data items using flexible property mappings."""
