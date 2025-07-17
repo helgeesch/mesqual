@@ -18,6 +18,10 @@ class ResolvedAreaStyle(ResolvedStyle):
     """Specialized style container for area visualizations."""
 
     @property
+    def geometry(self) -> Polygon | MultiPolygon:
+        return self.get('geometry')
+
+    @property
     def fill_color(self) -> str:
         return self.get('fill_color')
 
@@ -51,6 +55,7 @@ class AreaStyleResolver(StyleResolver[ResolvedAreaStyle]):
             fill_opacity: StyleMapper | float = 0.8,
             highlight_border_width: StyleMapper | float = 3.0,
             highlight_fill_opacity: StyleMapper | float = 1.0,
+            geometry: StyleMapper | Polygon = None,
             **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
@@ -60,6 +65,7 @@ class AreaStyleResolver(StyleResolver[ResolvedAreaStyle]):
             fill_opacity=fill_opacity,
             highlight_border_width=highlight_border_width,
             highlight_fill_opacity=highlight_fill_opacity,
+            geometry=self._explicit_or_fallback(geometry, self._default_geometry_mapper()),
             **style_mappers
         )
         super().__init__(style_type=ResolvedAreaStyle, **mappers)
@@ -72,11 +78,12 @@ class AreaGenerator(FoliumObjectGenerator[AreaStyleResolver]):
         return AreaStyleResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        geometry = data_item.get_geometry()
+        style = self.style_resolver.resolve_style(data_item)
+
+        geometry = style.geometry
         if not isinstance(geometry, (Polygon, MultiPolygon)):
             return
 
-        style = self.style_resolver.resolve_style(data_item)
         tooltip = self.tooltip_generator.generate_tooltip(data_item)
         popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
 
@@ -107,3 +114,55 @@ class AreaGenerator(FoliumObjectGenerator[AreaStyleResolver]):
             geojson_kwargs['popup'] = folium.Popup(popup, max_width=300)
 
         folium.GeoJson(geojson_data, **geojson_kwargs).add_to(feature_group)
+
+
+if __name__ == '__main__':
+    import os
+    import webbrowser
+    import pandas as pd
+    from shapely.geometry import Polygon
+    import folium
+
+    from mescal.visualizations.folium_viz_system.map_data_item import ModelDataItem
+    from mescal.visualizations.value_mapping_system import (
+        SegmentedContinuousColorscale,
+        SegmentedContinuousOpacityMapping,
+    )
+
+    area_df = pd.DataFrame({
+        'geometry': [
+            Polygon([(7.0, 50.0), (7.5, 50.0), (7.5, 50.5), (7.0, 50.5)]),
+            Polygon([(8.0, 50.0), (8.5, 50.0), (8.5, 50.5), (8.0, 50.5)]),
+            Polygon([(9.0, 50.0), (9.5, 50.0), (9.5, 50.5), (9.0, 50.5)])
+        ],
+        'value': [10, 20, 30]
+    }, index=['area1', 'area2', 'area3'])
+
+    m = folium.Map(location=[50.25, 8.0], zoom_start=8, tiles='CartoDB Positron')
+
+    color_map = SegmentedContinuousColorscale.single_segment_autoscale_factory_from_array(
+        values=area_df['value'].values,
+        colorscale=['green', 'blue', 'red']
+    )
+
+    opacity_map = SegmentedContinuousOpacityMapping.single_segment_autoscale_factory_from_array(
+        values=area_df['value'].values,
+        output_range=(0.4, 0.9)
+    )
+
+    area_generator = AreaGenerator(
+        style_resolver=AreaStyleResolver(
+            fill_color=StyleMapper.for_attribute('value', color_map),
+            fill_opacity=StyleMapper.for_attribute('value', opacity_map),
+            border_color='#ABABAB',
+            border_width=10,
+        )
+    )
+
+    fg = folium.FeatureGroup(name='Test Areas')
+    area_generator.generate_objects_for_model_df(area_df, fg)
+    fg.add_to(m)
+
+    m.add_child(folium.LayerControl())
+    m.save('_tmp/map.html')
+    webbrowser.open('file://' + os.path.abspath('_tmp/map.html'))

@@ -1,15 +1,16 @@
 from dataclasses import dataclass
 from typing import Type, Literal, Any
 from enum import Enum
-
-import folium
 import base64
+
+from shapely import Point
+import folium
 
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
 from mescal.visualizations.folium_viz_system.base_viz_system import (
     ResolvedStyle,
     StyleResolver,
-    StyleMapper,
+    StyleMapper, DataItemStyleMapper,
     FoliumObjectGenerator,
 )
 from captain_arro import get_generator_for_arrow_type, ArrowTypeEnum
@@ -17,6 +18,14 @@ from captain_arro import get_generator_for_arrow_type, ArrowTypeEnum
 
 @dataclass
 class ResolvedArrowIconStyle(ResolvedStyle):
+    @property
+    def location(self) -> Point:
+        return self.get('location')
+
+    @property
+    def rotation_angle(self) -> float:
+        return self.get('rotation_angle')
+
     @property
     def arrow_type(self) -> ArrowTypeEnum:
         return self.get('arrow_type')
@@ -50,10 +59,6 @@ class ResolvedArrowIconStyle(ResolvedStyle):
         return self.get('num_arrows')
 
     @property
-    def rotation_angle(self) -> float:
-        return self.get('rotation_angle')
-
-    @property
     def opacity(self) -> float:
         return self.get('opacity')
 
@@ -73,9 +78,10 @@ class ArrowIconStyleResolver(StyleResolver[ResolvedArrowIconStyle]):
             speed_in_px_per_second: StyleMapper | float | None = 20.0,
             speed_in_duration_seconds: StyleMapper | float | None = None,
             num_arrows: StyleMapper | int = 3,
-            rotation_angle: StyleMapper | float = 0.0,  # auto get
             opacity: StyleMapper | float = 0.8,
             reverse_direction: StyleMapper | bool = False,
+            location: StyleMapper | Point = None,
+            rotation_angle: StyleMapper | float = None,
             **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
@@ -87,12 +93,25 @@ class ArrowIconStyleResolver(StyleResolver[ResolvedArrowIconStyle]):
             speed_in_px_per_second=speed_in_px_per_second,
             speed_in_duration_seconds=speed_in_duration_seconds,
             num_arrows=num_arrows,
-            rotation_angle=rotation_angle,
             opacity=opacity,
             reverse_direction=reverse_direction,
+            location=self._explicit_or_fallback(location, self._default_location_mapper()),
+            rotation_angle=self._explicit_or_fallback(rotation_angle, self._default_rotation_angle_mapper()),
             **style_mappers
         )
         super().__init__(style_type=ResolvedArrowIconStyle, **mappers)
+
+    @staticmethod
+    def _default_rotation_angle_mapper() -> DataItemStyleMapper:
+
+        def get_rotation_angle(data_item: MapDataItem) -> float | None:
+            for k in ['rotation_angle', 'projection_point']:
+                if data_item.object_has_attribute(k):
+                    angle = data_item.get_object_attribute(k)
+                    return angle
+            return None
+
+        return DataItemStyleMapper(get_rotation_angle, float)
 
 
 class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconStyleResolver]):
@@ -100,12 +119,10 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconStyleResolver]):
         return ArrowIconStyleResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        try:
-            location = data_item.get_location()
-        except ValueError:
+        style = self.style_resolver.resolve_style(data_item)
+        if style.location is None:
             return
 
-        style = self.style_resolver.resolve_style(data_item)
         tooltip = self.tooltip_generator.generate_tooltip(data_item)
         popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
 
@@ -130,7 +147,7 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconStyleResolver]):
         '''
 
         marker_kwargs = {
-            'location': location,
+            'location': (style.location.y, style.location.x),
             'icon': folium.DivIcon(
                 html=icon_html,
                 icon_size=(style.width, style.height),
@@ -166,16 +183,15 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconStyleResolver]):
 
 
 if __name__ == '__main__':
+    import os
+    import webbrowser
     import pandas as pd
     from shapely.geometry import Point
-    from mescal.visualizations.folium_viz_system.map_data_item import ModelDataItem, KPIDataItem
     from mescal.visualizations.value_mapping_system import (
         SegmentedContinuousColorscale,
         SegmentedContinuousOpacityMapping,
-        RuleBasedMapping
     )
 
-    ModelDataItem.LOCATION_COLUMN = 'projection_point'
     border_model_df = pd.DataFrame({
         'projection_point': [Point(7.45, 49.15), Point(6.94, 52.22), Point(6.34, 50.38), Point(12.31, 50.25)],
         'projection_angle': [-110.0, 170.0, 180.0, -15],
@@ -211,10 +227,9 @@ if __name__ == '__main__':
 
     fg = folium.FeatureGroup(name='Border Flows')
 
-    for idx, row in border_model_df.iterrows():
-        data_item = ModelDataItem(row)
-        arrow_generator.generate(data_item, fg)
+    arrow_generator.generate_objects_for_model_df(border_model_df, fg)
 
     fg.add_to(m)
     m.add_child(folium.LayerControl())
-    m.save('_tmp/border_flow_arrows_demo.html')
+    m.save('_tmp/map.html')
+    webbrowser.open('file://' + os.path.abspath('_tmp/map.html'))

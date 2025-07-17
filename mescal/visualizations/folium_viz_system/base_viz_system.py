@@ -2,8 +2,9 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Union, Callable, Any, Generic, List, Type, Dict
 
-import folium
+from shapely import Point, Polygon, MultiPolygon, LineString, MultiLineString
 import pandas as pd
+import folium
 
 from mescal.kpis import KPICollection, KPI
 from mescal.typevars import ResolvedStyleType, StyleResolverType
@@ -57,7 +58,7 @@ class AttributeStyleMapper(StyleMapper):
         self.mapping = mapping or (lambda x: x)
 
     def resolve(self, data_item: MapDataItem) -> Any:
-        value = data_item.get_styling_value(self.attribute)
+        value = data_item.get_object_attribute(self.attribute)
         return self.mapping(value)
 
 
@@ -113,6 +114,64 @@ class StyleResolver(Generic[ResolvedStyleType]):
             key: mapper if isinstance(mapper, StyleMapper) else StyleMapper.for_static(mapper)
             for key, mapper in mappers.items()
         }
+
+    @staticmethod
+    def _explicit_or_fallback(explicit: Any, fallback: StyleMapper = None) -> StyleMapper:
+        if explicit is not None:
+            return explicit
+        return fallback
+
+    @staticmethod
+    def _default_geometry_mapper() -> DataItemStyleMapper:
+
+        def get_geometry(data_item: MapDataItem) -> Polygon | None:
+            if data_item.object_has_attribute('geometry'):
+                return data_item.get_object_attribute('geometry')
+            return None
+
+        return DataItemStyleMapper(get_geometry, Polygon)
+
+    @staticmethod
+    def _default_location_mapper() -> DataItemStyleMapper:
+
+        def get_location(data_item: MapDataItem) -> Point | None:
+            for k in ['location', 'projection_point', 'centroid', 'midpoint']:
+                if data_item.object_has_attribute(k):
+                    location = data_item.get_object_attribute(k)
+                    if isinstance(location, Point):
+                        return location
+
+            for lat, lon in [('lat', 'lon'), ('latitude', 'longitude')]:
+                if data_item.object_has_attribute(lat) and data_item.object_has_attribute(lon):
+                    lat_value = data_item.get_object_attribute(lat)
+                    lon_value = data_item.get_object_attribute(lon)
+                    if all(isinstance(v, (int, float)) for v in [lat_value, lon_value]):
+                        return Point([lon_value, lat_value])
+
+            if data_item.object_has_attribute('geometry'):
+                geometry = data_item.get_object_attribute('geometry')
+                if isinstance(geometry, Point):
+                    return geometry
+                elif isinstance(geometry, (Polygon, MultiPolygon)):
+                    return geometry.representative_point()
+                elif isinstance(geometry, (LineString, MultiLineString)):
+                    return geometry.interpolate(0.5, normalized=True)
+            return None
+
+        return DataItemStyleMapper(get_location, Point)
+
+    @staticmethod
+    def _default_line_string_mapper() -> DataItemStyleMapper:
+
+        def get_line_string(data_item: MapDataItem) -> LineString | None:
+            for k in ['geometry', 'line_string']:
+                if data_item.object_has_attribute(k):
+                    line_string = data_item.get_object_attribute(k)
+                    if isinstance(line_string, (LineString, MultiLineString)):
+                        return line_string
+            return None
+
+        return DataItemStyleMapper(get_line_string, LineString)
 
 
 class FoliumObjectGenerator(Generic[StyleResolverType], ABC):

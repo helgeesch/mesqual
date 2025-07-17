@@ -17,6 +17,10 @@ from mescal.visualizations.folium_viz_system.base_viz_system import (
 @dataclass
 class ResolvedLineTextOverlayStyle(ResolvedStyle):
     @property
+    def geometry(self) -> LineString:
+        return self.get('geometry')
+
+    @property
     def text_offset(self) -> float:
         offset = self.get('text_offset')
         if offset is None:
@@ -68,6 +72,7 @@ class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
             font_size: StyleMapper | int = 12,
             font_color: StyleMapper | str = '#000000',
             reverse_path_direction: StyleMapper | bool = False,
+            geometry: StyleMapper | LineString = None,
             **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
@@ -80,6 +85,7 @@ class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
             font_size=font_size,
             font_color=font_color,
             reverse_path_direction=reverse_path_direction,
+            geometry=self._explicit_or_fallback(geometry, self._default_line_string_mapper()),
             **style_mappers
         )
         super().__init__(style_type=ResolvedLineTextOverlayStyle, **mappers)
@@ -93,7 +99,7 @@ class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayStyleResolve
             popup_generator=None,
             text_formatter: Callable[[MapDataItem], str] = None
     ):
-        super().__init__(style_resolver or LineTextOverlayStyleResolver(), tooltip_generator, popup_generator)
+        super().__init__(style_resolver, tooltip_generator, popup_generator)
         self.text_formatter = text_formatter or self._default_text_formatter
 
     def _default_text_formatter(self, data_item: MapDataItem) -> str:
@@ -103,7 +109,8 @@ class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayStyleResolve
         return LineTextOverlayStyleResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        geometry = data_item.get_geometry()
+        style = self.style_resolver.resolve_style(data_item)
+        geometry = style.geometry
         if not isinstance(geometry, LineString):
             return
 
@@ -111,7 +118,6 @@ class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayStyleResolve
         if not text:
             return
 
-        style = self.style_resolver.resolve_style(data_item)
         coordinates = [(lat, lon) for lon, lat in geometry.coords]
 
         if style.reverse_path_direction:

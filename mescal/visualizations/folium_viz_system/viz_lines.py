@@ -22,6 +22,10 @@ class ResolvedLineStyle(ResolvedStyle):
     """Specialized style container for line visualizations."""
 
     @property
+    def geometry(self) -> LineString:
+        return self.get('geometry')
+
+    @property
     def line_color(self) -> str:
         return self.get('line_color')
 
@@ -65,6 +69,7 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_ant_path_delay: StyleMapper | int = 1500,
             line_ant_path_pulse_color: StyleMapper | str = '#DBDBDB',
             reverse_path_direction: StyleMapper | bool = False,
+            geometry: StyleMapper | LineString = None,
             **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
@@ -76,6 +81,7 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             line_ant_path_delay=line_ant_path_delay,
             line_ant_path_pulse_color=line_ant_path_pulse_color,
             reverse_path_direction=reverse_path_direction,
+            geometry=self._explicit_or_fallback(geometry, self._default_line_string_mapper()),
             **style_mappers
         )
         super().__init__(style_type=ResolvedLineStyle, **mappers)
@@ -106,11 +112,11 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
         return LineStyleResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        geometry = data_item.get_geometry()
+        style = self.style_resolver.resolve_style(data_item)
+        geometry = style.geometry
         if not isinstance(geometry, (LineString, MultiLineString)):
             return
 
-        style = self.style_resolver.resolve_style(data_item)
         tooltip = self.tooltip_generator.generate_tooltip(data_item)
         popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
 

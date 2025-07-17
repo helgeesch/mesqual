@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Callable, Type, Any
 
+from shapely import Point
 import folium
 
 from mescal.visualizations.folium_viz_system.element_generators import TooltipGenerator, PopupGenerator
@@ -17,6 +18,10 @@ from mescal.visualizations.folium_viz_system.base_viz_system import (
 @dataclass
 class ResolvedTextOverlayStyle(ResolvedStyle):
     """Specialized style container for text overlay visualizations."""
+
+    @property
+    def location(self) -> Point:
+        return self.get('location')
 
     @property
     def text_color(self) -> str:
@@ -52,6 +57,7 @@ class TextOverlayStyleResolver(StyleResolver[ResolvedTextOverlayStyle]):
             background_color: StyleMapper | str = None,
             shadow_size: StyleMapper | str = '0.5px',
             shadow_color: StyleMapper | str = '#F2F2F2',
+            location: StyleMapper | Point = None,
             **style_mappers: StyleMapper | Any,
     ):
         mappers = dict(
@@ -61,6 +67,7 @@ class TextOverlayStyleResolver(StyleResolver[ResolvedTextOverlayStyle]):
             background_color=background_color,
             shadow_size=shadow_size,
             shadow_color=shadow_color,
+            location=self._explicit_or_fallback(location, self._default_location_mapper()),
             **style_mappers
         )
         super().__init__(style_type=ResolvedTextOverlayStyle, **mappers)
@@ -86,12 +93,9 @@ class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):
         return data_item.get_text_representation()
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        try:
-            location = data_item.get_location()
-        except ValueError:
-            return
-
         style = self.style_resolver.resolve_style(data_item)
+        if not isinstance(style.location, Point):
+            return
         text = self.text_formatter(data_item)
         popup = self.popup_generator.generate_popup(data_item) if self.popup_generator else None
 
@@ -123,7 +127,7 @@ class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):
         '''
 
         marker_kwargs = {
-            'location': location,
+            'location': (style.location.y, style.location.x),
             'icon': folium.DivIcon(html=icon_html)
         }
 

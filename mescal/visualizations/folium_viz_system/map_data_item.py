@@ -25,31 +25,22 @@ class MapDataItem(ABC):
         pass
 
     @abstractmethod
-    def get_geometry(self) -> Any:
-        """Get the geometric representation of the data."""
-        pass
-
-    @abstractmethod
     def get_tooltip_data(self) -> dict:
         """Get data for tooltip display."""
         pass
 
     @abstractmethod
-    def get_styling_value(self, column: str) -> Any:
+    def get_object_attribute(self, attribute: str) -> Any:
         """Get value for styling from specified column."""
         pass
 
     @abstractmethod
-    def get_location(self) -> tuple[float, float]:
-        """Get lat/lon coordinates for point-based objects."""
+    def object_has_attribute(self, attribute: str) -> bool:
         pass
 
 
 class ModelDataItem(MapDataItem):
     """Map data item for model DataFrame rows."""
-
-    GEOMETRY_COLUMN = 'geometry'
-    LOCATION_COLUMN = 'location'
 
     def __init__(self, object_data: pd.Series, **kwargs):
         self.object_data = object_data
@@ -62,9 +53,6 @@ class ModelDataItem(MapDataItem):
     def get_text_representation(self) -> str:
         return self.get_name()
 
-    def get_geometry(self) -> Any:
-        return self.object_data.get(self.GEOMETRY_COLUMN)
-
     def get_tooltip_data(self) -> dict:
         data = {'ID': self.object_id}
         for col, value in self.object_data.items():
@@ -75,32 +63,16 @@ class ModelDataItem(MapDataItem):
                 data[col] = value_str
         return data
 
-    def get_styling_value(self, column: str) -> Any:
-        return self.object_data.get(column)
+    def get_object_attribute(self, attribute: str) -> Any:
+        return self.object_data.get(attribute)
 
-    def get_location(self) -> tuple[float, float]:
-        if self.LOCATION_COLUMN in self.object_data:
-            location = self.object_data[self.LOCATION_COLUMN]
-            if isinstance(location, Point):
-                return location.y, location.x
-
-        geometry = self.get_geometry()
-        if isinstance(geometry, Point):
-            return geometry.y, geometry.x
-        elif isinstance(geometry, (Polygon, MultiPolygon)):
-            point = geometry.representative_point()
-            return point.y, point.x
-        elif isinstance(geometry, LineString):
-            point = geometry.interpolate(0.5, normalized=True)
-            return point.y, point.x
-
-        raise ValueError(f"Cannot determine location for {self.object_id}")
+    def object_has_attribute(self, attribute: str) -> bool:
+        return attribute in self.object_data
 
 
 class KPIDataItem(MapDataItem):
     """Map data item for KPI objects - reuses ModelDataItem internally."""
 
-    PROJECTION_POINT_COLUMN = 'projection_point'
     KPI_VALUE_COLUMN = 'kpi_value'
 
     def __init__(self, kpi: KPI, kpi_collection: KPICollection = None, **kwargs):
@@ -116,9 +88,6 @@ class KPIDataItem(MapDataItem):
     def get_text_representation(self) -> str:
         return f"{self.kpi.value:.1f}"  # TODO: use pretty formatting and quantities etc.
 
-    def get_geometry(self) -> Any:
-        return self._model_item.get_geometry()
-
     def get_tooltip_data(self) -> dict:
         kpi_data = {
             'KPI': self.kpi.get_kpi_name_with_dataset_name(),
@@ -127,13 +96,12 @@ class KPIDataItem(MapDataItem):
         model_data = self._model_item.get_tooltip_data()
         return {**kpi_data, **model_data}
 
-    def get_styling_value(self, column: str) -> Any:
-        if column == self.KPI_VALUE_COLUMN:
+    def get_object_attribute(self, attribute: str) -> Any:
+        if attribute == self.KPI_VALUE_COLUMN:
             return self.kpi.value
-        return self._model_item.get_styling_value(column)
+        return self._model_item.get_object_attribute(attribute)
 
-    def get_location(self) -> tuple[float, float]:
-        if self.PROJECTION_POINT_COLUMN in self._object_info:
-            point = self._object_info[self.PROJECTION_POINT_COLUMN]
-            return point.y, point.x
-        return self._model_item.get_location()
+    def object_has_attribute(self, attribute: str) -> bool:
+        if attribute == self.KPI_VALUE_COLUMN:
+            return True
+        return attribute in self._model_item
