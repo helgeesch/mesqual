@@ -4,7 +4,6 @@ from typing import Callable, Type, Any
 from shapely import Point
 import folium
 
-from mescal.visualizations.folium_viz_system.element_generators import TooltipGenerator, PopupGenerator
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, KPIDataItem
 
 from mescal.visualizations.folium_viz_system.base_viz_system import (

@@ -3,8 +3,7 @@ from typing import TYPE_CHECKING, List
 import folium
 
 from mescal.kpis import KPICollection, KPI
-from mescal.visualizations.folium_viz_system.element_generators import TooltipGenerator
-from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator
+from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator, StyleMapper
 from mescal.visualizations.folium_viz_system.map_data_item import KPIDataItem, MapDataItem
 
 if TYPE_CHECKING:
@@ -195,61 +194,65 @@ class KPICollectionMapVisualizer:
                 for kpi in kpi_group:
                     data_item = KPIDataItem(kpi, kpi_collection, study_manager=self.study_manager, **self.kwargs)
                     for generator in self.generators:
+                        if self.include_related_kpis_in_tooltip:
+                            _tmp = generator.style_resolver.style_mappers.get('tooltip', None)
+                            generator.style_resolver.style_mappers['tooltip'] = self._create_enhanced_tooltip_generator()
                         try:
                             generator.generate(data_item, fg)
                         except Exception as e:
                             logger.warning(
-                                f'Exception while trying to add KPI {kpi.name} to FeatureGroup {group_name}: {e}')
+                                f'Exception while trying to add KPI {kpi.name} to FeatureGroup {group_name}: {e}'
+                            )
+                        finally:
+                            if self.include_related_kpis_in_tooltip:
+                                if _tmp is not None:
+                                    generator.style_resolver.style_mappers['tooltip'] = _tmp
+                                else:
+                                    generator.style_resolver.style_mappers.pop('tooltip')
                     pbar.update(1)
 
                 feature_groups.append(fg)
 
         return feature_groups
 
-    def _create_enhanced_tooltip_generator(self) -> TooltipGenerator:
+    def _create_enhanced_tooltip_generator(self) -> StyleMapper:
         """Create tooltip generator that includes related KPIs."""
 
-        class EnhancedKPITooltip(TooltipGenerator):
-            def __init__(self, kpi_collection_visualizer):
-                self.kpi_collection_visualizer = kpi_collection_visualizer
+        def generate_tooltip(data_item: KPIDataItem) -> str:
 
-            def generate_tooltip(self, data_item: MapDataItem) -> str:
-                if not isinstance(data_item, KPIDataItem):
-                    return super().generate_tooltip(data_item)
+            kpi = data_item.kpi
+            kpi_name = kpi.get_kpi_name_with_dataset_name()
 
-                kpi = data_item.kpi
-                kpi_name = kpi.get_kpi_name_with_dataset_name()
+            from mescal.units import Units
+            kpi_quantity = Units.get_quantity_in_pretty_unit(kpi.quantity)
+            kpi_text = Units.get_pretty_text_for_quantity(kpi_quantity, thousands_separator=' ')
 
-                from mescal.units import Units
-                kpi_quantity = Units.get_quantity_in_pretty_unit(kpi.quantity)
-                kpi_text = Units.get_pretty_text_for_quantity(kpi_quantity, thousands_separator=' ')
+            html = '<table style="border-collapse: collapse;">\n'
+            html += f'  <tr><td style="padding: 4px 8px;"><strong>{kpi_name}</strong></td>' \
+                    f'<td style="text-align: right; padding: 4px 8px;">{kpi_text}</td></tr>\n'
 
-                html = '<table style="border-collapse: collapse;">\n'
-                html += f'  <tr><td style="padding: 4px 8px;"><strong>{kpi_name}</strong></td>' \
-                        f'<td style="text-align: right; padding: 4px 8px;">{kpi_text}</td></tr>\n'
+            if self.include_related_kpis_in_tooltip and self.study_manager:
+                related_groups = self.grouping_manager.get_related_kpi_groups(
+                    kpi, self.study_manager
+                )
 
-                if self.kpi_collection_visualizer.include_related_kpis_in_tooltip and self.kpi_collection_visualizer.study_manager:
-                    related_groups = self.kpi_collection_visualizer.grouping_manager.get_related_kpi_groups(
-                        kpi, self.kpi_collection_visualizer.study_manager
-                    )
+                if any(not g.empty for g in related_groups.values()):
+                    for name, group in related_groups.items():
+                        if group.empty:
+                            continue
+                        html += "<tr><p>&nbsp;</p></tr>"
+                        html += f'  <tr><th colspan="2" style="text-align: left; padding: 8px;">{name}</th></tr>\n'
+                        for related_kpi in group:
+                            related_kpi_name = related_kpi.get_kpi_name_with_dataset_name()
+                            related_kpi_quantity = Units.get_quantity_in_pretty_unit(related_kpi.quantity)
+                            related_kpi_value_text = Units.get_pretty_text_for_quantity(
+                                related_kpi_quantity,
+                                thousands_separator=' ',
+                            )
+                            html += f'  <tr><td style="padding: 4px 8px;">{related_kpi_name}</td>' \
+                                    f'<td style="text-align: right; padding: 4px 8px;">{related_kpi_value_text}</td></tr>\n'
 
-                    if any(not g.empty for g in related_groups.values()):
-                        for name, group in related_groups.items():
-                            if group.empty:
-                                continue
-                            html += "<tr><p>&nbsp;</p></tr>"
-                            html += f'  <tr><th colspan="2" style="text-align: left; padding: 8px;">{name}</th></tr>\n'
-                            for related_kpi in group:
-                                related_kpi_name = related_kpi.get_kpi_name_with_dataset_name()
-                                related_kpi_quantity = Units.get_quantity_in_pretty_unit(related_kpi.quantity)
-                                related_kpi_value_text = Units.get_pretty_text_for_quantity(
-                                    related_kpi_quantity,
-                                    thousands_separator=' ',
-                                )
-                                html += f'  <tr><td style="padding: 4px 8px;">{related_kpi_name}</td>' \
-                                        f'<td style="text-align: right; padding: 4px 8px;">{related_kpi_value_text}</td></tr>\n'
+            html += '<br><p>&nbsp;</p></table>'
+            return html
 
-                html += '<br><p>&nbsp;</p></table>'
-                return html
-
-        return EnhancedKPITooltip(self)
+        return StyleMapper.for_data_item(generate_tooltip)

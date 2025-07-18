@@ -104,4 +104,4 @@ class KPIDataItem(MapDataItem):
     def object_has_attribute(self, attribute: str) -> bool:
         if attribute == self.KPI_VALUE_COLUMN:
             return True
-        return attribute in self._model_item
+        return self._model_item.object_has_attribute(attribute)

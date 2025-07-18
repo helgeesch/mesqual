@@ -8,7 +8,6 @@ import folium
 
 from mescal.kpis import KPICollection, KPI
 from mescal.typevars import ResolvedStyleType, StyleResolverType
-from mescal.visualizations.folium_viz_system.element_generators import TooltipGenerator, PopupGenerator
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, ModelDataItem, KPIDataItem
 
 

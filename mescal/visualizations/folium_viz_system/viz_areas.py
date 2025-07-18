@@ -39,7 +39,10 @@ class ResolvedAreaStyle(ResolvedStyle):
 
     @property
     def highlight_border_width(self) -> float:
-        return self.get('highlight_border_width')
+        highlight_border_width = self.get('highlight_border_width')
+        if highlight_border_width is None:
+            return self.border_width
+        return highlight_border_width
 
     @property
     def highlight_fill_opacity(self) -> float:
@@ -53,7 +56,7 @@ class AreaStyleResolver(StyleResolver[ResolvedAreaStyle]):
             border_color: StyleMapper | str = 'white',
             border_width: StyleMapper | float = 2.0,
             fill_opacity: StyleMapper | float = 0.8,
-            highlight_border_width: StyleMapper | float = 3.0,
+            highlight_border_width: StyleMapper | float = None,
             highlight_fill_opacity: StyleMapper | float = 1.0,
             tooltip: StyleMapper | str | bool = True,
             popup: StyleMapper | folium.Popup | bool = False,
