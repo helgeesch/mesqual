@@ -34,14 +34,14 @@ if __name__ == '__main__':
 
     discrete_color_mapping = DiscreteColorMapping(
         mapping={"Category A": "#ff0000", "Category B": "#00ff00", "Category C": "#0000ff"},
-        default_output="#cccccc"
+        default_output="#AAAAAA"
     )
     discrete_color_legend = DiscreteColorLegend(
         mapping=discrete_color_mapping,
         title="Discrete Color Categories",
-        swatch_size=50,
+        swatch_size=20,
         position={"top": 50, "right": 50},
-        background_color='#ABABAB'
+        background_color=None,
     )
 
     m = folium.Map(location=[48.85, 2.35], zoom_start=10)

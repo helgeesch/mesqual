@@ -43,7 +43,7 @@ if __name__ == '__main__':
     dash_legend = DiscreteLineDashLegend(
         mapping=dash_mapping,
         title="Line Types",
-        visual_column_width=80,
+        visual_column_width=40,
         position={"top": 50, "left": 50},
         width=200
     )

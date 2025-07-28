@@ -41,9 +41,10 @@ if __name__ == '__main__':
         title="Temperature (°C)",
         background_color="#f0f0f0",
         n_ticks_per_segment=3,
-        segment_spacing=0,
+        segment_spacing=5,
         position={"bottom": 50, "left": 50},
-        width=400
+        width=400,
+        merge_adjacent_ticks=False,
     )
 
     m = folium.Map(location=[48.85, 2.35], zoom_start=10)

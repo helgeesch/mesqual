@@ -7,7 +7,7 @@ class ContinuousLineWidthMapLegend(ContinuousLegendBase[SegmentedContinuousLineW
         self,
         mapping: SegmentedContinuousLineWidthMapping,
         line_color: str = "#000000",
-        show_pixel_values: bool = True,
+        show_pixel_values: bool = False,
         merge_adjacent_ticks: bool = False,
         **kwargs
     ):
@@ -61,7 +61,7 @@ if __name__ == '__main__':
     import folium
 
     width_segments = {
-        # (0, 10): 1.0,
+        (0, 10): 1.0,
         (10, 20): 3.0,
         (20, 30): [3.0, 10.0],
         (30, 50): 10.0
@@ -74,7 +74,7 @@ if __name__ == '__main__':
         segment_spacing=15,
         position={"bottom": 50, "right": 50},
         merge_adjacent_ticks=False,
-        show_pixel_values=False,
+        show_pixel_values=True,
     )
 
     m = folium.Map(location=[48.85, 2.35], zoom_start=10)

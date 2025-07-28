@@ -9,7 +9,7 @@ class DiscreteLineWidthLegend(DiscreteLegendBase[DiscreteLineWidthMapping]):
             self,
             mapping: DiscreteLineWidthMapping,
             line_color: str = "#000000",
-            show_pixel_values: bool = True,
+            show_pixel_values: bool = False,
             **kwargs
     ):
         super().__init__(mapping, **kwargs)
