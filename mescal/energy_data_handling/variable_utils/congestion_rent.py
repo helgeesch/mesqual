@@ -21,7 +21,7 @@ class CongestionRentCalculator:
             if isinstance(self.sent_up.index, pd.DatetimeIndex):
                 from mescal.energy_data_handling.granularity_analyzer import TimeSeriesGranularityAnalyzer
                 analyzer = TimeSeriesGranularityAnalyzer(strict_mode=False)
-                self.granularity_hrs = analyzer.get_granularity_as_series_of_timedeltas(self.sent_up.index)
+                self.granularity_hrs = analyzer.get_granularity_as_series_of_hours(self.sent_up.index)
             else:
                 logger.warning(f'Granularity for CongestionRentCalculator is defaulting back to 1 hrs.')
                 self.granularity_hrs = 1
