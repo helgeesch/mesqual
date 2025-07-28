@@ -4,7 +4,7 @@ import folium
 
 from mescal.kpis import KPICollection, KPI
 from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator, PropertyMapper
-from mescal.visualizations.folium_viz_system.map_data_item import KPIDataItem, MapDataItem
+from mescal.visualizations.folium_viz_system.visualizable_data_item import KPIDataItem, VisualizableDataItem
 
 if TYPE_CHECKING:
     from mescal.study_manager import StudyManager

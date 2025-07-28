@@ -5,7 +5,7 @@ import folium
 from folium.plugins import PolyLineTextPath
 from shapely import LineString
 
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, KPIDataItem
+from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem, KPIDataItem
 from mescal.visualizations.folium_viz_system.base_viz_system import (
     ResolvedFeature,
     FeatureResolver,
@@ -101,7 +101,7 @@ class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayFeatureResol
     def _feature_resolver_type(self) -> Type[LineTextOverlayFeatureResolver]:
         return LineTextOverlayFeatureResolver
 
-    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+    def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
         style = self.feature_resolver.resolve_feature(data_item)
         if not isinstance(style.geometry, LineString):
             return

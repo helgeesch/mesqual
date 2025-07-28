@@ -4,7 +4,7 @@ from typing import Type, Any
 import folium
 from shapely import Polygon, MultiPolygon
 
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
+from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem
 from mescal.visualizations.folium_viz_system.base_viz_system import (
     ResolvedFeature,
     FeatureResolver,
@@ -84,7 +84,7 @@ class AreaGenerator(FoliumObjectGenerator[AreaFeatureResolver]):
     def _feature_resolver_type(self) -> Type[AreaFeatureResolver]:
         return AreaFeatureResolver
 
-    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+    def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
         style = self.feature_resolver.resolve_feature(data_item)
 
         geometry = style.geometry

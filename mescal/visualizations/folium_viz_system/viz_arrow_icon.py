@@ -6,7 +6,7 @@ import base64
 from shapely import Point
 import folium
 
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
+from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem
 from mescal.visualizations.folium_viz_system.base_viz_system import (
     ResolvedFeature,
     FeatureResolver,
@@ -108,7 +108,7 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
     @staticmethod
     def _default_rotation_angle_mapper() -> ItemToPropertyMapper:
 
-        def get_rotation_angle(data_item: MapDataItem) -> float | None:
+        def get_rotation_angle(data_item: VisualizableDataItem) -> float | None:
             for k in ['rotation_angle', 'projection_point']:
                 if data_item.object_has_attribute(k):
                     angle = data_item.get_object_attribute(k)
@@ -122,7 +122,7 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconFeatureResolver]):
     def _feature_resolver_type(self) -> Type[ArrowIconFeatureResolver]:
         return ArrowIconFeatureResolver
 
-    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+    def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
         style = self.feature_resolver.resolve_feature(data_item)
         if style.location is None:
             return
@@ -159,7 +159,7 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconFeatureResolver]):
             popup=style.popup
         ).add_to(feature_group)
 
-    def _generate_arrow_svg(self, style: ResolvedArrowIconFeature, data_item: MapDataItem) -> str:
+    def _generate_arrow_svg(self, style: ResolvedArrowIconFeature, data_item: VisualizableDataItem) -> str:
         from inspect import signature
 
         def safe_init(cls: type, kwargs: dict):

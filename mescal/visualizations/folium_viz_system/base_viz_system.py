@@ -8,58 +8,31 @@ import folium
 
 from mescal.kpis import KPICollection, KPI
 from mescal.typevars import ResolvedFeatureType, FeatureResolverType
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, ModelDataItem, KPIDataItem
+from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem, ModelDataItem, KPIDataItem
 
 
-class PropertyMapper(ABC):
-    @abstractmethod
-    def map_data_item(self, data_item: MapDataItem) -> Any:
-        pass
+class PropertyMapper:
+    def __init__(self, mapping: Callable[[VisualizableDataItem], Any]):
+        self.mapping = mapping
+
+    def map_data_item(self, data_item: VisualizableDataItem) -> Any:
+        return self.mapping(data_item)
 
     @classmethod
-    def from_item(
-            cls,
-            mapping: Callable[[MapDataItem], Any],
-    ) -> 'ItemToPropertyMapper':
-        return ItemToPropertyMapper(mapping)
+    def from_static_value(cls, value: Any) -> 'PropertyMapper':
+        return cls(lambda data_item: value)
 
     @classmethod
     def from_item_attr(
             cls,
             attribute: str,
             mapping: Callable[[Any], Any] = None,
-    ) -> 'ItemAttributeToPropertyMapper':
-        return ItemAttributeToPropertyMapper(attribute, mapping)
+    ) -> 'PropertyMapper':
+        return cls(lambda data_item: mapping(data_item.get_object_attribute(attribute)))
 
     @classmethod
-    def from_static_value(cls, value: Any) -> 'StaticPropertyMapper':
-        return StaticPropertyMapper(value)
-
-
-class StaticPropertyMapper(PropertyMapper):
-    def __init__(self, value: Any):
-        self.value = value
-
-    def map_data_item(self, data_item: MapDataItem) -> Any:
-        return self.value
-
-
-class ItemAttributeToPropertyMapper(PropertyMapper):
-    def __init__(self, attribute: str, mapping: Callable[[Any], Any] = None):
-        self.attribute = attribute
-        self.mapping = mapping or (lambda x: x)
-
-    def map_data_item(self, data_item: MapDataItem) -> Any:
-        value = data_item.get_object_attribute(self.attribute)
-        return self.mapping(value)
-
-
-class ItemToPropertyMapper(PropertyMapper):
-    def __init__(self, mapping: Callable[[MapDataItem], Any]):
-        self.mapping = mapping
-
-    def map_data_item(self, data_item: MapDataItem) -> Any:
-        return self.mapping(data_item)
+    def from_kpi_value(cls, mapping: Callable[[Any], Any]) -> 'PropertyMapper':
+        return cls(lambda data_item: mapping(data_item.kpi_value))
 
 
 @dataclass
@@ -108,7 +81,7 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
 
         self.property_mappers: dict[str, PropertyMapper] = self._normalize_property_mappers(property_mappers)
 
-    def resolve_feature(self, data_item: MapDataItem) -> ResolvedFeatureType:
+    def resolve_feature(self, data_item: VisualizableDataItem) -> ResolvedFeatureType:
         resolved = self.feature_type()
         for prop, mapper in self.property_mappers.items():
             resolved[prop] = mapper.map_data_item(data_item)
@@ -130,9 +103,9 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
         return fallback
 
     @staticmethod
-    def _default_tooltip_generator() -> ItemToPropertyMapper:
+    def _default_tooltip_generator() -> PropertyMapper:
 
-        def get_tooltip(data_item: MapDataItem) -> str:
+        def get_tooltip(data_item: VisualizableDataItem) -> str:
             tooltip_data = data_item.get_tooltip_data()
 
             html = '<table style="border-collapse: collapse;">\n'
@@ -143,12 +116,12 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
 
             return html
 
-        return ItemToPropertyMapper(get_tooltip)
+        return PropertyMapper(get_tooltip)
 
     @staticmethod
-    def _default_popup_generator() -> ItemToPropertyMapper:
+    def _default_popup_generator() -> PropertyMapper:
 
-        def get_popup(data_item: MapDataItem) -> folium.Popup:
+        def get_popup(data_item: VisualizableDataItem) -> folium.Popup:
             tooltip_data = data_item.get_tooltip_data()
 
             html = '<table style="border-collapse: collapse;">\n'
@@ -159,26 +132,26 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
 
             return folium.Popup(html, max_width=300)
 
-        return ItemToPropertyMapper(get_popup)
+        return PropertyMapper(get_popup)
 
     @staticmethod
-    def _default_text_print_generator() -> ItemToPropertyMapper:
-        return ItemToPropertyMapper(lambda d: d.get_text_representation())
+    def _default_text_print_generator() -> PropertyMapper:
+        return PropertyMapper(lambda d: d.get_text_representation())
 
     @staticmethod
-    def _default_geometry_mapper() -> ItemToPropertyMapper:
+    def _default_geometry_mapper() -> PropertyMapper:
 
-        def get_geometry(data_item: MapDataItem) -> Polygon | None:
+        def get_geometry(data_item: VisualizableDataItem) -> Polygon | None:
             if data_item.object_has_attribute('geometry'):
                 return data_item.get_object_attribute('geometry')
             return None
 
-        return ItemToPropertyMapper(get_geometry)
+        return PropertyMapper(get_geometry)
 
     @staticmethod
-    def _default_location_mapper() -> ItemToPropertyMapper:
+    def _default_location_mapper() -> PropertyMapper:
 
-        def get_location(data_item: MapDataItem) -> Point | None:
+        def get_location(data_item: VisualizableDataItem) -> Point | None:
             for k in ['location', 'projection_point', 'centroid', 'midpoint']:
                 if data_item.object_has_attribute(k):
                     location = data_item.get_object_attribute(k)
@@ -202,12 +175,12 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
                     return geometry.interpolate(0.5, normalized=True)
             return None
 
-        return ItemToPropertyMapper(get_location)
+        return PropertyMapper(get_location)
 
     @staticmethod
-    def _default_line_string_mapper() -> ItemToPropertyMapper:
+    def _default_line_string_mapper() -> PropertyMapper:
 
-        def get_line_string(data_item: MapDataItem) -> LineString | None:
+        def get_line_string(data_item: VisualizableDataItem) -> LineString | None:
             for k in ['geometry', 'line_string']:
                 if data_item.object_has_attribute(k):
                     line_string = data_item.get_object_attribute(k)
@@ -215,7 +188,7 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
                         return line_string
             return None
 
-        return ItemToPropertyMapper(get_line_string)
+        return PropertyMapper(get_line_string)
 
 
 class FoliumObjectGenerator(Generic[FeatureResolverType], ABC):
@@ -232,7 +205,7 @@ class FoliumObjectGenerator(Generic[FeatureResolverType], ABC):
         return FeatureResolver
 
     @abstractmethod
-    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+    def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
         """Generate folium object and add it to the feature group."""
         pass
 

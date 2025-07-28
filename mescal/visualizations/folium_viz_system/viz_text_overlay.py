@@ -4,7 +4,7 @@ from typing import Callable, Type, Any
 from shapely import Point
 import folium
 
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, KPIDataItem
+from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem, KPIDataItem
 
 from mescal.visualizations.folium_viz_system.base_viz_system import (
     ResolvedFeature,
@@ -84,7 +84,7 @@ class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayFeatureResolver]):
     def _feature_resolver_type(self) -> Type[TextOverlayFeatureResolver]:
         return TextOverlayFeatureResolver
 
-    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+    def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
         style = self.feature_resolver.resolve_feature(data_item)
         if not isinstance(style.location, Point):
             return

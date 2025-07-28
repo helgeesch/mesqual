@@ -7,7 +7,7 @@ from shapely import Point, Polygon, MultiPolygon, LineString
 from mescal.kpis import KPI, KPICollection
 
 
-class MapDataItem(ABC):
+class VisualizableDataItem(ABC):
     """Abstract interface for data items that can be visualized on maps."""
 
     def __init__(self, **kwargs):
@@ -39,8 +39,8 @@ class MapDataItem(ABC):
         pass
 
 
-class ModelDataItem(MapDataItem):
-    """Map data item for model DataFrame rows."""
+class ModelDataItem(VisualizableDataItem):
+    """Visualizable data item for model DataFrame rows."""
 
     def __init__(self, object_data: pd.Series, **kwargs):
         self.object_data = object_data
@@ -70,8 +70,8 @@ class ModelDataItem(MapDataItem):
         return attribute in self.object_data
 
 
-class KPIDataItem(MapDataItem):
-    """Map data item for KPI objects - reuses ModelDataItem internally."""
+class KPIDataItem(VisualizableDataItem):
+    """Visualizable data item for KPI objects."""
 
     KPI_VALUE_COLUMN = 'kpi_value'
 

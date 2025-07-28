@@ -6,7 +6,7 @@ import folium
 from folium.plugins import AntPath, PolyLineOffset
 from shapely import LineString, MultiLineString
 
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
+from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem
 
 from mescal.visualizations.folium_viz_system.base_viz_system import (
     ResolvedFeature,
@@ -115,7 +115,7 @@ class LineGenerator(FoliumObjectGenerator[LineFeatureResolver]):
     def _feature_resolver_type(self) -> Type[LineFeatureResolver]:
         return LineFeatureResolver
 
-    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+    def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
         style = self.feature_resolver.resolve_feature(data_item)
         geometry = style.geometry
         if not isinstance(geometry, (LineString, MultiLineString)):

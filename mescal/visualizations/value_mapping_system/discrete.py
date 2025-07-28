@@ -76,5 +76,5 @@ class DiscreteLineWidthMapping(DiscreteInputMapping):
     DEFAULT_OUTPUT = 1.0
 
 
-class DiscreteIconMap(DiscreteInputMapping):
+class DiscreteIconMapping(DiscreteInputMapping):
     pass

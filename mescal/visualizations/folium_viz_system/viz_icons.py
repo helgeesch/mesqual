@@ -3,13 +3,13 @@ from abc import ABC
 import folium
 
 from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator, FeatureResolver
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
+from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem
 
 
 class PELIMINARY_IconGenerator(FoliumObjectGenerator, ABC):
     """Generates folium Marker or CircleMarker objects for point geometries."""
 
-    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+    def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
         try:
             location = data_item.get_location()
         except ValueError:

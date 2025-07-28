@@ -4,7 +4,7 @@ from typing import Type, Any
 from shapely import Point
 import folium
 
-from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
+from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem
 from mescal.visualizations.folium_viz_system.base_viz_system import (
     ResolvedFeature,
     FeatureResolver,
@@ -75,7 +75,7 @@ class CircleMarkerGenerator(FoliumObjectGenerator[CircleMarkerFeatureResolver]):
     def _feature_resolver_type(self) -> Type[CircleMarkerFeatureResolver]:
         return CircleMarkerFeatureResolver
 
-    def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
+    def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
         style = self.feature_resolver.resolve_feature(data_item)
         if style.location is None:
             return
