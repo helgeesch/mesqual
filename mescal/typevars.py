@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from mescal.kpis.kpi_base import KPI
     from mescal.kpis.aggs import OperationOfTwoValues
     from mescal.kpis.kpi_collection import KPICollection
-    from mescal.visualizations.folium_viz_system.base_viz_system import ResolvedStyle, StyleResolver
+    from mescal.visualizations.folium_viz_system.base_viz_system import ResolvedFeature, FeatureResolver
 
 FlagType = TypeVar('FlagType', bound='FlagTypeProtocol')
 DatasetType = TypeVar('DatasetType', bound='Dataset')
@@ -18,5 +18,5 @@ DatasetConfigType = TypeVar('DatasetConfigType', bound='DatasetConfig')
 FlagIndexType = TypeVar('FlagIndexType', bound='FlagIndex')
 KPIType = TypeVar('KPIType', bound='KPI')
 ValueOperationType = TypeVar('ValueOperationType', bound='OperationOfTwoValues')
-StyleResolverType = TypeVar('StyleResolverType', bound='StyleResolver')
-ResolvedStyleType = TypeVar('ResolvedStyleType', bound='ResolvedStyle')
+FeatureResolverType = TypeVar('FeatureResolverType', bound='FeatureResolver')
+ResolvedFeatureType = TypeVar('ResolvedFeatureType', bound='ResolvedFeature')

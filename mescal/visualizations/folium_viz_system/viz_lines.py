@@ -9,9 +9,9 @@ from shapely import LineString, MultiLineString
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
 
 from mescal.visualizations.folium_viz_system.base_viz_system import (
-    ResolvedStyle,
-    StyleResolver,
-    StyleMapper,
+    ResolvedFeature,
+    FeatureResolver,
+    PropertyMapper,
     FoliumObjectGenerator,
 )
 from mescal.utils.logging import get_logger
@@ -20,7 +20,7 @@ logger = get_logger(__name__)
 
 
 @dataclass
-class ResolvedLineStyle(ResolvedStyle):
+class ResolvedLineFeature(ResolvedFeature):
     """Specialized style container for line visualizations."""
 
     @property
@@ -60,21 +60,21 @@ class ResolvedLineStyle(ResolvedStyle):
         return self.get('line_ant_path_pulse_color')
 
 
-class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
+class LineFeatureResolver(FeatureResolver[ResolvedLineFeature]):
     def __init__(
             self,
-            line_color: StyleMapper | str = '#000000',
-            line_width: StyleMapper | float = 3.0,
-            line_opacity: StyleMapper | float = 1.0,
-            dash_pattern: StyleMapper | List[int] = None,
-            line_ant_path: StyleMapper | bool = False,
-            line_ant_path_delay: StyleMapper | int = 1500,
-            line_ant_path_pulse_color: StyleMapper | str = '#DBDBDB',
-            reverse_path_direction: StyleMapper | bool = False,
-            tooltip: StyleMapper | str | bool = True,
-            popup: StyleMapper | folium.Popup | bool = False,
-            geometry: StyleMapper | LineString = None,
-            **style_mappers: StyleMapper | Any,
+            line_color: PropertyMapper | str = '#000000',
+            line_width: PropertyMapper | float = 3.0,
+            line_opacity: PropertyMapper | float = 1.0,
+            dash_pattern: PropertyMapper | List[int] = None,
+            line_ant_path: PropertyMapper | bool = False,
+            line_ant_path_delay: PropertyMapper | int = 1500,
+            line_ant_path_pulse_color: PropertyMapper | str = '#DBDBDB',
+            reverse_path_direction: PropertyMapper | bool = False,
+            tooltip: PropertyMapper | str | bool = True,
+            popup: PropertyMapper | folium.Popup | bool = False,
+            geometry: PropertyMapper | LineString = None,
+            **property_mappers: PropertyMapper | Any,
     ):
         mappers = dict(
             line_color=line_color,
@@ -88,21 +88,21 @@ class LineStyleResolver(StyleResolver[ResolvedLineStyle]):
             tooltip=tooltip,
             popup=popup,
             geometry=self._explicit_or_fallback(geometry, self._default_line_string_mapper()),
-            **style_mappers
+            **property_mappers
         )
-        super().__init__(style_type=ResolvedLineStyle, **mappers)
+        super().__init__(feature_type=ResolvedLineFeature, **mappers)
 
 
-class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
+class LineGenerator(FoliumObjectGenerator[LineFeatureResolver]):
     """Generates folium PolyLine objects for line geometries with optional per-feature-group offset tracking."""
 
     def __init__(
             self,
-            style_resolver: LineStyleResolver = None,
+            feature_resolver: LineFeatureResolver = None,
             per_feature_group_offset_registry: bool = True,
             offset_increment: int = 5,
     ):
-        super().__init__(style_resolver)
+        super().__init__(feature_resolver)
         self.offset_increment = offset_increment
         self.per_feature_group_registry = per_feature_group_offset_registry
         self._global_registry: dict[str, int] = {}
@@ -112,11 +112,11 @@ class LineGenerator(FoliumObjectGenerator[LineStyleResolver]):
         self._global_registry.clear()
         self._group_registry.clear()
 
-    def _style_resolver_type(self) -> Type[LineStyleResolver]:
-        return LineStyleResolver
+    def _feature_resolver_type(self) -> Type[LineFeatureResolver]:
+        return LineFeatureResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        style = self.style_resolver.resolve_style(data_item)
+        style = self.feature_resolver.resolve_feature(data_item)
         geometry = style.geometry
         if not isinstance(geometry, (LineString, MultiLineString)):
             return
@@ -215,9 +215,9 @@ if __name__ == '__main__':
     )
 
     line_generator = LineGenerator(
-        style_resolver=LineStyleResolver(
-            line_color=StyleMapper.for_attribute('flow', color_map),
-            line_opacity=StyleMapper.for_attribute('flow', opacity_map),
+        feature_resolver=LineFeatureResolver(
+            line_color=PropertyMapper.from_item_attr('flow', color_map),
+            line_opacity=PropertyMapper.from_item_attr('flow', opacity_map),
             line_width=10,
             tooltip=False,
             popup=True,

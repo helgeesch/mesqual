@@ -7,15 +7,15 @@ from shapely import LineString
 
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, KPIDataItem
 from mescal.visualizations.folium_viz_system.base_viz_system import (
-    ResolvedStyle,
-    StyleResolver,
-    StyleMapper,
+    ResolvedFeature,
+    FeatureResolver,
+    PropertyMapper,
     FoliumObjectGenerator,
 )
 
 
 @dataclass
-class ResolvedLineTextOverlayStyle(ResolvedStyle):
+class ResolvedLineTextOverlayFeature(ResolvedFeature):
     @property
     def geometry(self) -> LineString:
         return self.get('geometry')
@@ -60,23 +60,23 @@ class ResolvedLineTextOverlayStyle(ResolvedStyle):
         return self.get('reverse_path_direction', False)
 
 
-class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
+class LineTextOverlayFeatureResolver(FeatureResolver[ResolvedLineTextOverlayFeature]):
     def __init__(
             self,
-            text_offset: StyleMapper | float = None,
-            text_orientation: StyleMapper | int = 0,
-            text_repeat: StyleMapper | bool = False,
-            text_center: StyleMapper | bool = False,
-            text_below: StyleMapper | bool = False,
-            font_weight: StyleMapper | str = 'bold',
-            font_size: StyleMapper | int = 12,
-            font_color: StyleMapper | str = '#000000',
-            reverse_path_direction: StyleMapper | bool = False,
-            text_print_content: StyleMapper | str = True,
-            tooltip: StyleMapper | str | bool = True,
-            popup: StyleMapper | folium.Popup | bool = False,
-            geometry: StyleMapper | LineString = None,
-            **style_mappers: StyleMapper | Any,
+            text_offset: PropertyMapper | float = None,
+            text_orientation: PropertyMapper | int = 0,
+            text_repeat: PropertyMapper | bool = False,
+            text_center: PropertyMapper | bool = False,
+            text_below: PropertyMapper | bool = False,
+            font_weight: PropertyMapper | str = 'bold',
+            font_size: PropertyMapper | int = 12,
+            font_color: PropertyMapper | str = '#000000',
+            reverse_path_direction: PropertyMapper | bool = False,
+            text_print_content: PropertyMapper | str = True,
+            tooltip: PropertyMapper | str | bool = True,
+            popup: PropertyMapper | folium.Popup | bool = False,
+            geometry: PropertyMapper | LineString = None,
+            **property_mappers: PropertyMapper | Any,
     ):
         mappers = dict(
             text_offset=text_offset,
@@ -92,17 +92,17 @@ class LineTextOverlayStyleResolver(StyleResolver[ResolvedLineTextOverlayStyle]):
             tooltip=tooltip,
             popup=popup,
             geometry=self._explicit_or_fallback(geometry, self._default_line_string_mapper()),
-            **style_mappers
+            **property_mappers
         )
-        super().__init__(style_type=ResolvedLineTextOverlayStyle, **mappers)
+        super().__init__(feature_type=ResolvedLineTextOverlayFeature, **mappers)
 
 
-class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayStyleResolver]):
-    def _style_resolver_type(self) -> Type[LineTextOverlayStyleResolver]:
-        return LineTextOverlayStyleResolver
+class LineTextOverlayGenerator(FoliumObjectGenerator[LineTextOverlayFeatureResolver]):
+    def _feature_resolver_type(self) -> Type[LineTextOverlayFeatureResolver]:
+        return LineTextOverlayFeatureResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        style = self.style_resolver.resolve_style(data_item)
+        style = self.feature_resolver.resolve_feature(data_item)
         if not isinstance(style.geometry, LineString):
             return
 
@@ -148,7 +148,7 @@ if __name__ == '__main__':
         SegmentedContinuousColorscale,
         SegmentedContinuousOpacityMapping,
     )
-    from mescal.visualizations.folium_viz_system.viz_lines import LineGenerator, LineStyleResolver
+    from mescal.visualizations.folium_viz_system.viz_lines import LineGenerator, LineFeatureResolver
 
     line_df = pd.DataFrame({
         'geometry': [
@@ -172,9 +172,9 @@ if __name__ == '__main__':
     )
 
     line_generator = LineGenerator(
-        style_resolver=LineStyleResolver(
-            line_color=StyleMapper.for_attribute('flow', color_map),
-            line_opacity=StyleMapper.for_attribute('flow', opacity_map),
+        feature_resolver=LineFeatureResolver(
+            line_color=PropertyMapper.from_item_attr('flow', color_map),
+            line_opacity=PropertyMapper.from_item_attr('flow', opacity_map),
             line_width=10,
             tooltip=False,
             popup=True,
@@ -183,9 +183,9 @@ if __name__ == '__main__':
     )
 
     line_text_generator = LineTextOverlayGenerator(
-        style_resolver=LineTextOverlayStyleResolver(
-            text_print_content=StyleMapper.for_attribute('flow', lambda x: f"\u25B6 {abs(x):.0f} MW \u25B6"),
-            reverse_path_direction=StyleMapper.for_attribute('flow', lambda x: x < 0),
+        feature_resolver=LineTextOverlayFeatureResolver(
+            text_print_content=PropertyMapper.from_item_attr('flow', lambda x: f"\u25B6 {abs(x):.0f} MW \u25B6"),
+            reverse_path_direction=PropertyMapper.from_item_attr('flow', lambda x: x < 0),
             text_center=True,
         ),
     )

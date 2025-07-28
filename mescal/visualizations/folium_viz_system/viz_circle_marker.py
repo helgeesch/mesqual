@@ -6,15 +6,15 @@ import folium
 
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
 from mescal.visualizations.folium_viz_system.base_viz_system import (
-    ResolvedStyle,
-    StyleResolver,
-    StyleMapper,
+    ResolvedFeature,
+    FeatureResolver,
+    PropertyMapper,
     FoliumObjectGenerator,
 )
 
 
 @dataclass
-class ResolvedCircleMarkerStyle(ResolvedStyle):
+class ResolvedCircleMarkerFeature(ResolvedFeature):
     """Specialized style container for circle marker visualizations."""
 
     @property
@@ -42,18 +42,18 @@ class ResolvedCircleMarkerStyle(ResolvedStyle):
         return self.get('fill_opacity')
 
 
-class CircleMarkerStyleResolver(StyleResolver[ResolvedCircleMarkerStyle]):
+class CircleMarkerFeatureResolver(FeatureResolver[ResolvedCircleMarkerFeature]):
     def __init__(
             self,
-            fill_color: StyleMapper | str = '#D9D9D9',
-            border_color: StyleMapper | str = 'white',
-            radius: StyleMapper | float = 8.0,
-            border_width: StyleMapper | float = 1.0,
-            fill_opacity: StyleMapper | float = 1.0,
-            tooltip: StyleMapper | str | bool = True,
-            popup: StyleMapper | folium.Popup | bool = False,
-            location: StyleMapper | Point = None,
-            **style_mappers: StyleMapper | Any,
+            fill_color: PropertyMapper | str = '#D9D9D9',
+            border_color: PropertyMapper | str = 'white',
+            radius: PropertyMapper | float = 8.0,
+            border_width: PropertyMapper | float = 1.0,
+            fill_opacity: PropertyMapper | float = 1.0,
+            tooltip: PropertyMapper | str | bool = True,
+            popup: PropertyMapper | folium.Popup | bool = False,
+            location: PropertyMapper | Point = None,
+            **property_mappers: PropertyMapper | Any,
     ):
         mappers = dict(
             fill_color=fill_color,
@@ -64,19 +64,19 @@ class CircleMarkerStyleResolver(StyleResolver[ResolvedCircleMarkerStyle]):
             tooltip=tooltip,
             popup=popup,
             location=self._explicit_or_fallback(location, self._default_location_mapper()),
-            **style_mappers
+            **property_mappers
         )
-        super().__init__(style_type=ResolvedCircleMarkerStyle, **mappers)
+        super().__init__(feature_type=ResolvedCircleMarkerFeature, **mappers)
 
 
-class CircleMarkerGenerator(FoliumObjectGenerator[CircleMarkerStyleResolver]):
+class CircleMarkerGenerator(FoliumObjectGenerator[CircleMarkerFeatureResolver]):
     """Generates folium CircleMarker objects for point geometries."""
 
-    def _style_resolver_type(self) -> Type[CircleMarkerStyleResolver]:
-        return CircleMarkerStyleResolver
+    def _feature_resolver_type(self) -> Type[CircleMarkerFeatureResolver]:
+        return CircleMarkerFeatureResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        style = self.style_resolver.resolve_style(data_item)
+        style = self.feature_resolver.resolve_feature(data_item)
         if style.location is None:
             return
 
@@ -122,9 +122,9 @@ if __name__ == '__main__':
     )
 
     marker_generator = CircleMarkerGenerator(
-        style_resolver=CircleMarkerStyleResolver(
-            fill_color=StyleMapper.for_attribute('value', color_map),
-            radius=StyleMapper.for_attribute('value', size_map),
+        feature_resolver=CircleMarkerFeatureResolver(
+            fill_color=PropertyMapper.from_item_attr('value', color_map),
+            radius=PropertyMapper.from_item_attr('value', size_map),
             fill_opacity=0.9,
             border_color='black',
             border_width=1

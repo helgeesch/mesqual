@@ -6,15 +6,15 @@ from shapely import Polygon, MultiPolygon
 
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
 from mescal.visualizations.folium_viz_system.base_viz_system import (
-    ResolvedStyle,
-    StyleResolver,
-    StyleMapper,
+    ResolvedFeature,
+    FeatureResolver,
+    PropertyMapper,
     FoliumObjectGenerator,
 )
 
 
 @dataclass
-class ResolvedAreaStyle(ResolvedStyle):
+class ResolvedAreaFeature(ResolvedFeature):
     """Specialized style container for area visualizations."""
 
     @property
@@ -49,19 +49,19 @@ class ResolvedAreaStyle(ResolvedStyle):
         return min(self.get('highlight_fill_opacity'), 1.0)
 
 
-class AreaStyleResolver(StyleResolver[ResolvedAreaStyle]):
+class AreaFeatureResolver(FeatureResolver[ResolvedAreaFeature]):
     def __init__(
             self,
-            fill_color: StyleMapper | str = '#D2D2D2',
-            border_color: StyleMapper | str = 'white',
-            border_width: StyleMapper | float = 2.0,
-            fill_opacity: StyleMapper | float = 0.8,
-            highlight_border_width: StyleMapper | float = None,
-            highlight_fill_opacity: StyleMapper | float = 1.0,
-            tooltip: StyleMapper | str | bool = True,
-            popup: StyleMapper | folium.Popup | bool = False,
-            geometry: StyleMapper | Polygon = None,
-            **style_mappers: StyleMapper | Any,
+            fill_color: PropertyMapper | str = '#D2D2D2',
+            border_color: PropertyMapper | str = 'white',
+            border_width: PropertyMapper | float = 2.0,
+            fill_opacity: PropertyMapper | float = 0.8,
+            highlight_border_width: PropertyMapper | float = None,
+            highlight_fill_opacity: PropertyMapper | float = 1.0,
+            tooltip: PropertyMapper | str | bool = True,
+            popup: PropertyMapper | folium.Popup | bool = False,
+            geometry: PropertyMapper | Polygon = None,
+            **property_mappers: PropertyMapper | Any,
     ):
         mappers = dict(
             fill_color=fill_color,
@@ -73,19 +73,19 @@ class AreaStyleResolver(StyleResolver[ResolvedAreaStyle]):
             tooltip=tooltip,
             popup=popup,
             geometry=self._explicit_or_fallback(geometry, self._default_geometry_mapper()),
-            **style_mappers
+            **property_mappers
         )
-        super().__init__(style_type=ResolvedAreaStyle, **mappers)
+        super().__init__(feature_type=ResolvedAreaFeature, **mappers)
 
 
-class AreaGenerator(FoliumObjectGenerator[AreaStyleResolver]):
+class AreaGenerator(FoliumObjectGenerator[AreaFeatureResolver]):
     """Generates folium GeoJson objects for area geometries."""
 
-    def _style_resolver_type(self) -> Type[AreaStyleResolver]:
-        return AreaStyleResolver
+    def _feature_resolver_type(self) -> Type[AreaFeatureResolver]:
+        return AreaFeatureResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        style = self.style_resolver.resolve_style(data_item)
+        style = self.feature_resolver.resolve_feature(data_item)
 
         geometry = style.geometry
         if not isinstance(geometry, (Polygon, MultiPolygon)):
@@ -151,9 +151,9 @@ if __name__ == '__main__':
     )
 
     area_generator = AreaGenerator(
-        style_resolver=AreaStyleResolver(
-            fill_color=StyleMapper.for_attribute('value', color_map),
-            fill_opacity=StyleMapper.for_attribute('value', opacity_map),
+        feature_resolver=AreaFeatureResolver(
+            fill_color=PropertyMapper.from_item_attr('value', color_map),
+            fill_opacity=PropertyMapper.from_item_attr('value', opacity_map),
             border_color='#ABABAB',
             border_width=10,
             tooltip=True,

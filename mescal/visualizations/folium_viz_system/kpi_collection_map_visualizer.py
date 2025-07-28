@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List
 import folium
 
 from mescal.kpis import KPICollection, KPI
-from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator, StyleMapper
+from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator, PropertyMapper
 from mescal.visualizations.folium_viz_system.map_data_item import KPIDataItem, MapDataItem
 
 if TYPE_CHECKING:
@@ -195,8 +195,8 @@ class KPICollectionMapVisualizer:
                     data_item = KPIDataItem(kpi, kpi_collection, study_manager=self.study_manager, **self.kwargs)
                     for generator in self.generators:
                         if self.include_related_kpis_in_tooltip:
-                            _tmp = generator.style_resolver.style_mappers.get('tooltip', None)
-                            generator.style_resolver.style_mappers['tooltip'] = self._create_enhanced_tooltip_generator()
+                            _tmp = generator.feature_resolver.property_mappers.get('tooltip', None)
+                            generator.feature_resolver.property_mappers['tooltip'] = self._create_enhanced_tooltip_generator()
                         try:
                             generator.generate(data_item, fg)
                         except Exception as e:
@@ -206,16 +206,16 @@ class KPICollectionMapVisualizer:
                         finally:
                             if self.include_related_kpis_in_tooltip:
                                 if _tmp is not None:
-                                    generator.style_resolver.style_mappers['tooltip'] = _tmp
+                                    generator.feature_resolver.property_mappers['tooltip'] = _tmp
                                 else:
-                                    generator.style_resolver.style_mappers.pop('tooltip')
+                                    generator.feature_resolver.property_mappers.pop('tooltip')
                     pbar.update(1)
 
                 feature_groups.append(fg)
 
         return feature_groups
 
-    def _create_enhanced_tooltip_generator(self) -> StyleMapper:
+    def _create_enhanced_tooltip_generator(self) -> PropertyMapper:
         """Create tooltip generator that includes related KPIs."""
 
         def generate_tooltip(data_item: KPIDataItem) -> str:
@@ -255,4 +255,4 @@ class KPICollectionMapVisualizer:
             html += '<br><p>&nbsp;</p></table>'
             return html
 
-        return StyleMapper.for_data_item(generate_tooltip)
+        return PropertyMapper.from_item(generate_tooltip)

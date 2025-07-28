@@ -2,7 +2,7 @@ from abc import ABC
 
 import folium
 
-from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator, StyleResolver
+from mescal.visualizations.folium_viz_system.base_viz_system import FoliumObjectGenerator, FeatureResolver
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
 
 
@@ -15,7 +15,7 @@ class PELIMINARY_IconGenerator(FoliumObjectGenerator, ABC):
         except ValueError:
             return
 
-        style = self.style_resolver.resolve_style(data_item)
+        style = self.feature_resolver.resolve_feature(data_item)
 
         marker_kwargs = {'location': location, 'tooltip': tooltip}
         if popup:

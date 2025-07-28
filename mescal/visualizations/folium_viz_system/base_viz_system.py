@@ -7,72 +7,64 @@ import pandas as pd
 import folium
 
 from mescal.kpis import KPICollection, KPI
-from mescal.typevars import ResolvedStyleType, StyleResolverType
+from mescal.typevars import ResolvedFeatureType, FeatureResolverType
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, ModelDataItem, KPIDataItem
 
 
-class StyleMapper(ABC):
-    def __init__(self, return_type: type = object):
-        self.return_type = return_type
-
+class PropertyMapper(ABC):
     @abstractmethod
-    def resolve(self, data_item: MapDataItem) -> Any:
+    def map_data_item(self, data_item: MapDataItem) -> Any:
         pass
 
     @classmethod
-    def for_attribute(
+    def from_item(
+            cls,
+            mapping: Callable[[MapDataItem], Any],
+    ) -> 'ItemToPropertyMapper':
+        return ItemToPropertyMapper(mapping)
+
+    @classmethod
+    def from_item_attr(
             cls,
             attribute: str,
             mapping: Callable[[Any], Any] = None,
-            return_type: type = object
-    ) -> 'AttributeStyleMapper':
-        return AttributeStyleMapper(attribute, mapping, return_type)
+    ) -> 'ItemAttributeToPropertyMapper':
+        return ItemAttributeToPropertyMapper(attribute, mapping)
 
     @classmethod
-    def for_data_item(
-            cls,
-            mapping: Callable[[MapDataItem], Any],
-            return_type: type = object
-    ) -> 'DataItemStyleMapper':
-        return DataItemStyleMapper(mapping, return_type)
-
-    @classmethod
-    def for_static(cls, value: Any) -> 'StaticStyleMapper':
-        return StaticStyleMapper(value, type(value))
+    def from_static_value(cls, value: Any) -> 'StaticPropertyMapper':
+        return StaticPropertyMapper(value)
 
 
-class StaticStyleMapper(StyleMapper):
-    def __init__(self, value: Any, return_type: type = object):
-        super().__init__(return_type)
+class StaticPropertyMapper(PropertyMapper):
+    def __init__(self, value: Any):
         self.value = value
 
-    def resolve(self, data_item: MapDataItem) -> Any:
+    def map_data_item(self, data_item: MapDataItem) -> Any:
         return self.value
 
 
-class AttributeStyleMapper(StyleMapper):
-    def __init__(self, attribute: str, mapping: Callable[[Any], Any] = None, return_type: type = object):
-        super().__init__(return_type)
+class ItemAttributeToPropertyMapper(PropertyMapper):
+    def __init__(self, attribute: str, mapping: Callable[[Any], Any] = None):
         self.attribute = attribute
         self.mapping = mapping or (lambda x: x)
 
-    def resolve(self, data_item: MapDataItem) -> Any:
+    def map_data_item(self, data_item: MapDataItem) -> Any:
         value = data_item.get_object_attribute(self.attribute)
         return self.mapping(value)
 
 
-class DataItemStyleMapper(StyleMapper):
-    def __init__(self, mapping: Callable[[MapDataItem], Any], return_type: type = object):
-        super().__init__(return_type)
+class ItemToPropertyMapper(PropertyMapper):
+    def __init__(self, mapping: Callable[[MapDataItem], Any]):
         self.mapping = mapping
 
-    def resolve(self, data_item: MapDataItem) -> Any:
+    def map_data_item(self, data_item: MapDataItem) -> Any:
         return self.mapping(data_item)
 
 
 @dataclass
-class ResolvedStyle:
-    """Container for resolved style properties."""
+class ResolvedFeature:
+    """Container for resolved feature properties."""
     properties: dict = field(default_factory=dict)
     tooltip: str = None
     popup: folium.Popup = None
@@ -99,9 +91,9 @@ class ResolvedStyle:
         return out
 
 
-class StyleResolver(Generic[ResolvedStyleType]):
-    def __init__(self, style_type: Type[ResolvedStyleType] = None, **style_mappers: StyleMapper | Any):
-        self.style_type: Type[ResolvedStyleType] = style_type or ResolvedStyleType.__constraints__[0]
+class FeatureResolver(Generic[ResolvedFeatureType]):
+    def __init__(self, feature_type: Type[ResolvedFeatureType] = None, **property_mappers: PropertyMapper | Any):
+        self.feature_type: Type[ResolvedFeatureType] = feature_type or ResolvedFeatureType.__constraints__[0]
 
         _defaults_if_true = dict(
             tooltip=self._default_tooltip_generator,
@@ -109,36 +101,36 @@ class StyleResolver(Generic[ResolvedStyleType]):
             text_print_content=self._default_text_print_generator,
         )
         for k, mapper in _defaults_if_true.items():
-            if style_mappers.get(k, None) is True:
-                style_mappers[k] = mapper()
-            elif style_mappers.get(k, None) is False:
-                style_mappers[k] = None
+            if property_mappers.get(k, None) is True:
+                property_mappers[k] = mapper()
+            elif property_mappers.get(k, None) is False:
+                property_mappers[k] = None
 
-        self.style_mappers: dict[str, StyleMapper] = self._normalize_style_mappers(style_mappers)
+        self.property_mappers: dict[str, PropertyMapper] = self._normalize_property_mappers(property_mappers)
 
-    def resolve_style(self, data_item: MapDataItem) -> ResolvedStyleType:
-        resolved = self.style_type()
-        for prop, mapper in self.style_mappers.items():
-            resolved[prop] = mapper.resolve(data_item)
+    def resolve_feature(self, data_item: MapDataItem) -> ResolvedFeatureType:
+        resolved = self.feature_type()
+        for prop, mapper in self.property_mappers.items():
+            resolved[prop] = mapper.map_data_item(data_item)
             if prop in ['tooltip', 'popup', 'text_print_content']:
-                setattr(resolved, prop, mapper.resolve(data_item))
+                setattr(resolved, prop, mapper.map_data_item(data_item))
         return resolved
 
     @staticmethod
-    def _normalize_style_mappers(mappers: dict[str, StyleMapper | Any]) -> dict[str, StyleMapper]:
+    def _normalize_property_mappers(mappers: dict[str, PropertyMapper | Any]) -> dict[str, PropertyMapper]:
         return {
-            key: mapper if isinstance(mapper, StyleMapper) else StyleMapper.for_static(mapper)
+            key: mapper if isinstance(mapper, PropertyMapper) else PropertyMapper.from_static_value(mapper)
             for key, mapper in mappers.items()
         }
 
     @staticmethod
-    def _explicit_or_fallback(explicit: Any, fallback: StyleMapper = None) -> StyleMapper:
+    def _explicit_or_fallback(explicit: Any, fallback: PropertyMapper = None) -> PropertyMapper:
         if explicit is not None:
             return explicit
         return fallback
 
     @staticmethod
-    def _default_tooltip_generator() -> DataItemStyleMapper:
+    def _default_tooltip_generator() -> ItemToPropertyMapper:
 
         def get_tooltip(data_item: MapDataItem) -> str:
             tooltip_data = data_item.get_tooltip_data()
@@ -151,10 +143,10 @@ class StyleResolver(Generic[ResolvedStyleType]):
 
             return html
 
-        return DataItemStyleMapper(get_tooltip)
+        return ItemToPropertyMapper(get_tooltip)
 
     @staticmethod
-    def _default_popup_generator() -> DataItemStyleMapper:
+    def _default_popup_generator() -> ItemToPropertyMapper:
 
         def get_popup(data_item: MapDataItem) -> folium.Popup:
             tooltip_data = data_item.get_tooltip_data()
@@ -167,24 +159,24 @@ class StyleResolver(Generic[ResolvedStyleType]):
 
             return folium.Popup(html, max_width=300)
 
-        return DataItemStyleMapper(get_popup)
+        return ItemToPropertyMapper(get_popup)
 
     @staticmethod
-    def _default_text_print_generator() -> DataItemStyleMapper:
-        return DataItemStyleMapper(lambda d: d.get_text_representation())
+    def _default_text_print_generator() -> ItemToPropertyMapper:
+        return ItemToPropertyMapper(lambda d: d.get_text_representation())
 
     @staticmethod
-    def _default_geometry_mapper() -> DataItemStyleMapper:
+    def _default_geometry_mapper() -> ItemToPropertyMapper:
 
         def get_geometry(data_item: MapDataItem) -> Polygon | None:
             if data_item.object_has_attribute('geometry'):
                 return data_item.get_object_attribute('geometry')
             return None
 
-        return DataItemStyleMapper(get_geometry, Polygon)
+        return ItemToPropertyMapper(get_geometry)
 
     @staticmethod
-    def _default_location_mapper() -> DataItemStyleMapper:
+    def _default_location_mapper() -> ItemToPropertyMapper:
 
         def get_location(data_item: MapDataItem) -> Point | None:
             for k in ['location', 'projection_point', 'centroid', 'midpoint']:
@@ -210,10 +202,10 @@ class StyleResolver(Generic[ResolvedStyleType]):
                     return geometry.interpolate(0.5, normalized=True)
             return None
 
-        return DataItemStyleMapper(get_location, Point)
+        return ItemToPropertyMapper(get_location)
 
     @staticmethod
-    def _default_line_string_mapper() -> DataItemStyleMapper:
+    def _default_line_string_mapper() -> ItemToPropertyMapper:
 
         def get_line_string(data_item: MapDataItem) -> LineString | None:
             for k in ['geometry', 'line_string']:
@@ -223,21 +215,21 @@ class StyleResolver(Generic[ResolvedStyleType]):
                         return line_string
             return None
 
-        return DataItemStyleMapper(get_line_string, LineString)
+        return ItemToPropertyMapper(get_line_string)
 
 
-class FoliumObjectGenerator(Generic[StyleResolverType], ABC):
+class FoliumObjectGenerator(Generic[FeatureResolverType], ABC):
     """Abstract base for generating folium objects."""
 
     def __init__(
             self,
-            style_resolver: StyleResolverType = None,
+            feature_resolver: FeatureResolverType = None,
     ):
-        self.style_resolver: StyleResolverType = style_resolver or self._style_resolver_type()()
+        self.feature_resolver: FeatureResolverType = feature_resolver or self._feature_resolver_type()()
 
     @abstractmethod
-    def _style_resolver_type(self) -> Type[StyleResolverType]:
-        return StyleResolver
+    def _feature_resolver_type(self) -> Type[FeatureResolverType]:
+        return FeatureResolver
 
     @abstractmethod
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:

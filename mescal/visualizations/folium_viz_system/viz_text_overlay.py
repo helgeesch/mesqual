@@ -7,15 +7,15 @@ import folium
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem, KPIDataItem
 
 from mescal.visualizations.folium_viz_system.base_viz_system import (
-    ResolvedStyle,
-    StyleResolver,
-    StyleMapper,
+    ResolvedFeature,
+    FeatureResolver,
+    PropertyMapper,
     FoliumObjectGenerator,
 )
 
 
 @dataclass
-class ResolvedTextOverlayStyle(ResolvedStyle):
+class ResolvedTextOverlayFeature(ResolvedFeature):
     """Specialized style container for text overlay visualizations."""
 
     @property
@@ -47,20 +47,20 @@ class ResolvedTextOverlayStyle(ResolvedStyle):
         return self.get('shadow_color')
 
 
-class TextOverlayStyleResolver(StyleResolver[ResolvedTextOverlayStyle]):
+class TextOverlayFeatureResolver(FeatureResolver[ResolvedTextOverlayFeature]):
     def __init__(
             self,
-            text_color: StyleMapper | str = '#3A3A3A',
-            font_size: StyleMapper | str = '10pt',
-            font_weight: StyleMapper | str = 'bold',
-            background_color: StyleMapper | str = None,
-            shadow_size: StyleMapper | str = '0.5px',
-            shadow_color: StyleMapper | str = '#F2F2F2',
-            text_print_content: StyleMapper | str | bool = True,
-            tooltip: StyleMapper | str | bool = True,
-            popup: StyleMapper | folium.Popup | bool = False,
-            location: StyleMapper | Point = None,
-            **style_mappers: StyleMapper | Any,
+            text_color: PropertyMapper | str = '#3A3A3A',
+            font_size: PropertyMapper | str = '10pt',
+            font_weight: PropertyMapper | str = 'bold',
+            background_color: PropertyMapper | str = None,
+            shadow_size: PropertyMapper | str = '0.5px',
+            shadow_color: PropertyMapper | str = '#F2F2F2',
+            text_print_content: PropertyMapper | str | bool = True,
+            tooltip: PropertyMapper | str | bool = True,
+            popup: PropertyMapper | folium.Popup | bool = False,
+            location: PropertyMapper | Point = None,
+            **property_mappers: PropertyMapper | Any,
     ):
         mappers = dict(
             text_color=text_color,
@@ -73,19 +73,19 @@ class TextOverlayStyleResolver(StyleResolver[ResolvedTextOverlayStyle]):
             tooltip=tooltip,
             popup=popup,
             location=self._explicit_or_fallback(location, self._default_location_mapper()),
-            **style_mappers
+            **property_mappers
         )
-        super().__init__(style_type=ResolvedTextOverlayStyle, **mappers)
+        super().__init__(feature_type=ResolvedTextOverlayFeature, **mappers)
 
 
-class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayStyleResolver]):
+class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayFeatureResolver]):
     """Generates text overlays for map data items."""
 
-    def _style_resolver_type(self) -> Type[TextOverlayStyleResolver]:
-        return TextOverlayStyleResolver
+    def _feature_resolver_type(self) -> Type[TextOverlayFeatureResolver]:
+        return TextOverlayFeatureResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        style = self.style_resolver.resolve_style(data_item)
+        style = self.feature_resolver.resolve_feature(data_item)
         if not isinstance(style.location, Point):
             return
 
@@ -162,7 +162,7 @@ if __name__ == '__main__':
         SegmentedContinuousColorscale,
         SegmentedContinuousOpacityMapping,
     )
-    from mescal.visualizations.folium_viz_system.viz_areas import AreaGenerator, AreaStyleResolver
+    from mescal.visualizations.folium_viz_system.viz_areas import AreaGenerator, AreaFeatureResolver
 
     area_df = pd.DataFrame({
         'geometry': [
@@ -186,9 +186,9 @@ if __name__ == '__main__':
     )
 
     area_generator = AreaGenerator(
-        style_resolver=AreaStyleResolver(
-            fill_color=StyleMapper.for_attribute('value', color_map),
-            fill_opacity=StyleMapper.for_attribute('value', opacity_map),
+        feature_resolver=AreaFeatureResolver(
+            fill_color=PropertyMapper.from_item_attr('value', color_map),
+            fill_opacity=PropertyMapper.from_item_attr('value', opacity_map),
             border_color='#ABABAB',
             border_width=10,
             tooltip=True,

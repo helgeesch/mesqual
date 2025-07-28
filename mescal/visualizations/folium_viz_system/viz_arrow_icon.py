@@ -8,16 +8,16 @@ import folium
 
 from mescal.visualizations.folium_viz_system.map_data_item import MapDataItem
 from mescal.visualizations.folium_viz_system.base_viz_system import (
-    ResolvedStyle,
-    StyleResolver,
-    StyleMapper, DataItemStyleMapper,
+    ResolvedFeature,
+    FeatureResolver,
+    PropertyMapper, ItemToPropertyMapper,
     FoliumObjectGenerator,
 )
 from captain_arro import get_generator_for_arrow_type, ArrowTypeEnum
 
 
 @dataclass
-class ResolvedArrowIconStyle(ResolvedStyle):
+class ResolvedArrowIconFeature(ResolvedFeature):
     @property
     def location(self) -> Point:
         return self.get('location')
@@ -67,24 +67,24 @@ class ResolvedArrowIconStyle(ResolvedStyle):
         return self.get('reverse_direction')
 
 
-class ArrowIconStyleResolver(StyleResolver[ResolvedArrowIconStyle]):
+class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
     def __init__(
             self,
-            arrow_type: StyleMapper | ArrowTypeEnum = ArrowTypeEnum.MOVING_FLOW_ARROW,
-            color: StyleMapper | str = '#2563eb',
-            stroke_width: StyleMapper | int = 8,
-            width: StyleMapper | int = 60,
-            height: StyleMapper | int = 60,
-            speed_in_px_per_second: StyleMapper | float | None = 20.0,
-            speed_in_duration_seconds: StyleMapper | float | None = None,
-            num_arrows: StyleMapper | int = 3,
-            opacity: StyleMapper | float = 0.8,
-            reverse_direction: StyleMapper | bool = False,
-            tooltip: StyleMapper | str | bool = True,
-            popup: StyleMapper | folium.Popup | bool = False,
-            location: StyleMapper | Point = None,
-            rotation_angle: StyleMapper | float = None,
-            **style_mappers: StyleMapper | Any,
+            arrow_type: PropertyMapper | ArrowTypeEnum = ArrowTypeEnum.MOVING_FLOW_ARROW,
+            color: PropertyMapper | str = '#2563eb',
+            stroke_width: PropertyMapper | int = 8,
+            width: PropertyMapper | int = 60,
+            height: PropertyMapper | int = 60,
+            speed_in_px_per_second: PropertyMapper | float | None = 20.0,
+            speed_in_duration_seconds: PropertyMapper | float | None = None,
+            num_arrows: PropertyMapper | int = 3,
+            opacity: PropertyMapper | float = 0.8,
+            reverse_direction: PropertyMapper | bool = False,
+            tooltip: PropertyMapper | str | bool = True,
+            popup: PropertyMapper | folium.Popup | bool = False,
+            location: PropertyMapper | Point = None,
+            rotation_angle: PropertyMapper | float = None,
+            **property_mappers: PropertyMapper | Any,
     ):
         mappers = dict(
             arrow_type=arrow_type,
@@ -101,12 +101,12 @@ class ArrowIconStyleResolver(StyleResolver[ResolvedArrowIconStyle]):
             popup=popup,
             location=self._explicit_or_fallback(location, self._default_location_mapper()),
             rotation_angle=self._explicit_or_fallback(rotation_angle, self._default_rotation_angle_mapper()),
-            **style_mappers
+            **property_mappers
         )
-        super().__init__(style_type=ResolvedArrowIconStyle, **mappers)
+        super().__init__(feature_type=ResolvedArrowIconFeature, **mappers)
 
     @staticmethod
-    def _default_rotation_angle_mapper() -> DataItemStyleMapper:
+    def _default_rotation_angle_mapper() -> ItemToPropertyMapper:
 
         def get_rotation_angle(data_item: MapDataItem) -> float | None:
             for k in ['rotation_angle', 'projection_point']:
@@ -115,15 +115,15 @@ class ArrowIconStyleResolver(StyleResolver[ResolvedArrowIconStyle]):
                     return angle
             return None
 
-        return DataItemStyleMapper(get_rotation_angle, float)
+        return ItemToPropertyMapper(get_rotation_angle, float)
 
 
-class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconStyleResolver]):
-    def _style_resolver_type(self) -> Type[ArrowIconStyleResolver]:
-        return ArrowIconStyleResolver
+class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconFeatureResolver]):
+    def _feature_resolver_type(self) -> Type[ArrowIconFeatureResolver]:
+        return ArrowIconFeatureResolver
 
     def generate(self, data_item: MapDataItem, feature_group: folium.FeatureGroup) -> None:
-        style = self.style_resolver.resolve_style(data_item)
+        style = self.feature_resolver.resolve_feature(data_item)
         if style.location is None:
             return
 
@@ -159,7 +159,7 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconStyleResolver]):
             popup=style.popup
         ).add_to(feature_group)
 
-    def _generate_arrow_svg(self, style: ResolvedArrowIconStyle, data_item: MapDataItem) -> str:
+    def _generate_arrow_svg(self, style: ResolvedArrowIconFeature, data_item: MapDataItem) -> str:
         from inspect import signature
 
         def safe_init(cls: type, kwargs: dict):
@@ -210,16 +210,16 @@ if __name__ == '__main__':
     )
 
     arrow_generator = ArrowIconGenerator(
-        style_resolver=ArrowIconStyleResolver(
-            arrow_type=StyleMapper.for_attribute('border_flow', lambda x: ArrowTypeEnum.SPOTLIGHT_FLOW_ARROW if x > 0 else ArrowTypeEnum.MOVING_FLOW_ARROW),
-            color=StyleMapper.for_attribute('border_flow', lambda x: flow_color_mapping(abs(x))),
+        feature_resolver=ArrowIconFeatureResolver(
+            arrow_type=PropertyMapper.from_item_attr('border_flow', lambda x: ArrowTypeEnum.SPOTLIGHT_FLOW_ARROW if x > 0 else ArrowTypeEnum.MOVING_FLOW_ARROW),
+            color=PropertyMapper.from_item_attr('border_flow', lambda x: flow_color_mapping(abs(x))),
             stroke_width=4,
-            rotation_angle=StyleMapper.for_attribute('projection_angle', lambda x: x),
-            reverse_direction=StyleMapper.for_attribute('border_flow', lambda x: x < 0),
+            rotation_angle=PropertyMapper.from_item_attr('projection_angle', lambda x: x),
+            reverse_direction=PropertyMapper.from_item_attr('border_flow', lambda x: x < 0),
             speed_in_px_per_second=None,
             speed_in_duration_seconds=2,
-            width=StyleMapper.for_attribute('border_flow', lambda x: size_mapping(abs(x))),
-            height=StyleMapper.for_attribute('border_flow', lambda x: size_mapping(abs(x))/2),
+            width=PropertyMapper.from_item_attr('border_flow', lambda x: size_mapping(abs(x))),
+            height=PropertyMapper.from_item_attr('border_flow', lambda x: size_mapping(abs(x)) / 2),
         )
     )
 
