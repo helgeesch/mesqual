@@ -132,7 +132,7 @@ class SegmentedLineWidthMapLegend(SegmentedLineWidthMap, MacroElement):
     ):
         SegmentedLineWidthMap.__init__(self, segments, na_width)
         MacroElement.__init__(self)
-        self._name = "LineWidthMapLegend"
+        self._name = "ContinuousLineWidthMapLegend"
 
         self.title = title
         self.background_color = background_color
