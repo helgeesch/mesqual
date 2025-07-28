@@ -26,6 +26,14 @@ class DiscreteInputMapping(BaseMapping):
         self._default_output = default_output
         self._available_outputs = [v for v in self.DEFAULT_TARGET_VALUES if v not in self._used_outputs]
 
+    @property
+    def mapping(self) -> dict:
+        return self._mapping
+
+    @property
+    def default_output(self) -> Any:
+        return self._default_output
+
     def __call__(self, value):
         if value in self._mapping:
             return self._mapping[value]
@@ -56,6 +64,10 @@ class _ContinuousInputMapping(BaseMapping):
         self._nan_fallback = nan_fallback
         self._min_output_value = min_output_value
         self._max_output_value = max_output_value
+
+    @property
+    def nan_fallback(self) -> Any:
+        return self._nan_fallback
 
     @abstractmethod
     def _compute_output(self, value: float):
@@ -89,7 +101,7 @@ class _ContinuousInputMapping(BaseMapping):
         return low, high
 
 
-class _SegmentedContinuousInputMapping(_ContinuousInputMapping, ABC):
+class SegmentedContinuousInputMappingBase(_ContinuousInputMapping, ABC):
     """Continuous Input --> Continuous or discrete Output"""
     def __init__(
             self,
@@ -107,6 +119,10 @@ class _SegmentedContinuousInputMapping(_ContinuousInputMapping, ABC):
         self._min_input_value = None
         self._max_input_value = None
         self._validate_segments()
+
+    @property
+    def segments(self) -> dict[tuple[float | int, float | int], Any]:
+        return self._segments
 
     def _validate_segments(self):
         prev_end = -float('inf')
@@ -160,11 +176,11 @@ class _SegmentedContinuousInputMapping(_ContinuousInputMapping, ABC):
 
     @classmethod
     @abstractmethod
-    def single_segment_autoscale_factory_from_array(cls, **kwargs) -> '_SegmentedContinuousInputMapping':
+    def single_segment_autoscale_factory_from_array(cls, **kwargs) -> 'SegmentedContinuousInputMappingBase':
         pass
 
 
-class SegmentedContinuousColorscale(_SegmentedContinuousInputMapping):
+class SegmentedContinuousColorscale(SegmentedContinuousInputMappingBase):
     def __init__(
             self,
             segments: dict[tuple[float | int, float | int], Any],
@@ -251,7 +267,7 @@ class DiscreteLineWidthMapping(DiscreteInputMapping):
     DEFAULT_OUTPUT = 1.0
 
 
-class SegmentedContinuousInputToContinuousOutputMapping(_SegmentedContinuousInputMapping):
+class SegmentedContinuousInputToContinuousOutputMapping(SegmentedContinuousInputMappingBase):
     @classmethod
     def single_segment_autoscale_factory_from_array(
             cls,
