@@ -1,5 +1,5 @@
 from abc import abstractmethod, ABC
-from typing import Any, Iterable
+from typing import Any, Iterable, List, Tuple
 
 import numpy as np
 import pandas as pd
@@ -120,6 +120,10 @@ class SegmentedContinuousInputMappingBase(_ContinuousInputMapping, ABC):
             self._max_input_value = float(np.max(self._get_all_values()))
         return self._max_input_value
 
+    @property
+    def input_value_range(self) -> tuple[float, float]:
+        return self.min_input_value, self.max_input_value
+
     def _get_all_values(self) -> list[float | int]:
         values = []
         for val in self._segments.keys():
@@ -195,6 +199,32 @@ class SegmentedContinuousColorscale(SegmentedContinuousInputMappingBase):
             return colors.to_hex((r, g, b, a))
 
         return color_fn(value)
+
+    def to_normalized_colorscale(self, num_reference_points_per_segment: int = 10) -> List[Tuple[float, str]]:
+        if num_reference_points_per_segment < 2:
+            raise ValueError("num_reference_points_per_segment must be >= 2")
+        total_range = self.max_input_value - self.min_input_value
+        segment_items = list(self.segments.items())
+        raw_scale: List[Tuple[float, str]] = []
+        for idx, ((start, end), _) in enumerate(segment_items):
+            norm_start = (start - self.min_input_value) / total_range
+            norm_end = (end   - self.min_input_value) / total_range
+            if idx < len(segment_items) - 1:
+                norm_end -= 1e-9
+            positions = np.linspace(norm_start, norm_end, num_reference_points_per_segment)
+            for pos in positions:
+                value = self.min_input_value + pos * total_range
+                raw_scale.append((round(pos, 10), self(value)))
+        final_pos = (self.max_input_value - self.min_input_value) / total_range
+        raw_scale.append((round(final_pos, 10), self(self.max_input_value)))
+        seen = set()
+        normalized_scale: List[Tuple[float, str]] = []
+        for pos, color in sorted(raw_scale, key=lambda x: x[0]):
+            if pos in seen:
+                continue
+            seen.add(pos)
+            normalized_scale.append((pos, color))
+        return normalized_scale
 
 
 class SegmentedContinuousInputToContinuousOutputMapping(SegmentedContinuousInputMappingBase):
