@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Type, Any, TYPE_CHECKING
+from typing import Type, Any, TYPE_CHECKING, Union
 import base64
 
 from shapely import Point
@@ -71,7 +71,7 @@ class ResolvedArrowIconFeature(ResolvedFeature):
 class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
     def __init__(
             self,
-            arrow_type: PropertyMapper | ArrowTypeEnum = ArrowTypeEnum.MOVING_FLOW_ARROW,
+            arrow_type: Union[PropertyMapper, 'ArrowTypeEnum'] = None,
             color: PropertyMapper | str = '#2563eb',
             stroke_width: PropertyMapper | int = 8,
             width: PropertyMapper | int = 60,
@@ -87,8 +87,9 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
             rotation_angle: PropertyMapper | float = None,
             **property_mappers: PropertyMapper | Any,
     ):
+        from captain_arro import ArrowTypeEnum
         mappers = dict(
-            arrow_type=arrow_type,
+            arrow_type=arrow_type or ArrowTypeEnum.MOVING_FLOW_ARROW,
             color=color,
             stroke_width=stroke_width,
             width=width,
