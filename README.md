@@ -97,7 +97,7 @@ For more elaborate and practical examples, please visit the [mescal-vanilla-stud
 
 ## Requirements
 - Python ≥ 3.10
-- Dependencies listed in requirements.txt
+- Install runtime dependencies with: `pip install -e .`
 
 ---
 
@@ -123,12 +123,19 @@ The core package provides:
 
 ## Integrate mescal and mescal-interface packages in your project
 
-MESCAL is designed to be used as a Git submodule. To include it in your project:
+There are two options: You can either install the packages via pip and git, or you can include them as submodules and install them in editable mode for easy development.
 
-### Step 1: Navigate to your study-repository
+### Option 1: Install the package(s) via pip and git
+```bash
+pip install git+https://github.com/helgeesch/mescal.git
+pip install git+https://github.com/helgeesch/mescal-any-interface.git
+```
+
+### Option 2: Add packages as submodules and install in editable mode
+#### Step 1: Navigate to your study-repository
 In your console, navigate to the repository to which you want to add mescal submodules. This could be a study-repo similar to [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git) or any git repo in which you handle your studies. 
 
-### Step 2: Add mescal submodules
+#### Step 2: Add mescal submodules
 Add all required mescal packages as submodules. If you want to build your own interface, just start by including the foundation package and start building your-custom-mescal-interface. If you want to integrate an existing interface, just add that one as a submodule, respectively.
 ```bash
 git submodule add https://github.com/helgeesch/mescal.git submodules/mescal
@@ -137,42 +144,10 @@ git submodule update --init --recursive
 ```
 The folder `submodules/` should now include the respective packages.
 
-### Step 3: Configure submodules as source root
-#### PyCharm Configuration
-If you're using PyCharm, ensure that the submodule directories are properly recognized as part of the source code by setting them as "Sources Root":
-
-1. In PyCharm's Project Explorer, locate all submodule directories:
-   - `submodules/mescal`
-   - `submodules/mescal-any-interface`
-2. Right-click on each of the directories above.
-3. Select Mark Directory as -> Sources Root.
-
-
-#### VSCode Configuration
-In Visual Studio Code, you can add the submodules to the python.analysis.extraPaths setting:
-1. Open your project folder.
-2. Create (or modify) .vscode/settings.json:
-    ```json
-    {
-        "python.analysis.extraPaths": [
-          "submodules/mescal",
-          "submodules/mescal-any-interface"
-        ]
-    }
-    ```
-
-#### Jupyter Notebook Configuration
-If you work with Jupyter, extend the sys.path directly in your notebook:
-```python
-import sys
-sys.path.append("submodules/mescal")
-sys.path.append("submodules/mescal-any-interface")
-```
-
-### Step 4: Install requirements
+#### Step 3: Install in editable mode
 ```bash
-pip install -r submodules/mescal/requirements.txt
-pip install -r submodules/mescal-any-interface/requirements.txt
+pip install -e ./submodules/mescal
+pip install -e ./submodules/mescal-any-interface
 ```
 
 ## Attribution and Licenses
