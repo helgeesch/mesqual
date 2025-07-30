@@ -98,6 +98,10 @@ For more elaborate and practical examples, please visit the [mescal-vanilla-stud
 ## Requirements
 - Python ≥ 3.10
 - Install runtime dependencies with: `pip install -e .`
+- Some arrow visualization modules require the [captain-arro](https://github.com/helgeesch/captain-arro/tree/main) package. You can either integrate it as a submodule and install it in the editable mode (use same instructions as described in Option 2 below), or install it directly via 
+- ```bash 
+  pip install git+https://github.com/helgeesch/captain-arro.git
+  ```
 
 ---
 
