@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Generic
+from typing import Generic, Any
 
 from branca.element import MacroElement, Template
 
@@ -79,6 +79,9 @@ class BaseLegend(MacroElement, ABC, Generic[ValueMappingType]):
         self.position = self._process_position(position or {"bottom": "20px", "right": "20px"})
 
         self._template = self._base_template
+
+    def __call__(self, value) -> Any:
+        return self.mapping(value)
 
     def _process_position(self, position: dict[str, int | float | str]) -> dict[str, str]:
         return {
