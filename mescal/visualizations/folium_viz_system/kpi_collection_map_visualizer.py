@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Literal
 
 import folium
 
@@ -8,6 +8,9 @@ from mescal.visualizations.folium_viz_system.visualizable_data_item import KPIDa
 
 if TYPE_CHECKING:
     from mescal.study_manager import StudyManager
+
+
+SHOW_OPTIONS = Literal['first', 'last', 'none']
 
 
 class KPIGroupingManager:
@@ -172,12 +175,23 @@ class KPICollectionMapVisualizer:
                 g.tooltip_generator = self._create_enhanced_tooltip_generator()
         self.kwargs = kwargs
 
-    def generate_and_add_feature_groups_to_map(self, kpi_collection: KPICollection, folium_map: folium.Map) -> None:
-        fgs = self.get_feature_groups(kpi_collection)
+    def generate_and_add_feature_groups_to_map(
+            self,
+            kpi_collection: KPICollection,
+            folium_map: folium.Map,
+            show: SHOW_OPTIONS = 'none',
+            overlay: bool = False,
+    ) -> None:
+        fgs = self.get_feature_groups(kpi_collection, show=show, overlay=overlay)
         for fg in fgs:
             folium_map.add_child(fg)
 
-    def get_feature_groups(self, kpi_collection: KPICollection) -> list[folium.FeatureGroup]:
+    def get_feature_groups(
+            self,
+            kpi_collection: KPICollection,
+            show: SHOW_OPTIONS = 'none',
+            overlay: bool = False
+    ) -> list[folium.FeatureGroup]:
         """Create feature groups for KPI collection, replicating original functionality."""
         from tqdm import tqdm
         from mescal.utils.logging import get_logger
@@ -187,9 +201,18 @@ class KPICollectionMapVisualizer:
 
         pbar = tqdm(kpi_collection, total=kpi_collection.size, desc=f'{self.__class__.__name__}')
         with pbar:
-            for kpi_group in self.grouping_manager.get_kpi_groups(kpi_collection):
+            kpi_groups = self.grouping_manager.get_kpi_groups(kpi_collection)
+            for kpi_group in kpi_groups:
                 group_name = self.grouping_manager.get_feature_group_name(kpi_group)
-                fg = folium.FeatureGroup(name=group_name, overlay=False, show=False)
+
+                if show == 'first':
+                    show_fg = kpi_group == kpi_groups[0]
+                elif show == 'last':
+                    show_fg = kpi_group == kpi_groups[-1]
+                else:
+                    show_fg = False
+
+                fg = folium.FeatureGroup(name=group_name, overlay=overlay, show=show_fg)
 
                 for kpi in kpi_group:
                     data_item = KPIDataItem(kpi, kpi_collection, study_manager=self.study_manager, **self.kwargs)
