@@ -14,16 +14,22 @@ class CongestionRentCalculator:
     received_down: pd.Series
     price_node_from: pd.Series
     price_node_to: pd.Series
-    granularity_hrs: float = None
+    granularity_hrs: pd.Series | float = None
 
     def __post_init__(self):
-        if isinstance(self.sent_up.index, pd.DatetimeIndex):
-            from mescal.energy_data_handling.granularity_analyzer import TimeSeriesGranularityAnalyzer
-            analyzer = TimeSeriesGranularityAnalyzer(strict_mode=False)
-            self.granularity_hrs = analyzer.get_granularity_as_hours(self.sent_up.index)
-        else:
-            if self.granularity_hrs is None:
+        if self.granularity_hrs is None:
+            if isinstance(self.sent_up.index, pd.DatetimeIndex):
+                if len(self.sent_up.index) > 0:
+                    from mescal.energy_data_handling.granularity_analyzer import TimeSeriesGranularityAnalyzer
+                    analyzer = TimeSeriesGranularityAnalyzer(strict_mode=False)
+                    self.granularity_hrs = analyzer.get_granularity_as_series_of_hours(self.sent_up.index)
+                else:
+                    self.granularity_hrs = 0
+            else:
                 logger.warning(f'Granularity for CongestionRentCalculator is defaulting back to 1 hrs.')
+                self.granularity_hrs = 1
+        if isinstance(self.granularity_hrs, (float, int)):
+            self.granularity_hrs = pd.Series(self.granularity_hrs, index=self.sent_up.index)
         self.__check_indices()
 
     def __check_indices(self):

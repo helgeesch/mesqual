@@ -54,6 +54,7 @@ class VolumeWeightedPriceAggregator:
             prices = price_df[region_nodes]
             weights = self._compute_volume_weights(prices, matched_demand_df, matched_supply_df)
             region_price = (prices * weights).sum(axis=1)
+            region_price[prices.isna().all(axis=1)] = np.nan
             result_dict[region] = region_price
 
         result_df = pd.DataFrame(result_dict)

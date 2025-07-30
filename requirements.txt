@@ -10,3 +10,4 @@ networkx
 pint
 colorlog
 tqdm
+python-polylabel
