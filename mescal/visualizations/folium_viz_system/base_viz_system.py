@@ -32,7 +32,7 @@ class PropertyMapper:
 
     @classmethod
     def from_kpi_value(cls, mapping: Callable[[Any], Any]) -> 'PropertyMapper':
-        return cls(lambda data_item: mapping(data_item.kpi_value))
+        return cls(lambda data_item: mapping(data_item.kpi.value))
 
 
 @dataclass
