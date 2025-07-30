@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mescal"
+version = "0.1.0"
+description = "Modular Energy Scenario Comparison and Analysis Library"
+readme = "README.md"
+license = {file = "LICENSES/LGPL-3.0-or-later.txt"}
+authors = [
+    {name = "Helge Esch"}
+]
+maintainers = [
+    {name = "Helge Esch"}
+]
+dependencies = [
+    "pandas",
+    "geopandas",
+    "shapely",
+    "plotly",
+    "folium",
+    "branca",
+    "jinja2",
+    "numpy",
+    "networkx",
+    "pint",
+    "colorlog",
+    "tqdm",
+    "python-polylabel",
+]
+
+[project.urls]
+Homepage = "https://github.com/helgeesch/mescal"
+Repository = "https://github.com/helgeesch/mescal"
+Documentation = "https://github.com/helgeesch/mescal#readme"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mescal", "mescal.*"]
