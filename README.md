@@ -127,19 +127,16 @@ The core package provides:
 
 ## Integrate mescal and mescal-interface packages in your project
 
-There are two options: You can either install the packages via pip and git, or you can include them as submodules and install them in editable mode for easy development.
+You have two ways to pull in the core library and any interfaces:
 
-### Option 1: Install the package(s) via pip and git
+### Option A: Install from Git (easy for consumers)
 ```bash
 pip install git+https://github.com/helgeesch/mescal.git
 pip install git+https://github.com/helgeesch/mescal-any-interface.git
 ```
 
-### Option 2: Add packages as submodules and install in editable mode
-#### Step 1: Navigate to your study-repository
-In your console, navigate to the repository to which you want to add mescal submodules. This could be a study-repo similar to [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git) or any git repo in which you handle your studies. 
-
-#### Step 2: Add mescal submodules
+### Option B: Local dev with submodules (for active development)
+#### Step 1: Add submodules under your repo:
 Add all required mescal packages as submodules. If you want to build your own interface, just start by including the foundation package and start building your-custom-mescal-interface. If you want to integrate an existing interface, just add that one as a submodule, respectively.
 ```bash
 git submodule add https://github.com/helgeesch/mescal.git submodules/mescal
@@ -148,11 +145,14 @@ git submodule update --init --recursive
 ```
 The folder `submodules/` should now include the respective packages.
 
-#### Step 3: Install in editable mode
+#### Step 2: Install in editable mode so that any code changes “just work”:
 ```bash
 pip install -e ./submodules/mescal
 pip install -e ./submodules/mescal-any-interface
 ```
+
+#### Step 3 (optional): IDE tip
+If you want full autocomplete and go-to-definition in PyCharm/VS Code, mark submodules/mescal (and any other submodule) as a Sources Root in your IDE. This is purely for dev comfort and won’t affect other users.
 
 ## Attribution and Licenses
 This project is licensed under the LGPL License - see the LICENSE file for details.
