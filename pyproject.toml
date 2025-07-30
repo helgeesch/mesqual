@@ -7,7 +7,7 @@ name = "mescal"
 version = "0.1.0"
 description = "Modular Energy Scenario Comparison and Analysis Library"
 readme = "README.md"
-license = {folder = "LICENSES"}
+license = {file = "LICENSES/LGPL-3.0-or-later.txt"}
 authors = [
     {name = "Helge Esch"}
 ]
