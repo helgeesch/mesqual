@@ -34,3 +34,7 @@ dependencies = [
 Homepage = "https://github.com/helgeesch/mescal"
 Repository = "https://github.com/helgeesch/mescal"
 Documentation = "https://github.com/helgeesch/mescal#readme"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["mescal", "mescal.*"]
