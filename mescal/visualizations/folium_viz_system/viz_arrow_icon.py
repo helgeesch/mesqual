@@ -10,7 +10,7 @@ from mescal.visualizations.folium_viz_system.visualizable_data_item import Visua
 from mescal.visualizations.folium_viz_system.base_viz_system import (
     ResolvedFeature,
     FeatureResolver,
-    PropertyMapper, ItemToPropertyMapper,
+    PropertyMapper,
     FoliumObjectGenerator,
 )
 from captain_arro import get_generator_for_arrow_type, ArrowTypeEnum
@@ -106,7 +106,7 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
         super().__init__(feature_type=ResolvedArrowIconFeature, **mappers)
 
     @staticmethod
-    def _default_rotation_angle_mapper() -> ItemToPropertyMapper:
+    def _default_rotation_angle_mapper() -> PropertyMapper:
 
         def get_rotation_angle(data_item: VisualizableDataItem) -> float | None:
             for k in ['rotation_angle', 'projection_point']:
@@ -115,7 +115,7 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
                     return angle
             return None
 
-        return ItemToPropertyMapper(get_rotation_angle, float)
+        return PropertyMapper(get_rotation_angle)
 
 
 class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconFeatureResolver]):
