@@ -201,6 +201,18 @@ class SegmentedContinuousColorscale(SegmentedContinuousInputMappingBase):
         return color_fn(value)
 
     def to_normalized_colorscale(self, num_reference_points_per_segment: int = 10) -> List[Tuple[float, str]]:
+        """
+        Generate a Plotly-compatible colorscale with:
+        - Explicit segment boundaries
+        - No overlapping positions
+        - Epsilon-adjusted edges between segments
+
+        Args:
+            num_reference_points_per_segment: Number of points per segment
+                                              (including boundaries)
+
+        Returns: List of (position, color) tuples sorted by position
+        """
         if num_reference_points_per_segment < 2:
             raise ValueError("num_reference_points_per_segment must be >= 2")
         total_range = self.max_input_value - self.min_input_value
