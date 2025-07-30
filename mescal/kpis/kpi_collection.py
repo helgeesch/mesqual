@@ -92,6 +92,7 @@ class KPICollection:
         return df
 
     def get_kpi_by_attributes(self, attr_query: str = None, **kwargs) -> KPI:
+        # TODO: write docstring
         subset = self.get_filtered_kpi_collection_by_attributes(attr_query=attr_query, **kwargs)
         num = len(subset._kpis)
         if num == 0:
@@ -102,6 +103,7 @@ class KPICollection:
         return next(iter(subset))
 
     def get_filtered_kpi_collection_by_attributes(self, attr_query: str = None, **kwargs) -> 'KPICollection':
+        # TODO: write docstring
         filtered_kpi_collection = KPICollection()
         for kpi in self._kpis:
             if kpi.attributes.has_attr(attr_query=attr_query, **kwargs):

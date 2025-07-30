@@ -263,3 +263,31 @@ class FlagAggKPIFactory(Generic[DatasetType], KPIFactory[DatasetType, FlagAggKPI
             kpi_name=self._kpi_name,
         )
         return kpi
+
+    @property
+    def flag(self):
+        return self._flag
+
+    @property
+    def aggregation(self):
+        return self._aggregation
+
+    @property
+    def column_subset(self):
+        return self._column_subset
+
+    @property
+    def model_query(self):
+        return self._model_query
+
+    @property
+    def kpi_name_prefix(self):
+        return self._kpi_name_prefix
+
+    @property
+    def kpi_name_suffix(self):
+        return self._kpi_name_suffix
+
+    @property
+    def kpi_name(self):
+        return self._kpi_name
