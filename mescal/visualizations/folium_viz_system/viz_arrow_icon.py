@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from typing import Type, Literal, Any
-from enum import Enum
+from typing import Type, Any, TYPE_CHECKING
 import base64
 
 from shapely import Point
@@ -13,7 +12,9 @@ from mescal.visualizations.folium_viz_system.base_viz_system import (
     PropertyMapper,
     FoliumObjectGenerator,
 )
-from captain_arro import get_generator_for_arrow_type, ArrowTypeEnum
+
+if TYPE_CHECKING:
+    from captain_arro import ArrowTypeEnum
 
 
 @dataclass
@@ -27,7 +28,7 @@ class ResolvedArrowIconFeature(ResolvedFeature):
         return self.get('rotation_angle')
 
     @property
-    def arrow_type(self) -> ArrowTypeEnum:
+    def arrow_type(self) -> 'ArrowTypeEnum':
         return self.get('arrow_type')
 
     @property
@@ -161,6 +162,7 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconFeatureResolver]):
 
     def _generate_arrow_svg(self, style: ResolvedArrowIconFeature, data_item: VisualizableDataItem) -> str:
         from inspect import signature
+        from captain_arro import get_generator_for_arrow_type
 
         def safe_init(cls: type, kwargs: dict):
             init_params = signature(cls.__init__).parameters
