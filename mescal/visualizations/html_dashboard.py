@@ -155,6 +155,19 @@ class HTMLDashboard:
 
             dashboard.write("</body></html>\n")
 
+    def show(self, width: str = "100%", height: str = "600"):
+        """
+        Display the dashboard inline as an interactive HTML iframe.
+        """
+        import tempfile
+        from pathlib import Path
+        from IPython.display import IFrame, display
+
+        tmp_dir = Path(tempfile.mkdtemp())
+        html_path = tmp_dir / "dashboard.html"
+        self.save(html_path)
+        display(IFrame(src=str(html_path.resolve()), width=width, height=height))
+
 
 if __name__ == '__main__':
     from mescal.visualizations.html_table import HTMLTable

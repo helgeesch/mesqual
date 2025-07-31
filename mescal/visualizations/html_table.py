@@ -225,3 +225,16 @@ class HTMLTable:
             f.write(html)
 
         return filepath
+
+    def show(self, width: str = "100%", height: str = "600"):
+        """
+        Display the interactive Tabulator table inline in a Jupyter notebook.
+        """
+        import tempfile
+        from pathlib import Path
+        from IPython.display import IFrame, display
+
+        tmp_dir = Path(tempfile.mkdtemp())
+        html_path = tmp_dir / f"{self.table_id}.html"
+        self.save_html(str(html_path))
+        display(IFrame(src=str(html_path.resolve()), width=width, height=height))
