@@ -38,3 +38,6 @@ Documentation = "https://github.com/helgeesch/mescal#readme"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["mescal", "mescal.*"]
+
+[tool.setuptools.package-data]
+mescal = ["data/*.geojson"]
