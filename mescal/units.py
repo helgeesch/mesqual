@@ -16,7 +16,7 @@ class UnitRegistryNotComplete(Exception):
         super().__init__(base + message)
 
 
-ureg = UnitRegistry()
+ureg = UnitRegistry(on_redefinition='ignore')
 
 ureg.define("Wh = [energy]")
 ureg.define("kWh = 1e3 Wh = kWh")
