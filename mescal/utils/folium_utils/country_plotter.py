@@ -1,13 +1,11 @@
 import os
+
 import pandas as pd
 import geopandas as gpd
 import folium
 
-from mescal.utils.package_path import get_abs_source_root_path
-
 
 class MapCountryPlotter:
-    DEFAULT_GEOJSON_PATH = os.path.join(get_abs_source_root_path(), "data/countries.geojson")
     GEOJSON_ID_COLUMNS = ['ISO_A2', 'ISO_A3', 'SOV_A3']
     DEFAULT_STYLE = {
         'fillColor': '#C2C2C2',
@@ -17,8 +15,10 @@ class MapCountryPlotter:
     }
 
     def __init__(self, geojson_file_path: str = None):
-        geojson_file_path = geojson_file_path or self.DEFAULT_GEOJSON_PATH
-        gdf = gpd.read_file(geojson_file_path)
+        if geojson_file_path is None:
+            gdf = _load_countries_geojson()
+        else:
+            gdf = gpd.read_file(geojson_file_path)
         gdf.loc[:, 'geometry'] = gdf.buffer(0)
         gdf.set_crs('EPSG:4326', allow_override=True, inplace=True)
         self._countries_gdf = gdf
@@ -75,3 +75,21 @@ class MapCountryPlotter:
             if not country_match.empty:
                 matches = pd.concat([matches, country_match])
         return matches
+
+
+def _load_countries_geojson() -> gpd.GeoDataFrame:
+    from pathlib import Path
+    from importlib.resources import files
+    from mescal.utils.package_path import get_abs_source_root_path
+
+    # Try local dev path (source root)
+    local_path = Path(os.path.join(get_abs_source_root_path(), "mescal/data/countries.geojson"))
+    if local_path.exists():
+        return gpd.read_file(local_path)
+
+    # Fallback to installed package path
+    try:
+        pkg_path = files("mescal.data").joinpath("countries.geojson")
+        return gpd.read_file(str(pkg_path))
+    except Exception as e:
+        raise FileNotFoundError("❌ Could not locate 'countries.geojson' in either local or package paths.") from e
