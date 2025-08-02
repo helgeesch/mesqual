@@ -20,6 +20,21 @@ logger = get_logger(__name__)
 
 
 def flag_must_be_accepted(method):
+    """
+    Decorator that validates flag acceptance before method execution.
+    
+    Ensures that only accepted flags are processed by dataset methods,
+    providing clear error messages for invalid flag usage.
+    
+    Args:
+        method: The method to decorate
+        
+    Returns:
+        Decorated method that validates flag acceptance
+        
+    Raises:
+        ValueError: If the flag is not accepted by the dataset
+    """
     def raise_if_flag_not_accepted(self: Dataset, flag: FlagType, config: DatasetConfigType = None, **kwargs):
         if not self.flag_is_accepted(flag):
             raise ValueError(f'Flag {flag} not accepted by Dataset "{self.name}" of type {type(self)}.')
@@ -53,6 +68,40 @@ class _DotNotationFetcher:
 
 
 class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
+    """
+    Abstract base class for all datasets in the MESCAL framework.
+    
+    The Dataset class provides the fundamental interface for data access and manipulation
+    in MESCAL. It implements the core principle "Everything is a Dataset" where individual
+    scenarios, collections of scenarios, and scenario comparisons all share the same
+    unified interface.
+    
+    Key Features:
+        - Unified `.fetch(flag)` interface for data access
+        - Attribute management for scenario metadata
+        - KPI calculation integration
+        - Database caching support
+        - Dot notation fetching via `dotfetch` property
+        - Type-safe generic implementation
+    
+    Type Parameters:
+        DatasetConfigType: Configuration class for dataset behavior
+        FlagType: Type used for data flag identification (typically str)
+        FlagIndexType: Flag index implementation for flag mapping
+        
+    Attributes:
+        name (str): Human-readable identifier for the dataset
+        kpi_collection (KPICollection): Collection of KPIs associated with this dataset
+        dotfetch (_DotNotationFetcher): Enables dot notation data access
+        
+    Example:
+        >>> # Basic usage pattern
+        >>> data = dataset.fetch('buses_t.marginal_price')
+        >>> flags = dataset.accepted_flags
+        >>> if dataset.flag_is_accepted('generators_t.p'):
+        ...     gen_data = dataset.fetch('generators_t.p')
+    """
+    
     def __init__(
             self,
             name: str = None,
@@ -62,6 +111,17 @@ class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
             database: Database = None,
             config: DatasetConfigType = None
     ):
+        """
+        Initialize a new Dataset instance.
+        
+        Args:
+            name: Human-readable identifier. If None, auto-generates from class name
+            parent_dataset: Optional parent dataset for hierarchical relationships
+            flag_index: Index for mapping and validating data flags
+            attributes: Dictionary of metadata attributes for the dataset
+            database: Optional database for caching expensive computations
+            config: Configuration object controlling dataset behavior
+        """
         self.name = name or f'{self.__class__.__name__}_{str(id(self))}'
         self._flag_index = flag_index or EmptyFlagIndex()
         self._parent_dataset = parent_dataset
@@ -89,10 +149,25 @@ class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
         return self._database
 
     def add_kpis(self, kpis: Iterable[KPI | KPIFactory | Type[KPI]]):
+        """
+        Add multiple KPIs to this dataset's KPI collection.
+        
+        Args:
+            kpis: Iterable of KPI instances, factories, or classes to add
+        """
         for kpi in kpis:
             self.add_kpi(kpi)
 
     def add_kpi(self, kpi: KPI | KPIFactory | Type[KPI]):
+        """
+        Add a single KPI to this dataset's KPI collection.
+        
+        Automatically handles different KPI input types by converting factories
+        and classes to KPI instances.
+        
+        Args:
+            kpi: KPI instance, factory, or class to add
+        """
         from mescal.kpis.kpi_base import KPI
         from mescal.kpis.kpis_from_aggregations import KPIFactory
         if isinstance(kpi, KPIFactory):
@@ -140,16 +215,40 @@ class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
     @property
     @abstractmethod
     def accepted_flags(self) -> set[FlagType]:
+        """
+        Set of all flags accepted by this dataset.
+        
+        This abstract property must be implemented by all concrete dataset classes
+        to define which data flags can be fetched from the dataset.
+        
+        Returns:
+            Set of flags that can be used with the fetch() method
+            
+        Example:
+            >>> dataset.accepted_flags
+            {'buses', 'buses_t.marginal_price', 'generators', 'generators_t.p', ...}
+        """
         return set()
 
     def get_accepted_flags_containing_x(self, x: str, match_case: bool = False) -> set[FlagType]:
         """
-        Returns a set with all flags that are accepted and whose string contain x.
-
-        Example to retrieve all flags for generators:
-        >>> ds = PyPSADataset()
-        >>> ds.get_accepted_flags_containing_x('generators')
-        {'generators', 'generators_t.p', 'generators_t.efficiency', ...}
+        Find all accepted flags containing a specific substring.
+        
+        Useful for discovering related data flags or filtering flags by category.
+        
+        Args:
+            x: Substring to search for in flag names
+            match_case: If True, performs case-sensitive search. Default is False.
+            
+        Returns:
+            Set of accepted flags containing the substring
+            
+        Example:
+            >>> ds = PyPSADataset()
+            >>> ds.get_accepted_flags_containing_x('generators')
+            {'generators', 'generators_t.p', 'generators_t.efficiency', ...}
+            >>> ds.get_accepted_flags_containing_x('BUSES', match_case=True)
+            set()  # Empty because case doesn't match
         """
         if match_case:
             return {f for f in self.accepted_flags if x in str(f)}
@@ -175,6 +274,40 @@ class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
 
     @flag_must_be_accepted
     def fetch(self, flag: FlagType, config: dict | DatasetConfigType = None, **kwargs) -> pd.Series | pd.DataFrame:
+        """
+        Fetch data associated with a specific flag.
+        
+        This is the primary method for data access in MESCAL datasets. It provides
+        a unified interface for retrieving data regardless of the underlying source
+        or dataset type. The method includes automatic caching, post-processing,
+        and configuration management.
+        
+        Args:
+            flag: Data identifier flag (must be in accepted_flags)
+            config: Optional configuration to override dataset defaults.
+                   Can be a dict or DatasetConfig instance.
+            **kwargs: Additional keyword arguments passed to the underlying
+                     data fetching implementation
+                     
+        Returns:
+            DataFrame or Series containing the requested data
+            
+        Raises:
+            ValueError: If the flag is not accepted by this dataset
+            
+        Example:
+            >>> # Basic usage
+            >>> prices = dataset.fetch('buses_t.marginal_price')
+            >>> 
+            >>> # With custom configuration
+            >>> prices = dataset.fetch('buses_t.marginal_price', 
+            ...                       config={'use_database': False})
+            >>> 
+            >>> # With additional parameters
+            >>> filtered_data = dataset.fetch('generators_t.p',
+            ...                              start_date='2023-01-01',
+            ...                              end_date='2023-12-31')
+        """
         effective_config = self._prepare_config(config)
         use_database = self._database is not None and effective_config.use_database
 

@@ -22,6 +22,49 @@ class DatasetComparison(
     Generic[DatasetType, DatasetConfigType, FlagType, FlagIndexType],
     DatasetCollection[DatasetType, DatasetConfigType, FlagType, FlagIndexType]
 ):
+    """
+    Computes and provides access to differences between two datasets.
+    
+    DatasetComparison is a core component of MESCAL's scenario comparison capabilities.
+    It automatically calculates deltas, ratios, or side-by-side comparisons between
+    a variation dataset and a reference dataset, enabling systematic analysis of
+    scenario differences.
+    
+    Key Features:
+        - Automatic delta computation between datasets
+        - Multiple comparison types (DELTA, VARIATION, BOTH)
+        - Handles numeric and non-numeric data appropriately
+        - Preserves data structure and index relationships
+        - Configurable unchanged value handling
+        - Inherits full Dataset interface
+        
+    Comparison Types:
+        - DELTA: Variation - Reference (default)
+        - VARIATION: Returns variation data with optional NaN for unchanged values
+        - BOTH: Side-by-side variation and reference data
+        
+    Attributes:
+        variation_dataset: The dataset representing the scenario being compared
+        reference_dataset: The dataset representing the baseline for comparison
+        
+    Example:
+        >>> # Compare high renewable scenario to base case
+        >>> comparison = DatasetComparison(
+        ...     variation_dataset=high_res_dataset,
+        ...     reference_dataset=base_dataset
+        ... )
+        >>> 
+        >>> # Get price differences
+        >>> price_deltas = comparison.fetch('buses_t.marginal_price')
+        >>> 
+        >>> # Get both datasets side-by-side
+        >>> price_both = comparison.fetch('buses_t.marginal_price', 
+        ...                              comparison_type=ComparisonTypeEnum.BOTH)
+        >>> 
+        >>> # Highlight only changes
+        >>> price_changes = comparison.fetch('buses_t.marginal_price',
+        ...                                 replace_unchanged_values_by_nan=True)
+    """
     COMPARISON_ATTRIBUTES_SOURCE = ComparisonAttributesSourceEnum.USE_VARIATION_ATTS
     COMPARISON_NAME_JOIN = ' vs '
     VARIATION_DS_ATT_KEY = 'variation_dataset'
@@ -72,6 +115,39 @@ class DatasetComparison(
             fill_value: float | int | None = None,
             **kwargs
     ) -> pd.Series | pd.DataFrame:
+        """
+        Fetch comparison data between variation and reference datasets.
+        
+        Extends the base Dataset.fetch() method with comparison-specific parameters
+        for controlling how the comparison is computed and formatted.
+        
+        Args:
+            flag: Data identifier flag to fetch from both datasets
+            config: Optional configuration overrides
+            comparison_type: How to compare the datasets:
+                - DELTA: variation - reference (default)
+                - VARIATION: variation data only, optionally with NaN for unchanged
+                - BOTH: concatenated variation and reference data
+            replace_unchanged_values_by_nan: If True, replaces values that are
+                identical between datasets with NaN (useful for highlighting changes)
+            fill_value: Value to use for missing data in subtraction operations
+            **kwargs: Additional arguments passed to child dataset fetch methods
+            
+        Returns:
+            DataFrame or Series with comparison results
+            
+        Example:
+            >>> # Basic delta comparison
+            >>> deltas = comparison.fetch('buses_t.marginal_price')
+            >>> 
+            >>> # Highlight only changed values
+            >>> changes_only = comparison.fetch('buses_t.marginal_price',
+            ...                                replace_unchanged_values_by_nan=True)
+            >>> 
+            >>> # Side-by-side comparison
+            >>> both = comparison.fetch('buses_t.marginal_price',
+            ...                        comparison_type=ComparisonTypeEnum.BOTH)
+        """
         return super().fetch(
             flag=flag,
             config=config,
