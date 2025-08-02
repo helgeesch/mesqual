@@ -28,6 +28,7 @@ dependencies = [
     "colorlog",
     "tqdm",
     "python-polylabel",
+    "captain-arro",
 ]
 
 [project.urls]
