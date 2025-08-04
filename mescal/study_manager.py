@@ -5,6 +5,56 @@ from mescal.datasets.dataset_comparison import DatasetComparison, DatasetConcatC
 
 
 class StudyManager:
+    """
+    Central orchestrator for multi-scenario energy systems analysis using MESCAL's three-tier collection system.
+    
+    StudyManager provides unified access to scenarios, scenario comparisons, and combined datasets,
+    implementing MESCAL's core architectural principle that "Everything is a Dataset". It manages
+    the complete lifecycle of multi-scenario studies including data organization, automatic delta
+    computation, and export functionality.
+    
+    The class implements three primary data access patterns:
+    - `.scen`: Access to individual scenario data (DatasetConcatCollection)
+    - `.comp`: Access to scenario comparison deltas (DatasetConcatCollectionOfComparisons)  
+    - `.scen_comp`: Unified access to both scenarios and comparisons with type distinction
+    
+    Attributes:
+        scen (DatasetConcatCollection): Collection of scenario datasets with consistent .fetch() interface
+        comp (DatasetConcatCollectionOfComparisons): Collection of scenario comparisons with automatic delta calculation
+        scen_comp (DatasetConcatCollection): Unified collection combining scenarios and comparisons
+    
+    Examples:
+        Basic multi-scenario study setup:
+        
+        >>> from mescal import StudyManager
+        >>> from mescal_pypsa import PyPSADataset
+        >>> 
+        >>> study = StudyManager.factory_from_scenarios(
+        ...     scenarios=[
+        ...         PyPSADataset(base_network, name='base'),
+        ...         PyPSADataset(high_res_network, name='high_res'),
+        ...         PyPSADataset(low_gas_network, name='low_gas'),
+        ...     ],
+        ...     comparisons=[('high_res', 'base'), ('low_gas', 'base')],
+        ... )
+
+        Three-tier data access:
+        
+        >>> # Access scenario data across all scenarios
+        >>> scenario_prices = study.scen.fetch('buses_t.marginal_price')
+        >>> 
+        >>> # Access comparison deltas automatically calculated
+        >>> price_changes = study.comp.fetch('buses_t.marginal_price')
+        >>> 
+        >>> # Access unified view with type-level distinction
+        >>> unified_data = study.scen_comp.fetch('buses_t.marginal_price')
+    
+    Notes:
+        - All collections share the same .fetch(flag) interface for consistent data access
+        - Scenario comparisons are computed automatically as deltas (variation - reference)
+        - The unified collection uses 'type' as the concat_level_name to distinguish data sources
+        - Supports dynamic addition of scenarios and comparisons after initialization
+    """
     def __init__(
             self,
             scenarios: DatasetConcatCollection,
