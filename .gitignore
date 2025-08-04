@@ -1,5 +1,9 @@
 tmp/
 _tmp/
+*.local/
+*.local*
+.claude/
+.idea/
 .DS_Store
 
 # Byte-compiled / optimized / DLL files
