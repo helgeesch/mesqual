@@ -64,6 +64,7 @@ class DashboardConfig:
             time_series_figure_kwargs: dict = None,
             stat_figure_kwargs: dict = None,
             universal_figure_kwargs: dict = None,
+            use_string_for_axis: bool = False,
             **figure_kwargs
     ):
         self.x_axis = x_axis
@@ -105,6 +106,7 @@ class DashboardConfig:
             **universal_figure_kwargs,
             **figure_kwargs,
         }
+        self.use_string_for_axis = use_string_for_axis
 
 
 class DataProcessor:
@@ -179,14 +181,14 @@ class DataProcessor:
                 )
         return data
 
-    @staticmethod
-    def ensure_df_has_two_column_levels(data: pd.DataFrame, config: DashboardConfig) -> pd.DataFrame:
+    @classmethod
+    def ensure_df_has_two_column_levels(cls, data: pd.DataFrame, config: DashboardConfig) -> pd.DataFrame:
         if isinstance(data, pd.Series):
             data = data.to_frame(data.name or 'Time series')
 
         if data.columns.nlevels == 1:
             data.columns.name = data.columns.name or 'variable'
-            data = DataProcessor._insert_empty_column_index_level(data)
+            data = cls._insert_empty_column_index_level(data)
 
         if config.facet_col in [data.columns.names[0]]:
             data.columns = data.columns.reorder_levels([1, 0])
@@ -302,29 +304,26 @@ class ColorManager:
 
 
 class TraceGenerator:
-    @staticmethod
-    def get_heatmap_trace(data: pd.DataFrame, ts_kwargs, color_kwargs, **kwargs):
+
+    @classmethod
+    def get_heatmap_trace(cls, data: pd.DataFrame, ts_kwargs, color_kwargs, use_string_for_axis, **kwargs):
         if set(data.columns).issubset(list(range(1, 13))):
             x = [calendar.month_abbr[m] for m in range(1, 13)]
         else:
-            x = data.columns
+            if use_string_for_axis:
+                x = [str(i).replace('-', '_') for i in data.columns]
+            else:
+                x = data.columns
 
         trace_kwargs = {**color_kwargs, **ts_kwargs, **kwargs}
 
-        assert 'colorscale' in trace_kwargs
-        assert 'zmin' in trace_kwargs
-        assert 'zmax' in trace_kwargs
+        assert 'colorscale' in trace_kwargs and 'zmin' in trace_kwargs and 'zmax' in trace_kwargs
 
-        trace_heatmap = go.Heatmap(
-            x=x,
-            z=data.values,
-            y=data.index,
-            **trace_kwargs
-        )
+        trace_heatmap = go.Heatmap(x=x, z=data.values, y=data.index, **trace_kwargs)
         return trace_heatmap
 
-    @staticmethod
-    def get_stats_trace(series: pd.Series, stat_aggs, stat_kwargs, color_kwargs, **kwargs):
+    @classmethod
+    def get_stats_trace(cls, series: pd.Series, stat_aggs, stat_kwargs, color_kwargs, **kwargs):
         data_stats = pd.Series({agg: func(series) for agg, func in stat_aggs.items()})
         data_stats = data_stats.to_frame('stats')
         data_stats = DataProcessor._prepend_empty_row(data_stats)
@@ -338,9 +337,7 @@ class TraceGenerator:
         trace_kwargs = {**color_kwargs, **stat_kwargs, **kwargs}
         trace_kwargs['showscale'] = False  # Stats should never have a colorbar
 
-        assert 'colorscale' in trace_kwargs
-        assert 'zmin' in trace_kwargs
-        assert 'zmax' in trace_kwargs
+        assert 'colorscale' in trace_kwargs and 'zmin' in trace_kwargs and 'zmax' in trace_kwargs
 
         trace_stats = go.Heatmap(
             z=data_stats.values,
@@ -416,9 +413,14 @@ class TimeSeriesDashboardGenerator:
             time_series_figure_kwargs: dict = None,
             stat_figure_kwargs: dict = None,
             universal_figure_kwargs: dict = None,
+            use_string_for_axis: bool = False,
+            config_cls: type[DashboardConfig] = DashboardConfig,
+            data_processor_cls: type[DataProcessor] = DataProcessor,
+            color_manager_cls: type[ColorManager] = ColorManager,
+            trace_generator_cls: type[TraceGenerator] = TraceGenerator,
             **figure_kwargs
     ):
-        self.config = DashboardConfig(
+        self.config = config_cls(
             x_axis=x_axis,
             facet_col=facet_col,
             facet_row=facet_row,
@@ -441,8 +443,13 @@ class TimeSeriesDashboardGenerator:
             time_series_figure_kwargs=time_series_figure_kwargs,
             stat_figure_kwargs=stat_figure_kwargs,
             universal_figure_kwargs=universal_figure_kwargs,
+            use_string_for_axis=use_string_for_axis,
             ** figure_kwargs
         )
+        self.data_processor_cls = data_processor_cls
+        self.color_manager_cls = color_manager_cls
+        self.trace_generator_cls = trace_generator_cls
+
 
     def get_figure(self, data: pd.DataFrame, **kwargs):
         original_config = copy.deepcopy(self.config)
@@ -452,10 +459,10 @@ class TimeSeriesDashboardGenerator:
                 setattr(self.config, key, value)
 
         if not kwargs.get('_skip_validation', False):
-            DataProcessor.validate_input_data_and_config(data, self.config)
-        data = DataProcessor.prepare_dataframe_for_facet(data, self.config)
-        data = DataProcessor.ensure_df_has_two_column_levels(data, self.config)
-        DataProcessor.update_facet_config(data, self.config)
+            self.data_processor_cls.validate_input_data_and_config(data, self.config)
+        data = self.data_processor_cls.prepare_dataframe_for_facet(data, self.config)
+        data = self.data_processor_cls.ensure_df_has_two_column_levels(data, self.config)
+        self.data_processor_cls.update_facet_config(data, self.config)
 
         fig = self._create_figure_layout_with_subplots(data)
 
@@ -498,9 +505,9 @@ class TimeSeriesDashboardGenerator:
             if hasattr(self.config, key):
                 setattr(self.config, key, value)
 
-        data = DataProcessor.prepare_dataframe_for_facet(data, self.config)
-        data = DataProcessor.ensure_df_has_two_column_levels(data, self.config)
-        DataProcessor.update_facet_config(data, self.config)
+        data = self.data_processor_cls.prepare_dataframe_for_facet(data, self.config)
+        data = self.data_processor_cls.ensure_df_has_two_column_levels(data, self.config)
+        self.data_processor_cls.update_facet_config(data, self.config)
 
         if self.config.facet_row is None:
             return [self.get_figure(data, **kwargs)]
@@ -646,7 +653,7 @@ class TimeSeriesDashboardGenerator:
 
         global_color_params = {}
         if not (self.config.per_facet_col_colorscale or self.config.per_facet_row_colorscale):
-            global_color_params = ColorManager.compute_color_params(data, self.config)
+            global_color_params = self.color_manager_cls.compute_color_params(data, self.config)
 
         current_row = 1
         row_offset = 0
@@ -671,7 +678,7 @@ class TimeSeriesDashboardGenerator:
 
                 self._set_hovertemplates(x_axis)
 
-                grouped_data = DataProcessor.get_grouped_data(series, x_axis, groupby_aggregation)
+                grouped_data = self.data_processor_cls.get_grouped_data(series, x_axis, groupby_aggregation)
 
                 color_params = self._get_color_params_for_facet(data, facet_key, global_color_params)
 
@@ -679,11 +686,12 @@ class TimeSeriesDashboardGenerator:
                 if not disable_main_colorbars:
                     show_colorbar = (row_idx == 0 and col_idx == 0)
 
-                heatmap_trace = TraceGenerator.get_heatmap_trace(
+                heatmap_trace = self.trace_generator_cls.get_heatmap_trace(
                     grouped_data,
                     self.config.time_series_figure_kwargs,
                     color_params,
                     showscale=show_colorbar,
+                    use_string_for_axis=self.config.use_string_for_axis,
                 )
 
                 fig.add_trace(heatmap_trace, row=fig_row, col=fig_col)
@@ -699,7 +707,7 @@ class TimeSeriesDashboardGenerator:
                 if x_axis == 'year_week':
                     fig.update_xaxes(dtick=8, row=fig_row, col=fig_col)
 
-                stats_trace = TraceGenerator.get_stats_trace(
+                stats_trace = self.trace_generator_cls.get_stats_trace(
                     series,
                     self.config.stat_aggs,
                     self.config.stat_figure_kwargs,
@@ -716,7 +724,7 @@ class TimeSeriesDashboardGenerator:
 
     def _get_color_params_for_facet(self, data: pd.DataFrame, facet_key: tuple[str, str], global_color_params: dict) -> dict:
         if self.config.per_facet_col_colorscale or self.config.per_facet_row_colorscale:
-            color_params = ColorManager.compute_color_params(data, self.config, facet_key)
+            color_params = self.color_manager_cls.compute_color_params(data, self.config, facet_key)
         else:
             color_params = global_color_params
         return color_params
@@ -729,7 +737,7 @@ class TimeSeriesDashboardGenerator:
 
             facet_key = (row_key, self.config.facet_col_order[0])
             colorscale, z_max, z_min = self._get_color_settings_for_category(data, facet_key)
-            colorscale_trace = TraceGenerator.create_colorscale_trace(
+            colorscale_trace = self.trace_generator_cls.create_colorscale_trace(
                 z_min, z_max, colorscale, 'v', row_key
             )
 
@@ -738,7 +746,7 @@ class TimeSeriesDashboardGenerator:
             fig.update_yaxes(showticklabels=True, showgrid=False, row=row_pos, col=colorscale_col, side='right')
 
     def _get_color_settings_for_category(self, data, facet_key):
-        color_params = ColorManager.compute_color_params(data, self.config, facet_key)
+        color_params = self.color_manager_cls.compute_color_params(data, self.config, facet_key)
         colorscale = color_params.get('colorscale', 'viridis')
         z_min = color_params.get('zmin', 0)
         z_max = color_params.get('zmax', 1)
@@ -755,7 +763,7 @@ class TimeSeriesDashboardGenerator:
 
             colorscale, z_max, z_min = self._get_color_settings_for_category(data, facet_key)
 
-            colorscale_trace = TraceGenerator.create_colorscale_trace(
+            colorscale_trace = self.trace_generator_cls.create_colorscale_trace(
                 z_min, z_max, colorscale, 'h', col_key
             )
 
