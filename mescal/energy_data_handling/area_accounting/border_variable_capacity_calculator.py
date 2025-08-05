@@ -30,21 +30,25 @@ class BorderCapacityCalculator(AreaBorderVariableCalculatorBase):
                 continue
 
             if direction == 'up':
-                capacities_up_lines = line_capacity_data.capacities_up[lines_up]
-                capacities_down_lines = line_capacity_data.capacities_down[lines_down]
+                capacities = pd.concat(
+                    [
+                        line_capacity_data.capacities_up[lines_up],
+                        line_capacity_data.capacities_down[lines_down],
+                    ],
+                    axis=1,
+                )
             elif direction == 'down':
-                capacities_up_lines = line_capacity_data.capacities_down[lines_up]
-                capacities_down_lines = line_capacity_data.capacities_up[lines_down]
+                capacities = pd.concat(
+                    [
+                        line_capacity_data.capacities_up[lines_down],
+                        line_capacity_data.capacities_down[lines_up],
+                    ],
+                    axis=1,
+                )
             else:
                 raise ValueError(f"Unknown capacity direction: {direction}")
 
-            capacity = capacities_up_lines.sum(axis=1) + capacities_down_lines.sum(axis=1)
-            if capacities_up_lines.empty and capacities_down_lines.empty:
-                capacity.values[:] = np.nan
-            else:
-                capacity[capacities_up_lines.isna().all(axis=1) & capacities_down_lines.isna().all(axis=1)] = np.nan
-
-            border_capacities[border_id] = capacity
+            border_capacities[border_id] = capacities.sum(axis=1)
 
         result = pd.DataFrame(border_capacities)
         result.columns.name = self.border_identifier
