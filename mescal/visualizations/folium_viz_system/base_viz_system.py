@@ -28,6 +28,8 @@ class PropertyMapper:
             attribute: str,
             mapping: Callable[[Any], Any] = None,
     ) -> 'PropertyMapper':
+        if mapping is None:
+            mapping = lambda x: x
         return cls(lambda data_item: mapping(data_item.get_object_attribute(attribute)))
 
     @classmethod
