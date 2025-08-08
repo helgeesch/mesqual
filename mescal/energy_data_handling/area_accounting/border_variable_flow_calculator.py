@@ -31,11 +31,11 @@ class BorderFlowCalculator(AreaBorderVariableCalculatorBase):
                 continue
 
             if flow_type == 'sent':
-                flows_up = line_flow_data.sent_up[lines_up]
-                flows_down = line_flow_data.sent_down[lines_down]
+                flows_up = pd.concat([line_flow_data.sent_up[lines_up], line_flow_data.sent_down[lines_down]], axis=1)
+                flows_down = pd.concat([line_flow_data.sent_up[lines_down], line_flow_data.sent_down[lines_up]], axis=1)
             elif flow_type == 'received':
-                flows_up = line_flow_data.received_up[lines_up]
-                flows_down = line_flow_data.received_down[lines_down]
+                flows_up = pd.concat([line_flow_data.received_up[lines_up], line_flow_data.received_down[lines_down]], axis=1)
+                flows_down = pd.concat([line_flow_data.received_up[lines_down], line_flow_data.received_down[lines_up]], axis=1)
             else:
                 raise ValueError(f"Unknown flow_type: {flow_type}")
 
@@ -49,7 +49,7 @@ class BorderFlowCalculator(AreaBorderVariableCalculatorBase):
             elif direction == 'down':
                 flow = flow_down
             elif direction == 'net':
-                flow = flow_up - flow_down
+                flow = flow_up.subtract(flow_down, fill_value=0)
                 flow[flow_up.isna() & flow_down.isna()] = np.nan
             else:
                 raise ValueError(f"Unknown flow direction: {direction}")

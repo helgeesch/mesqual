@@ -13,6 +13,7 @@ from .area_variable_price_calculator import AreaPriceCalculator
 from .area_variable_sum_calculator import AreaSumCalculator
 from .border_variable_flow_calculator import BorderFlowCalculator
 from .border_variable_price_spread_calculator import BorderPriceSpreadCalculator
+from .border_variable_capacity_calculator import BorderCapacityCalculator
 
 __all__ = [
     'AreaModelGenerator',
@@ -24,6 +25,7 @@ __all__ = [
 
     'BorderFlowCalculator',
     'BorderPriceSpreadCalculator',
+    'BorderCapacityCalculator',
 ]
 
 __version__ = '0.1.0'
