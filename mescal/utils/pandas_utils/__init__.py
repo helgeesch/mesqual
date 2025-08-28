@@ -4,3 +4,4 @@ from mescal.utils.pandas_utils.flatten_df import flatten_df
 from mescal.utils.pandas_utils.sort_multiindex import sort_multiindex
 from mescal.utils.pandas_utils.xs_df import xs_df
 from mescal.utils.pandas_utils.merge_multi_index_levels import merge_multi_index_levels
+from mescal.utils.pandas_utils.add_index_as_column import add_index_as_column
