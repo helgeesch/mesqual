@@ -23,20 +23,19 @@ def add_index_as_column(df: pd.DataFrame) -> pd.DataFrame:
 
     # Check if the index is a MultiIndex
     if isinstance(df_copy.index, pd.MultiIndex):
-        print("Handling MultiIndex...")
 
         # Get the names of the index levels
         level_names = df_copy.index.names
 
         # Add columns for each level of the MultiIndex
         for i, name in enumerate(level_names):
-            df_copy[name] = df_copy.index.get_level_values(i)
+            if name not in df_copy.columns:
+                df_copy[name] = df_copy.index.get_level_values(i)
 
         # Add a column for the combined index tuple
         df_copy['combined_index'] = df_copy.index.to_list()
 
     else:
-        print("Handling single-level Index...")
 
         # Get the index name, defaulting to 'index' if unnamed
         index_name = df_copy.index.name
@@ -44,7 +43,8 @@ def add_index_as_column(df: pd.DataFrame) -> pd.DataFrame:
             index_name = 'index'
 
         # Add the index as a new column
-        df_copy[index_name] = df_copy.index
+        if index_name not in df_copy.columns:
+            df_copy[index_name] = df_copy.index
 
     return df_copy
 
