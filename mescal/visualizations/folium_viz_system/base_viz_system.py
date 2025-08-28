@@ -1,14 +1,16 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Union, Callable, Any, Generic, List, Type, Dict
+from typing import Union, Callable, Any, Generic, List, Type, Dict, TYPE_CHECKING
 
 from shapely import Point, Polygon, MultiPolygon, LineString, MultiLineString
 import pandas as pd
 import folium
 
-from mescal.kpis import KPICollection, KPI
 from mescal.typevars import ResolvedFeatureType, FeatureResolverType
 from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem, ModelDataItem, KPIDataItem
+
+if TYPE_CHECKING:
+    from mescal.kpis import KPI, KPICollection
 
 
 class PropertyMapper:
