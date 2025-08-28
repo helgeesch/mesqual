@@ -41,10 +41,13 @@ class VisualizableDataItem(ABC):
 
 class ModelDataItem(VisualizableDataItem):
     """Visualizable data item for model DataFrame rows."""
+    OBJECT_NAME_COLUMNS = ['name', 'object_id', 'index', 'object_name']
 
-    def __init__(self, object_data: pd.Series, **kwargs):
+    def __init__(self, object_data: pd.Series, object_type: str | Any = None, **kwargs):
         self.object_data = object_data
         self.object_id = object_data.name
+        self.object_type = object_type
+        self.name_attributes = self.OBJECT_NAME_COLUMNS + [self.object_type]
         super().__init__(**kwargs)
 
     def get_name(self) -> str:
@@ -64,16 +67,18 @@ class ModelDataItem(VisualizableDataItem):
         return data
 
     def get_object_attribute(self, attribute: str) -> Any:
+        if (attribute in self.name_attributes) and (attribute not in self.object_data):
+            return self.get_name()
         return self.object_data.get(attribute)
 
     def object_has_attribute(self, attribute: str) -> bool:
-        return attribute in self.object_data
+        return (attribute in self.object_data) or (attribute in self.name_attributes)
 
 
 class KPIDataItem(VisualizableDataItem):
     """Visualizable data item for KPI objects."""
 
-    KPI_VALUE_COLUMN = 'kpi_value'
+    KPI_VALUE_COLUMNS = ['kpi_value', 'value', 'kpi']
 
     def __init__(self, kpi: KPI, kpi_collection: KPICollection = None, **kwargs):
         self.kpi = kpi
@@ -97,11 +102,11 @@ class KPIDataItem(VisualizableDataItem):
         return {**kpi_data, **model_data}
 
     def get_object_attribute(self, attribute: str) -> Any:
-        if attribute == self.KPI_VALUE_COLUMN:
+        if (attribute in self.KPI_VALUE_COLUMNS) and (not self._model_item.object_has_attribute(attribute)):
             return self.kpi.value
         return self._model_item.get_object_attribute(attribute)
 
     def object_has_attribute(self, attribute: str) -> bool:
-        if attribute == self.KPI_VALUE_COLUMN:
+        if attribute in self.KPI_VALUE_COLUMNS:
             return True
         return self._model_item.object_has_attribute(attribute)

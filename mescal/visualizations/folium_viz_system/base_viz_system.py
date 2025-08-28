@@ -7,6 +7,7 @@ import pandas as pd
 import folium
 
 from mescal.typevars import ResolvedFeatureType, FeatureResolverType
+from mescal.utils.pandas_utils import add_index_as_column
 from mescal.visualizations.folium_viz_system.visualizable_data_item import VisualizableDataItem, ModelDataItem, KPIDataItem
 
 if TYPE_CHECKING:
@@ -218,8 +219,10 @@ class FoliumObjectGenerator(Generic[FeatureResolverType], ABC):
             **kwargs
     ) -> folium.FeatureGroup:
         """Add model DataFrame data to the map."""
-        for _, row in model_df.iterrows():
-            data_item = ModelDataItem(row, **kwargs)
+        model_dff = add_index_as_column(model_df)
+        object_type = model_dff.index.name if isinstance(model_dff.index.name, str) else None
+        for _, row in model_dff.iterrows():
+            data_item = ModelDataItem(row, object_type=object_type, **kwargs)
             self.generate(data_item, feature_group)
         return feature_group
 
