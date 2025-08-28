@@ -192,6 +192,7 @@ if __name__ == '__main__':
         SegmentedContinuousColorscale,
         SegmentedContinuousOpacityMapping,
     )
+    from captain_arro import ArrowTypeEnum
 
     border_model_df = pd.DataFrame({
         'projection_point': [Point(7.45, 49.15), Point(6.94, 52.22), Point(6.34, 50.38), Point(12.31, 50.25)],
