@@ -101,6 +101,8 @@ class PropertyMapper:
             >>> size_mapper = PropertyMapper.from_item_attr('power_mw', 
             ...                                           lambda mw: min(max(mw/10, 5), 50))
         """
+        if mapping is None:
+            mapping = lambda x: x
         return cls(lambda data_item: mapping(data_item.get_object_attribute(attribute)))
 
     @classmethod
