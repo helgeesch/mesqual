@@ -16,7 +16,13 @@ from mescal.visualizations.folium_viz_system.base_viz_system import (
 
 @dataclass
 class ResolvedTextOverlayFeature(ResolvedFeature):
-    """Specialized style container for text overlay visualizations."""
+    """
+    Resolved visual properties for text overlay elements.
+    
+    Container for all computed styling properties of text overlay visualizations,
+    including font styling, positioning, colors, and shadow effects.
+    Used by TextOverlayGenerator to create folium markers with styled text content.
+    """
 
     @property
     def location(self) -> Point:
@@ -48,6 +54,47 @@ class ResolvedTextOverlayFeature(ResolvedFeature):
 
 
 class TextOverlayFeatureResolver(FeatureResolver[ResolvedTextOverlayFeature]):
+    """
+    Resolves visual properties for text overlay elements.
+    
+    Specialized feature resolver for text overlay visualizations that handles text
+    content, font styling, positioning, and visual effects. Commonly used for
+    adding data labels, value displays, or annotations to map elements.
+    
+    Args:
+        text_color: Text color (static value or PropertyMapper)
+        font_size: Font size with units like '10pt' (static value or PropertyMapper)
+        font_weight: Font weight like 'bold', 'normal' (static value or PropertyMapper)
+        background_color: Background color for text (static value or PropertyMapper)
+        shadow_size: Text shadow size like '0.5px' (static value or PropertyMapper)
+        shadow_color: Text shadow color (static value or PropertyMapper)
+        text_print_content: Text content to display (True for auto-generated)
+        tooltip: Tooltip content (True for auto-generated, False for none)
+        popup: Popup content (True/False/PropertyMapper)
+        location: Point location (defaults to smart location detection)
+        **property_mappers: Additional custom property mappings
+        
+    Examples:
+        Basic value labels:
+        >>> resolver = TextOverlayFeatureResolver(
+        ...     text_color='#000000',
+        ...     font_size='12pt',
+        ...     font_weight='bold'
+        ... )
+        
+        Data-driven text styling:
+        >>> resolver = TextOverlayFeatureResolver(
+        ...     text_color=PropertyMapper.from_kpi_value(
+        ...         lambda v: '#FF0000' if v > 100 else '#000000'
+        ...     ),
+        ...     font_size=PropertyMapper.from_kpi_value(
+        ...         lambda v: f'{min(max(8 + v/50, 8), 20)}pt'
+        ...     ),
+        ...     text_print_content=PropertyMapper.from_kpi_value(
+        ...         lambda v: f'{v:.0f} MW'
+        ...     )
+        ... )
+    """
     def __init__(
             self,
             text_color: PropertyMapper | str = '#3A3A3A',
@@ -79,12 +126,58 @@ class TextOverlayFeatureResolver(FeatureResolver[ResolvedTextOverlayFeature]):
 
 
 class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayFeatureResolver]):
+    """
+    Generates text overlays for map data items.
+    
+    Creates folium Marker objects with styled HTML text content overlaid on
+    the map. Handles text formatting, positioning, shadow effects, and
+    responsive styling based on data values.
+    
+    Commonly used for displaying:
+    - KPI values directly on map elements (power flows, prices, etc.)
+    - Data labels for areas, lines, or points
+    - Dynamic text that changes based on underlying data
+    - Status indicators or categorical labels
+    
+    Examples:
+        Value display on bidding zones:
+        >>> from mescal.units import Units
+        >>> text_gen = TextOverlayGenerator(
+        ...     TextOverlayFeatureResolver(
+        ...         text_print_content=PropertyMapper(
+        ...             lambda di: Units.get_pretty_text_for_quantity(
+        ...                 di.kpi.quantity, decimals=0, include_unit=False
+        ...             )
+        ...         ),
+        ...         font_size='10pt',
+        ...         font_weight='bold'
+        ...     )
+        ... )
+        >>> 
+        >>> fg = folium.FeatureGroup('Price Labels')
+        >>> text_gen.generate_objects_for_kpi_collection(price_kpis, fg)
+        >>> fg.add_to(map)
+        
+        Combined with area visualization:
+        >>> area_gen = AreaGenerator(...)
+        >>> text_gen = TextOverlayGenerator(...)
+        >>> 
+        >>> area_gen.generate_objects_for_model_df(zones_df, feature_group)
+        >>> text_gen.generate_objects_for_model_df(zones_df, feature_group)
+    """
     """Generates text overlays for map data items."""
 
     def _feature_resolver_type(self) -> Type[TextOverlayFeatureResolver]:
         return TextOverlayFeatureResolver
 
     def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
+        """
+        Generate and add a folium Marker with styled text overlay.
+        
+        Args:
+            data_item: Data item containing point location and text content
+            feature_group: Folium feature group to add the text marker to
+        """
         style = self.feature_resolver.resolve_feature(data_item)
         if not isinstance(style.location, Point):
             return

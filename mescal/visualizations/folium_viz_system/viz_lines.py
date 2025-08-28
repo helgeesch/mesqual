@@ -21,6 +21,13 @@ logger = get_logger(__name__)
 
 @dataclass
 class ResolvedLineFeature(ResolvedFeature):
+    """
+    Resolved visual properties for line/connection map elements.
+    
+    Container for all computed styling properties of line visualizations,
+    including colors, widths, dash patterns, and animation effects.
+    Used by LineGenerator to create folium PolyLine objects.
+    """
     """Specialized style container for line visualizations."""
 
     @property
@@ -61,6 +68,45 @@ class ResolvedLineFeature(ResolvedFeature):
 
 
 class LineFeatureResolver(FeatureResolver[ResolvedLineFeature]):
+    """
+    Resolves visual properties for line/connection map elements.
+    
+    Specialized feature resolver for line visualizations that handles LineString
+    geometries, styling options like colors and widths, and advanced features
+    like animated ant paths. Commonly used for visualizing transmission lines,
+    interconnectors, or any linear connections between geographic points.
+    
+    Args:
+        line_color: Line stroke color (static value or PropertyMapper)
+        line_width: Line width in pixels (static value or PropertyMapper)
+        line_opacity: Line transparency 0-1 (static value or PropertyMapper)
+        dash_pattern: Dash pattern as list of integers (static value or PropertyMapper)
+        line_ant_path: Enable animated "marching ants" effect (static value or PropertyMapper)
+        line_ant_path_delay: Animation delay in milliseconds (static value or PropertyMapper)
+        line_ant_path_pulse_color: Color of animation pulses (static value or PropertyMapper)
+        reverse_path_direction: Reverse line direction (static value or PropertyMapper)
+        tooltip: Tooltip content (True for auto-generated, False for none)
+        popup: Popup content (True/False/PropertyMapper)
+        geometry: LineString geometry (defaults to 'geometry' attribute)
+        **property_mappers: Additional custom property mappings
+        
+    Examples:
+        Basic line visualization:
+        >>> resolver = LineFeatureResolver(
+        ...     line_color='#FF0000',
+        ...     line_width=3.0,
+        ...     line_opacity=0.8
+        ... )
+        
+        Data-driven flow visualization:
+        >>> flow_color_scale = SegmentedContinuousColorscale(...)
+        >>> width_scale = SegmentedContinuousLineWidthMapping(...)
+        >>> resolver = LineFeatureResolver(
+        ...     line_color=PropertyMapper.from_kpi_value(flow_color_scale),
+        ...     line_width=PropertyMapper.from_kpi_value(width_scale),
+        ...     line_ant_path=PropertyMapper.from_kpi_value(lambda v: abs(v) > 100)
+        ... )
+    """
     def __init__(
             self,
             line_color: PropertyMapper | str = '#000000',
@@ -94,7 +140,53 @@ class LineFeatureResolver(FeatureResolver[ResolvedLineFeature]):
 
 
 class LineGenerator(FoliumObjectGenerator[LineFeatureResolver]):
-    """Generates folium PolyLine objects for line geometries with optional per-feature-group offset tracking."""
+    """
+    Generates folium PolyLine objects for line visualizations with offset management.
+    
+    Creates interactive map lines from data items with computed styling properties.
+    Handles LineString geometries, applies styling, and manages automatic offset
+    positioning to prevent overlapping lines on the same route.
+    
+    Features automatic line offset registry to handle multiple lines between
+    the same points, animated ant paths for flow visualization, and support
+    for dash patterns and opacity effects.
+    
+    Args:
+        feature_resolver: LineFeatureResolver for computing visual properties
+        per_feature_group_offset_registry: Use separate offset tracking per feature group
+        offset_increment: Pixel increment for line offsets (default: 5)
+    
+    Commonly used for visualizing:
+    - Transmission lines colored by power flows
+    - Interconnectors with bidirectional flow indicators
+    - Transport connections with capacity or utilization data
+    - Network links with performance metrics
+    
+    Examples:
+        Basic flow visualization:
+        >>> color_scale = SegmentedContinuousColorscale(...)
+        >>> width_scale = SegmentedContinuousLineWidthMapping(...)
+        >>> generator = LineGenerator(
+        ...     LineFeatureResolver(
+        ...         line_color=PropertyMapper.from_kpi_value(color_scale),
+        ...         line_width=PropertyMapper.from_kpi_value(width_scale),
+        ...         tooltip=True
+        ...     ),
+        ...     offset_increment=10  # Larger offset for visibility
+        ... )
+        >>> 
+        >>> fg = folium.FeatureGroup('Power Flows')
+        >>> generator.generate_objects_for_kpi_collection(flow_kpis, fg)
+        >>> fg.add_to(map)
+        
+        Animated flow indication:
+        >>> resolver = LineFeatureResolver(
+        ...     line_ant_path=PropertyMapper.from_kpi_value(lambda v: abs(v) > 500),
+        ...     line_ant_path_delay=2000,
+        ...     reverse_path_direction=PropertyMapper.from_kpi_value(lambda v: v < 0)
+        ... )
+        >>> generator = LineGenerator(resolver)
+    """
 
     def __init__(
             self,
@@ -116,6 +208,13 @@ class LineGenerator(FoliumObjectGenerator[LineFeatureResolver]):
         return LineFeatureResolver
 
     def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
+        """
+        Generate and add a folium PolyLine to the feature group with automatic offset.
+        
+        Args:
+            data_item: Data item containing LineString geometry and associated data
+            feature_group: Folium feature group to add the line to
+        """
         style = self.feature_resolver.resolve_feature(data_item)
         geometry = style.geometry
         if not isinstance(geometry, (LineString, MultiLineString)):

@@ -8,7 +8,17 @@ from mescal.kpis import KPI, KPICollection
 
 
 class VisualizableDataItem(ABC):
-    """Abstract interface for data items that can be visualized on maps."""
+    """
+    Abstract interface for data items that can be visualized on maps.
+    
+    Defines the contract for all data items that can be processed by the
+    folium visualization system. Provides attribute access, tooltip data
+    generation, and text representation for map elements.
+    
+    This abstraction enables polymorphic handling of different data sources
+    (model DataFrames, KPI objects, custom data) within the visualization
+    pipeline while maintaining consistent interface expectations.
+    """
 
     def __init__(self, **kwargs):
         for k, v in kwargs.items():
@@ -40,7 +50,32 @@ class VisualizableDataItem(ABC):
 
 
 class ModelDataItem(VisualizableDataItem):
-    """Visualizable data item for model DataFrame rows."""
+    """
+    Visualizable data item for model DataFrame rows.
+    
+    Wraps pandas Series objects (DataFrame rows) to provide the VisualizableDataItem
+    interface. Commonly used for visualizing static model data like network
+    topology, geographic boundaries, or reference datasets.
+    
+    Handles attribute access from DataFrame columns, provides meaningful object
+    naming, and generates informative tooltips from available data.
+    
+    Args:
+        object_data: Pandas Series representing a DataFrame row
+        object_type: Optional type identifier for the object
+        **kwargs: Additional attributes to set on the data item
+        
+    Examples:
+        Typical usage in generators:
+        >>> for _, row in model_df.iterrows():
+        ...     data_item = ModelDataItem(row, object_type='BiddingZone')
+        ...     generator.generate(data_item, feature_group)
+        
+        Access pattern:
+        >>> data_item.get_object_attribute('geometry')  # From DataFrame column
+        >>> data_item.get_name()  # Object identifier
+        >>> data_item.get_tooltip_data()  # All available data for tooltip
+    """
     OBJECT_NAME_COLUMNS = ['name', 'object_id', 'index', 'object_name']
 
     def __init__(self, object_data: pd.Series, object_type: str | Any = None, **kwargs):
@@ -76,7 +111,34 @@ class ModelDataItem(VisualizableDataItem):
 
 
 class KPIDataItem(VisualizableDataItem):
-    """Visualizable data item for KPI objects."""
+    """
+    Visualizable data item for KPI objects.
+    
+    Wraps MESCAL KPI objects to provide the VisualizableDataItem interface.
+    Combines KPI values with associated model object information for rich
+    map visualization of computed energy system metrics.
+    
+    Handles attribute access from both KPI values and underlying model objects,
+    provides formatted value representations, and generates enhanced tooltips
+    showing both KPI information and object details.
+    
+    Args:
+        kpi: MESCAL KPI object with computed value and metadata
+        kpi_collection: Optional KPI collection for context
+        **kwargs: Additional attributes to set on the data item
+        
+    Examples:
+        Typical usage in visualizers:
+        >>> for kpi in kpi_collection:
+        ...     data_item = KPIDataItem(kpi, kpi_collection)
+        ...     generator.generate(data_item, feature_group)
+        
+        Access patterns:
+        >>> data_item.kpi.value  # Direct KPI value access
+        >>> data_item.get_object_attribute('geometry')  # From model object
+        >>> data_item.get_object_attribute('kpi_value')  # Alias for KPI value
+        >>> data_item.get_text_representation()  # Formatted value string
+    """
 
     KPI_VALUE_COLUMNS = ['kpi_value', 'value', 'kpi']
 
@@ -91,6 +153,12 @@ class KPIDataItem(VisualizableDataItem):
         return str(self.kpi.name)
 
     def get_text_representation(self) -> str:
+        """
+        Get formatted text representation of the KPI value.
+        
+        Returns:
+            Formatted string representation of the KPI value
+        """
         return f"{self.kpi.value:.1f}"  # TODO: use pretty formatting and quantities etc.
 
     def get_tooltip_data(self) -> dict:
