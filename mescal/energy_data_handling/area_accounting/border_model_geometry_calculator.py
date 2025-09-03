@@ -17,7 +17,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
     """
 
     PROJECTION_POINT_IDENTIFIER = 'projection_point'
-    PROJECTION_ANGLE_IDENTIFIER = 'projection_angle'
+    AZIMUTH_ANGLE_IDENTIFIER = 'azimuth_angle'
     BORDER_IS_PHYSICAL_IDENTIFIER = 'is_physical'
     BORDER_LINE_STRING_IDENTIFIER = 'geo_line_string'
     
@@ -66,7 +66,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
         
         return {
             self.PROJECTION_POINT_IDENTIFIER: midpoint,
-            self.PROJECTION_ANGLE_IDENTIFIER: angle,
+            self.AZIMUTH_ANGLE_IDENTIFIER: angle,
             self.BORDER_LINE_STRING_IDENTIFIER: border_line,
             self.BORDER_IS_PHYSICAL_IDENTIFIER: is_physical
         }
@@ -452,20 +452,21 @@ class NonCrossingPathFinder:
 if __name__ == '__main__':
     # Example usage
     import geopandas as gpd
-    
-    # Load example data (assumes countries.geojson exists)
-    gdf = gpd.read_file('data/countries.geojson').set_index('id')
-    
-    calculator = AreaBorderGeometryCalculator(gdf)
-    
+
     # Test different border types
-    test_pairs = [('NO', 'DE'), ('DE', 'PL'), ('PL', 'DE'), ('DE', 'GB')]
-    
+    test_pairs = [('SE', 'DE'), ('DE', 'PL'), ('PL', 'DE'), ('DE', 'GB')]
+    areas = list({a for b in test_pairs for a in b})
+
+    # Load example data (assumes countries.geojson exists)
+    gdf = gpd.read_file('submodules/mescal/mescal/data/countries.geojson').set_index('ISO_A2')
+    gdf = gdf.loc[areas]
+
+    calculator = AreaBorderGeometryCalculator(gdf)
     for area_from, area_to in test_pairs:
         geometry_info = calculator.calculate_border_geometry(area_from, area_to)
         
         print(f"\n{area_from} → {area_to}:")
-        print(f"  Projection point: {geometry_info['projection_point']}")
-        print(f"  Angle: {geometry_info['projection_angle']:.1f}°")
-        print(f"  Physical border: {geometry_info['is_physical']}")
-        print(f"  Border length: {geometry_info['border_line'].length:.6f}")
+        print(f"  Projection point: {geometry_info[AreaBorderGeometryCalculator.PROJECTION_POINT_IDENTIFIER]}")
+        print(f"  Angle: {geometry_info[AreaBorderGeometryCalculator.AZIMUTH_ANGLE_IDENTIFIER]:.1f}°")
+        print(f"  Physical border: {geometry_info[AreaBorderGeometryCalculator.BORDER_IS_PHYSICAL_IDENTIFIER]}")
+        print(f"  Border length: {geometry_info[AreaBorderGeometryCalculator.BORDER_LINE_STRING_IDENTIFIER].length:.6f}")

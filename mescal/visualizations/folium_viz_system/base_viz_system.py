@@ -17,25 +17,25 @@ if TYPE_CHECKING:
 class PropertyMapper:
     """
     Maps data item attributes to visual properties for folium map visualization.
-    
+
     Core abstraction for converting model data, KPI values, or static values into
     visual properties (colors, sizes, positions, etc.) for map elements. Used throughout
     the folium visualization system to create dynamic, data-driven map styling.
-    
+
     The PropertyMapper encapsulates a transformation function that takes a VisualizableDataItem
     and returns a styled value. This enables powerful declarative map styling where
     visual properties are automatically computed from underlying data.
-    
+
     Examples:
         Basic color mapping from KPI values:
         >>> color_mapper = PropertyMapper.from_kpi_value(lambda v: 'red' if v > 0 else 'blue')
-        
+
         Size mapping from model attributes:
         >>> size_mapper = PropertyMapper.from_item_attr('capacity', lambda c: c / 100)
-        
+
         Static styling:
         >>> border_mapper = PropertyMapper.from_static_value('#000000')
-        
+
         Complex conditional styling:
         >>> def complex_color(data_item: KPIDataItem):
         ...     kpi_val = data_item.kpi.value
@@ -53,16 +53,16 @@ class PropertyMapper:
     def from_static_value(cls, value: Any) -> 'PropertyMapper':
         """
         Create mapper that returns the same value for all data items.
-        
+
         Used for consistent styling across all map elements (e.g., all borders
         the same color, all markers the same size).
-        
+
         Args:
             value: Static value to return for all data items
-            
+
         Returns:
             PropertyMapper that always returns the static value
-            
+
         Examples:
             >>> border_color = PropertyMapper.from_static_value('#FFFFFF')
             >>> opacity = PropertyMapper.from_static_value(0.8)
@@ -77,28 +77,28 @@ class PropertyMapper:
     ) -> 'PropertyMapper':
         """
         Create mapper from model/object attribute with optional transformation.
-        
+
         Extracts values from model data attributes (geometry, capacity, name, etc.)
         and optionally applies a transformation function. The attribute is resolved
         from the underlying model DataFrame or object data.
-        
+
         Args:
             attribute: Name of the attribute to extract (e.g., 'geometry', 'capacity'), must be an entry in the object pd.Series
             mapping: Optional transformation function to apply to the attribute value
-            
+
         Returns:
             PropertyMapper that extracts and optionally transforms the attribute
-            
+
         Examples:
             >>> # Direct attribute access
             >>> geom_mapper = PropertyMapper.from_item_attr('geometry')
-            >>> 
+            >>>
             >>> # With color scale transformation
             >>> color_scale = SegmentedContinuousColorscale(...)
             >>> color_mapper = PropertyMapper.from_item_attr('capacity', color_scale)
-            >>> 
+            >>>
             >>> # With custom transformation
-            >>> size_mapper = PropertyMapper.from_item_attr('power_mw', 
+            >>> size_mapper = PropertyMapper.from_item_attr('power_mw',
             ...                                           lambda mw: min(max(mw/10, 5), 50))
         """
         if mapping is None:
@@ -109,28 +109,28 @@ class PropertyMapper:
     def from_kpi_value(cls, mapping: Callable[[Any], Any]) -> 'PropertyMapper':
         """
         Create mapper from KPI values with transformation function.
-        
+
         Specifically designed for KPIDataItem objects, extracts the computed KPI value
         and applies a transformation. Used for styling based on energy system metrics
         like power flows, prices, or emissions.
-        
+
         Args:
             mapping: Transformation function applied to the KPI value
-            
+
         Returns:
             PropertyMapper that transforms KPI values
-            
+
         Examples:
             >>> # Color mapping for power flows
             >>> flow_colors = PropertyMapper.from_kpi_value(
             ...     lambda v: 'red' if v > 1000 else 'green'
             ... )
-            >>> 
+            >>>
             >>> # Size mapping for prices
             >>> price_sizes = PropertyMapper.from_kpi_value(
             ...     lambda p: min(max(p * 2, 10), 100)
             ... )
-            >>> 
+            >>>
             >>> # Using value mapping system
             >>> colorscale = SegmentedContinuousColorscale(...)
             >>> colors = PropertyMapper.from_kpi_value(colorscale)
@@ -170,19 +170,19 @@ class ResolvedFeature:
 class FeatureResolver(Generic[ResolvedFeatureType]):
     """
     Resolves visual feature properties from data items using PropertyMappers.
-    
+
     Central orchestrator for map element styling that takes a VisualizableDataItem
     and a collection of PropertyMappers, then produces a ResolvedFeature containing
     all computed visual properties. Handles default values, tooltip generation,
     and property normalization.
-    
+
     The FeatureResolver acts as a bridge between data and visualization, converting
     raw data items into styled features ready for folium map rendering. It supports
     automatic tooltip/popup generation and flexible property mapping.
-    
+
     Type Parameters:
         ResolvedFeatureType: The specific resolved feature type (e.g., ResolvedAreaFeature)
-    
+
     Examples:
         >>> resolver = AreaFeatureResolver(
         ...     fill_color=PropertyMapper.from_kpi_value(color_scale),
@@ -232,7 +232,7 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
     def _default_tooltip_generator() -> PropertyMapper:
         """
         Create default tooltip generator showing data item information.
-        
+
         Returns:
             PropertyMapper that generates HTML table tooltips with data item attributes
         """
@@ -254,7 +254,7 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
     def _default_popup_generator() -> PropertyMapper:
         """
         Create default popup generator with formatted data item information.
-        
+
         Returns:
             PropertyMapper that generates folium.Popup objects with data tables
         """
@@ -276,7 +276,7 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
     def _default_text_print_generator() -> PropertyMapper:
         """
         Create default text content generator for overlay labels.
-        
+
         Returns:
             PropertyMapper that returns data item text representation
         """
@@ -286,7 +286,7 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
     def _default_geometry_mapper() -> PropertyMapper:
         """
         Create default geometry mapper that extracts geometric objects.
-        
+
         Returns:
             PropertyMapper that extracts 'geometry' attribute from data items
         """
@@ -302,11 +302,11 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
     def _default_location_mapper() -> PropertyMapper:
         """
         Create smart location mapper with multiple fallback strategies.
-        
+
         Attempts to extract Point locations from data items using various
         attribute names and geometric calculations. Handles common location
         attribute names and derives locations from complex geometries.
-        
+
         Returns:
             PropertyMapper that intelligently extracts Point locations
         """
@@ -341,7 +341,7 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
     def _default_line_string_mapper() -> PropertyMapper:
         """
         Create default LineString geometry mapper for line visualizations.
-        
+
         Returns:
             PropertyMapper that extracts LineString geometries from data items
         """
@@ -360,24 +360,24 @@ class FeatureResolver(Generic[ResolvedFeatureType]):
 class FoliumObjectGenerator(Generic[FeatureResolverType], ABC):
     """
     Abstract base class for generating folium map objects from data items.
-    
+
     Defines the interface for converting VisualizableDataItems into folium
     map elements (areas, lines, markers, etc.). Each generator type handles
     a specific kind of map visualization and uses a corresponding FeatureResolver
     to compute visual properties.
-    
+
     The generator pattern enables modular, composable map building where different
     visualization types can be combined within the same map. Generators can process
     both model DataFrames and KPI collections.
-    
+
     Type Parameters:
         FeatureResolverType: The specific feature resolver type used by this generator
-    
+
     Examples:
         Typical usage in map building:
         >>> area_gen = AreaGenerator(AreaFeatureResolver(fill_color=...))
         >>> line_gen = LineGenerator(LineFeatureResolver(line_color=...))
-        >>> 
+        >>>
         >>> fg = folium.FeatureGroup('My Data')
         >>> area_gen.generate_objects_for_model_df(model_df, fg)
         >>> line_gen.generate_objects_for_kpi_collection(kpi_collection, fg)

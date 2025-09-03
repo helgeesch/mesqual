@@ -31,8 +31,8 @@ class ResolvedArrowIconFeature(ResolvedFeature):
         return self.get('location')
 
     @property
-    def rotation_angle(self) -> float:
-        return self.get('rotation_angle')
+    def azimuth_angle(self) -> float:
+        return self.get('azimuth_angle')
 
     @property
     def arrow_type(self) -> 'ArrowTypeEnum':
@@ -143,7 +143,7 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
             tooltip: PropertyMapper | str | bool = True,
             popup: PropertyMapper | folium.Popup | bool = False,
             location: PropertyMapper | Point = None,
-            rotation_angle: PropertyMapper | float = None,
+            azimuth_angle: PropertyMapper | float = None,
             **property_mappers: PropertyMapper | Any,
     ):
         from captain_arro import ArrowTypeEnum
@@ -161,7 +161,7 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
             tooltip=tooltip,
             popup=popup,
             location=self._explicit_or_fallback(location, self._default_location_mapper()),
-            rotation_angle=self._explicit_or_fallback(rotation_angle, self._default_rotation_angle_mapper()),
+            azimuth_angle=self._explicit_or_fallback(azimuth_angle, self._default_rotation_angle_mapper()),
             **property_mappers
         )
         super().__init__(feature_type=ResolvedArrowIconFeature, **mappers)
@@ -170,7 +170,7 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
     def _default_rotation_angle_mapper() -> PropertyMapper:
 
         def get_rotation_angle(data_item: VisualizableDataItem) -> float | None:
-            for k in ['rotation_angle', 'projection_point']:
+            for k in ['azimuth_angle', 'rotation_angle', 'projection_angle']:
                 if data_item.object_has_attribute(k):
                     angle = data_item.get_object_attribute(k)
                     return angle
@@ -238,19 +238,20 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconFeatureResolver]):
         encoded_svg = base64.b64encode(svg_content.encode()).decode()
 
         # Folium counts clockwise from right-pointing direction; normal convention is CCW
-        rotation_angle = - style.rotation_angle
+        angle = float(style.azimuth_angle) - 90
 
         icon_html = f'''
             <div style="
                 position: absolute;
                 left: 50%;
                 top: 50%;
-                transform: translate(-50%, -50%) rotate({rotation_angle}deg);
+                transform: translate(-50%, -50%) rotate({angle}deg);
                 opacity: {style.opacity};
             ">
                 <img src="data:image/svg+xml;base64,{encoded_svg}" 
                      width="{style.width}" 
                      height="{style.height}">
+                </img>
             </div>
         '''
 
@@ -301,8 +302,9 @@ if __name__ == '__main__':
 
     border_model_df = pd.DataFrame({
         'projection_point': [Point(7.45, 49.15), Point(6.94, 52.22), Point(6.34, 50.38), Point(12.31, 50.25)],
-        'projection_angle': [-110.0, 170.0, 180.0, -15],
-        'border_flow': [150.0, -75.0, 200.0, -100],
+        # 'azimuth_angle': [-110.0, 170.0, 180.0, -15],
+        'azimuth_angle': [0, 90, 180, 270],
+        'border_flow': [150.0, 75.0, 200.0, 100],
         'bing_bong': [5.0, -2.0, 8.0, -10],
     }, index=['DE-FR', 'DE-NL', 'DE-BE', 'DE-CZ'])
 
@@ -323,7 +325,7 @@ if __name__ == '__main__':
             arrow_type=PropertyMapper.from_item_attr('border_flow', lambda x: ArrowTypeEnum.SPOTLIGHT_FLOW_ARROW if x > 0 else ArrowTypeEnum.MOVING_FLOW_ARROW),
             color=PropertyMapper.from_item_attr('border_flow', lambda x: flow_color_mapping(abs(x))),
             stroke_width=4,
-            rotation_angle=PropertyMapper.from_item_attr('projection_angle', lambda x: x),
+            azimuth_angle=PropertyMapper.from_item_attr('azimuth_angle'),
             reverse_direction=PropertyMapper.from_item_attr('border_flow', lambda x: x < 0),
             speed_in_px_per_second=None,
             speed_in_duration_seconds=2,

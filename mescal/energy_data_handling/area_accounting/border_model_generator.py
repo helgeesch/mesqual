@@ -16,7 +16,7 @@ class AreaBorderNamingConventions:
     SORTED_BORDER_IDENTIFIER = 'sorted_border'
     NAME_IS_ALPHABETICALLY_SORTED_IDENTIFIER = 'name_is_alphabetically_sorted'
     PROJECTION_POINT_IDENTIFIER = 'projection_point'
-    PROJECTION_ANGLE_IDENTIFIER = 'projection_angle'
+    AZIMUTH_ANGLE_IDENTIFIER = 'azimuth_angle'
     BORDER_IS_PHYSICAL_IDENTIFIER = 'is_physical'
     BORDER_LINE_STRING_IDENTIFIER = 'geo_line_string'
 
@@ -194,7 +194,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
                 )
 
                 enhanced_df.loc[border_id, self.PROJECTION_POINT_IDENTIFIER] = geometry_info[area_geometry_calculator.PROJECTION_POINT_IDENTIFIER]
-                enhanced_df.loc[border_id, self.PROJECTION_ANGLE_IDENTIFIER] = geometry_info[area_geometry_calculator.PROJECTION_ANGLE_IDENTIFIER]
+                enhanced_df.loc[border_id, self.AZIMUTH_ANGLE_IDENTIFIER] = geometry_info[area_geometry_calculator.AZIMUTH_ANGLE_IDENTIFIER]
                 enhanced_df.loc[border_id, self.BORDER_IS_PHYSICAL_IDENTIFIER] = geometry_info[area_geometry_calculator.BORDER_IS_PHYSICAL_IDENTIFIER]
                 enhanced_df.loc[border_id, self.BORDER_LINE_STRING_IDENTIFIER] = geometry_info[area_geometry_calculator.BORDER_LINE_STRING_IDENTIFIER]
 

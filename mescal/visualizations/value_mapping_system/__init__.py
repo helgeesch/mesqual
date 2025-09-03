@@ -1,4 +1,5 @@
 from .continuous import (
+    SegmentedContinuousInputToContinuousOutputMapping,
     SegmentedContinuousColorscale,
     SegmentedContinuousLineWidthMapping,
     SegmentedContinuousOpacityMapping,
