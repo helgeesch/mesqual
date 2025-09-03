@@ -44,6 +44,12 @@ def _annualized_sum(df: pd.Series | pd.DataFrame) -> float:
     return tmp.sum() / total_hours * 8760
 
 
+def _daily_sum(df: pd.Series | pd.DataFrame) -> float:
+    total_hours = TimeSeriesGranularityAnalyzer(strict_mode=False).get_granularity_as_series_of_hours(df.index).sum()
+    tmp = _ensure_frame_format(df).sum(axis=1)
+    return tmp.sum() / total_hours * 24
+
+
 def _sum_df_to_series(df: pd.DataFrame) -> pd.Series:
     s = df.sum(axis=1)
     s[df.isna().all(axis=1)] = np.nan
@@ -54,6 +60,7 @@ class Aggregations:
     Total = Aggregation('Total', lambda df: _sum_df_to_series(_ensure_frame_format(df)).sum())
     Sum = Aggregation('Sum', lambda df: _sum_df_to_series(_ensure_frame_format(df)).sum())
     AnnualizedSum = Aggregation('AnnualizedSum', lambda df: _annualized_sum(df))
+    DailySum = Aggregation('DailySum', lambda df: _daily_sum(df))
     Max = Aggregation('Max', lambda df: _sum_df_to_series(_ensure_frame_format(df)).max())
     Mean = Aggregation('Mean', lambda df: _sum_df_to_series(_ensure_frame_format(df)).mean())
     Min = Aggregation('Min', lambda df: _sum_df_to_series(_ensure_frame_format(df)).min())

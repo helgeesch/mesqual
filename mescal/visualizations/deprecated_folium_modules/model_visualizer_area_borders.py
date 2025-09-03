@@ -12,7 +12,7 @@ class AreaBorderModelVisualizer(StyledModelVisualizerBase):
     """Visualizer for area border model DataFrames."""
 
     PROJECTION_POINT_COLUMN = 'projection_point'
-    PROJECTION_ANGLE_COLUMN = 'projection_angle'
+    AZIMUTH_ANGLE_COLUMN = 'azimuth_angle'
     QUERY_FOR_GEO_LINE_STRING_VISUALIZATION = 'is_physical == False'
     GEO_LINE_STRING_COLUMN = 'geo_line_string'
     NAME_IS_ALPHABETICALLY_SORTED_COLUMN = 'name_is_alphabetically_sorted'
@@ -20,7 +20,7 @@ class AreaBorderModelVisualizer(StyledModelVisualizerBase):
     def __init__(
             self,
             projection_point_column: str | None = None,
-            projection_angle_column: str | None = None,
+            azimuth_angle_column: str | None = None,
             query_for_geo_line_string_visualization: str | None = None,
             geo_line_string_column: str | None = None,
             arrow_icon_map: Callable[[Any], folium.DivIcon] = None,
@@ -33,7 +33,7 @@ class AreaBorderModelVisualizer(StyledModelVisualizerBase):
     ):
         super().__init__(line_color_column, line_colormap, line_width_column, line_widthmap, line_opacity_column, line_opacitymap)
         self.projection_point_column = projection_point_column or self.PROJECTION_POINT_COLUMN
-        self.projection_angle_column = projection_angle_column or self.PROJECTION_ANGLE_COLUMN
+        self.azimuth_angle_column = azimuth_angle_column or self.AZIMUTH_ANGLE_COLUMN
         self.query_for_geo_line_string_visualization = query_for_geo_line_string_visualization or self.QUERY_FOR_GEO_LINE_STRING_VISUALIZATION
         self.geo_line_string_column = geo_line_string_column or self.GEO_LINE_STRING_COLUMN
         self.arrow_icon_map = arrow_icon_map
@@ -84,7 +84,7 @@ class AreaBorderModelVisualizer(StyledModelVisualizerBase):
             return
 
         coords = (projection_point.y, projection_point.x)
-        angle = object_data.get(self.projection_angle_column, 0)
+        angle = object_data.get(self.azimuth_angle_column, 0)
         tooltip = self._get_tooltip_html(object_id, object_data)
 
         # Create arrow using ArrowIconMap

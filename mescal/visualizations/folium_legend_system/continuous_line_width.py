@@ -8,7 +8,7 @@ class ContinuousLineWidthMapLegend(ContinuousLegendBase[SegmentedContinuousLineW
         mapping: SegmentedContinuousLineWidthMapping,
         line_color: str = "#000000",
         show_pixel_values: bool = False,
-        merge_adjacent_ticks: bool = False,
+        merge_adjacent_ticks: bool = True,
         **kwargs
     ):
         super().__init__(mapping, **kwargs)
