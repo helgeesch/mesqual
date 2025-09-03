@@ -57,13 +57,11 @@ class DatasetComparison(
         >>> # Get price differences
         >>> price_deltas = comparison.fetch('buses_t.marginal_price')
         >>> 
-        >>> # Get both datasets side-by-side
-        >>> price_both = comparison.fetch('buses_t.marginal_price', 
-        ...                              comparison_type=ComparisonTypeEnum.BOTH)
+        >>> # Get both datasets side-by-side (often used to show model changes)
+        >>> price_both = comparison.fetch('buses', comparison_type=ComparisonTypeEnum.BOTH)
         >>> 
-        >>> # Highlight only changes
-        >>> price_changes = comparison.fetch('buses_t.marginal_price',
-        ...                                 replace_unchanged_values_by_nan=True)
+        >>> # Highlight only changes (often used to show model changes)
+        >>> price_changes = comparison.fetch('buses', replace_unchanged_values_by_nan=True)
     """
     COMPARISON_ATTRIBUTES_SOURCE = ComparisonAttributesSourceEnum.USE_VARIATION_ATTS
     COMPARISON_NAME_JOIN = ' vs '

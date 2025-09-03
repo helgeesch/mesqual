@@ -92,7 +92,11 @@ class KPIGroupingManager:
         for attr in ordered_keys:
             existing_values = set(relevant_attribute_sets.get(attr, []))
             manual_order = [v for v in self.kpi_attribute_category_orders.get(attr, []) if v in existing_values]
-            remaining = sorted(existing_values - set(manual_order))
+            remaining = list(existing_values - set(manual_order))
+            try:
+                remaining = list(sorted(remaining))
+            except TypeError:
+                pass
             full_order = manual_order + remaining
             attribute_value_rank[attr] = {val: idx for idx, val in enumerate(full_order)}
 
@@ -296,10 +300,11 @@ class KPICollectionMapVisualizer:
             folium_map: folium.Map,
             show: SHOW_OPTIONS = 'none',
             overlay: bool = False,
-    ) -> None:
+    ) -> list[folium.FeatureGroup]:
         fgs = self.get_feature_groups(kpi_collection, show=show, overlay=overlay)
         for fg in fgs:
             folium_map.add_child(fg)
+        return fgs
 
     def get_feature_groups(
             self,
