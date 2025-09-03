@@ -15,7 +15,13 @@ from mescal.visualizations.folium_viz_system.base_viz_system import (
 
 @dataclass
 class ResolvedAreaFeature(ResolvedFeature):
-    """Specialized style container for area visualizations."""
+    """
+    Resolved visual properties for area/polygon map elements.
+    
+    Container for all computed styling properties of polygon visualizations,
+    including fill colors, border styles, and interactive behaviors.
+    Used by AreaGenerator to create folium GeoJson polygons.
+    """
 
     @property
     def geometry(self) -> Polygon | MultiPolygon:
@@ -50,6 +56,41 @@ class ResolvedAreaFeature(ResolvedFeature):
 
 
 class AreaFeatureResolver(FeatureResolver[ResolvedAreaFeature]):
+    """
+    Resolves visual properties for polygon/area map elements.
+    
+    Specialized feature resolver for area visualizations that handles polygon
+    geometries, fill colors, border styling, and opacity settings. Commonly
+    used for visualizing bidding zones, geographic regions, or any spatial
+    areas with associated data values.
+    
+    Args:
+        fill_color: Area fill color (static value or PropertyMapper)
+        border_color: Border/stroke color (static value or PropertyMapper)  
+        border_width: Border width in pixels (static value or PropertyMapper)
+        fill_opacity: Fill transparency 0-1 (static value or PropertyMapper)
+        highlight_border_width: Border width on hover (defaults to border_width)
+        highlight_fill_opacity: Fill opacity on hover (defaults to 1.0)
+        tooltip: Tooltip content (True for auto-generated, False for none)
+        popup: Popup content (True/False/PropertyMapper)
+        geometry: Polygon geometry (defaults to 'geometry' attribute)
+        **property_mappers: Additional custom property mappings
+        
+    Examples:
+        Basic area visualization:
+        >>> resolver = AreaFeatureResolver(
+        ...     fill_color='#FF0000',
+        ...     border_color='white',
+        ...     fill_opacity=0.8
+        ... )
+        
+        Data-driven coloring:
+        >>> color_scale = SegmentedContinuousColorscale(...)
+        >>> resolver = AreaFeatureResolver(
+        ...     fill_color=PropertyMapper.from_kpi_value(color_scale),
+        ...     fill_opacity=PropertyMapper.from_item_attr('confidence', lambda c: 0.3 + 0.6 * c)
+        ... )
+    """
     def __init__(
             self,
             fill_color: PropertyMapper | str = '#D2D2D2',
@@ -79,12 +120,53 @@ class AreaFeatureResolver(FeatureResolver[ResolvedAreaFeature]):
 
 
 class AreaGenerator(FoliumObjectGenerator[AreaFeatureResolver]):
+    """
+    Generates folium GeoJson polygon objects for area visualizations.
+    
+    Creates interactive map polygons from data items with computed styling
+    properties. Handles polygon and multipolygon geometries, applies styling,
+    and adds tooltips/popups for user interaction.
+    
+    Commonly used for visualizing:
+    - Bidding zones colored by electricity prices
+    - Geographic regions sized by population or economic data  
+    - Network areas colored by KPI values
+    - Administrative boundaries with associated statistics
+    
+    Examples:
+        Basic usage pattern:
+        >>> color_scale = SegmentedContinuousColorscale(...)
+        >>> generator = AreaGenerator(
+        ...     AreaFeatureResolver(
+        ...         fill_color=PropertyMapper.from_kpi_value(color_scale),
+        ...         tooltip=True
+        ...     )
+        ... )
+        >>> fg = folium.FeatureGroup('Bidding Zones')
+        >>> generator.generate_objects_for_kpi_collection(price_kpis, fg)
+        >>> fg.add_to(map)
+        
+        Combined with other generators:
+        >>> # Areas for zones, lines for interconnectors
+        >>> area_gen = AreaGenerator(...)
+        >>> line_gen = LineGenerator(...)
+        >>> 
+        >>> area_gen.generate_objects_for_model_df(zones_df, feature_group)
+        >>> line_gen.generate_objects_for_model_df(borders_df, feature_group)
+    """
     """Generates folium GeoJson objects for area geometries."""
 
     def _feature_resolver_type(self) -> Type[AreaFeatureResolver]:
         return AreaFeatureResolver
 
     def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
+        """
+        Generate and add a folium GeoJson polygon to the feature group.
+        
+        Args:
+            data_item: Data item containing polygon geometry and associated data
+            feature_group: Folium feature group to add the polygon to
+        """
         style = self.feature_resolver.resolve_feature(data_item)
 
         geometry = style.geometry

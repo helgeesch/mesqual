@@ -27,9 +27,31 @@ class DatasetCollection(
     ABC
 ):
     """
-    Abstract class to collect multiple Dataset instances
-    and handle them according to a specific logic.
-    Inherits all methods / functionalities from Dataset.
+    Abstract base class for collections of datasets.
+    
+    DatasetCollection extends the Dataset interface to handle multiple child datasets
+    while maintaining the same unified API. This enables complex hierarchical structures
+    where collections themselves can be treated as datasets.
+    
+    Key Features:
+        - Inherits all Dataset functionality
+        - Manages collections of child datasets
+        - Provides iteration and access methods
+        - Aggregates accepted flags from all children
+        - Supports KPI operations across all sub-datasets
+        
+    Type Parameters:
+        DatasetType: Type of datasets that can be collected
+        DatasetConfigType: Configuration class for dataset behavior
+        FlagType: Type used for data flag identification
+        FlagIndexType: Flag index implementation for flag mapping
+        
+    Attributes:
+        datasets (list[DatasetType]): List of child datasets in this collection
+        
+    Note:
+        This class follows the "Everything is a Dataset" principle, allowing
+        collections to be used anywhere a Dataset is expected.
     """
 
     def __init__(
@@ -176,11 +198,38 @@ class DatasetLinkCollection(
     DatasetCollection[DatasetType, DatasetConfigType, FlagType, FlagIndexType]
 ):
     """
-    Links multiple Dataset instances so that:
-        - the parent-Dataset accepts flags of all child-Datasets and automatically returns the data
-          from the child-Dataset one that accepts the flag.
-        - the child-Dataset instances have access to the parent-Dataset so that they can fetch from other,
-          e.g. child_ds.parent_dataset.fetch(...).
+    Links multiple datasets to provide unified data access with automatic routing.
+    
+    DatasetLinkCollection acts as a unified interface to multiple child datasets,
+    automatically routing data requests to the appropriate child dataset that 
+    accepts the requested flag. This is the foundation for platform datasets
+    that combine multiple data interpreters.
+    
+    Key Features:
+        - Automatic flag routing to appropriate child dataset
+        - Bidirectional parent-child relationships
+        - First-match-wins routing strategy
+        - Overlap detection and warnings
+        - Maintains all Dataset interface compatibility
+        
+    Routing Logic:
+        When fetch() is called, iterates through child datasets in order and
+        returns data from the first dataset that accepts the flag.
+        
+    Example:
+        >>> # Platform dataset with multiple interpreters
+        >>> link_collection = DatasetLinkCollection([
+        ...     ModelInterpreter(network),
+        ...     TimeSeriesInterpreter(network),
+        ...     ObjectiveInterpreter(network)
+        ... ])
+        >>> # Automatically routes to appropriate interpreter
+        >>> buses = link_collection.fetch('buses')  # -> ModelInterpreter
+        >>> prices = link_collection.fetch('buses_t.marginal_price')  # -> TimeSeriesInterpreter
+        
+    Warning:
+        If multiple child datasets accept the same flag, only the first one
+        will be used. The constructor logs warnings for such overlaps.
     """
 
     def __init__(
@@ -285,7 +334,43 @@ class DatasetConcatCollection(
     DatasetCollection[DatasetType, DatasetConfigType, FlagType, FlagIndexType]
 ):
     """
-    Fetch method will return a concatenation of all child-Datasets with an additional Index-level.
+    Concatenates data from multiple datasets with MultiIndex structure.
+    
+    DatasetConcatCollection is fundamental to MESCAL's multi-scenario analysis
+    capabilities. It fetches the same flag from multiple child datasets and
+    concatenates the results into a single DataFrame/Series with an additional
+    index level identifying the source dataset.
+    
+    Key Features:
+        - Automatic MultiIndex creation with dataset names
+        - Configurable concatenation axis and level positioning  
+        - Preserves all dimensional relationships
+        - Supports scenario and comparison collections
+        - Enables unified analysis across multiple datasets
+        
+    MultiIndex Structure:
+        The resulting data structure includes an additional index level
+        (typically named 'dataset') that identifies the source dataset
+        for each data point.
+        
+    Example:
+        >>> # Collection of scenario datasets
+        >>> scenarios = DatasetConcatCollection([
+        ...     PyPSADataset(base_network, name='base'),
+        ...     PyPSADataset(high_res_network, name='high_res'),
+        ...     PyPSADataset(low_gas_network, name='low_gas')
+        ... ])
+        >>> 
+        >>> # Fetch creates MultiIndex DataFrame
+        >>> prices = scenarios.fetch('buses_t.marginal_price')
+        >>> print(prices.columns.names)
+        ['dataset', 'Bus']  # Original Bus index + dataset level
+        >>> 
+        >>> # Access specific scenario data
+        >>> base_prices = prices['base']
+        >>> 
+        >>> # Analyze across scenarios
+        >>> mean_prices = prices.mean()  # Mean across all scenarios
     """
     DEFAULT_CONCAT_LEVEL_NAME = 'dataset'
     DEFAULT_ATT_LEVEL_NAME = 'attribute'

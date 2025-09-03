@@ -19,6 +19,13 @@ if TYPE_CHECKING:
 
 @dataclass
 class ResolvedArrowIconFeature(ResolvedFeature):
+    """
+    Resolved visual properties for animated arrow icon elements.
+    
+    Container for all computed styling properties of arrow icon visualizations,
+    including position, orientation, colors, animation settings, and size.
+    Used by ArrowIconGenerator to create folium markers with SVG arrow icons.
+    """
     @property
     def location(self) -> Point:
         return self.get('location')
@@ -69,6 +76,58 @@ class ResolvedArrowIconFeature(ResolvedFeature):
 
 
 class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
+    """
+    Resolves visual properties for animated arrow icon elements.
+    
+    Specialized feature resolver for arrow icon visualizations that handles point
+    locations, arrow styling, animation parameters, and directional indicators.
+    Commonly used for visualizing directional flows, network connections, or
+    any point-based data with directional significance.
+    
+    Integrates with the captain_arro library to provide various arrow types
+    and animation effects for dynamic flow visualization.
+    
+    Args:
+        arrow_type: Type of arrow from ArrowTypeEnum (static value or PropertyMapper)
+        color: Arrow color (static value or PropertyMapper)
+        stroke_width: Arrow stroke width in pixels (static value or PropertyMapper)
+        width: Arrow icon width in pixels (static value or PropertyMapper)
+        height: Arrow icon height in pixels (static value or PropertyMapper)
+        speed_in_px_per_second: Animation speed in pixels/second (static value or PropertyMapper)
+        speed_in_duration_seconds: Animation duration in seconds (static value or PropertyMapper)
+        num_arrows: Number of animated arrows (static value or PropertyMapper)
+        opacity: Icon opacity 0-1 (static value or PropertyMapper)
+        reverse_direction: Reverse arrow direction (static value or PropertyMapper)
+        tooltip: Tooltip content (True for auto-generated, False for none)
+        popup: Popup content (True/False/PropertyMapper)
+        location: Point location (defaults to smart location detection)
+        rotation_angle: Arrow rotation angle in degrees (static value or PropertyMapper)
+        **property_mappers: Additional custom property mappings
+        
+    Examples:
+        Basic directional flow arrows:
+        >>> from captain_arro import ArrowTypeEnum
+        >>> resolver = ArrowIconFeatureResolver(
+        ...     arrow_type=ArrowTypeEnum.MOVING_FLOW_ARROW,
+        ...     color='#FF0000',
+        ...     width=50,
+        ...     height=30
+        ... )
+        
+        Data-driven flow visualization:
+        >>> flow_color_scale = SegmentedContinuousColorscale(...)
+        >>> size_scale = SegmentedContinuousInputToContinuousOutputMapping(...)
+        >>> resolver = ArrowIconFeatureResolver(
+        ...     arrow_type=PropertyMapper.from_kpi_value(
+        ...         lambda v: ArrowTypeEnum.SPOTLIGHT_FLOW_ARROW if abs(v) > 100 
+        ...                   else ArrowTypeEnum.BOUNCING_SPREAD_ARROW
+        ...     ),
+        ...     color=PropertyMapper.from_kpi_value(flow_color_scale),
+        ...     width=PropertyMapper.from_kpi_value(size_scale),
+        ...     reverse_direction=PropertyMapper.from_kpi_value(lambda v: v < 0),
+        ...     rotation_angle=PropertyMapper.from_item_attr('azimuth_angle')
+        ... )
+    """
     def __init__(
             self,
             arrow_type: Union[PropertyMapper, 'ArrowTypeEnum'] = None,
@@ -121,10 +180,56 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
 
 
 class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconFeatureResolver]):
+    """
+    Generates folium Marker objects with animated SVG arrow icons.
+    
+    Creates interactive map markers featuring animated arrow icons from the
+    captain_arro library. Handles SVG generation, base64 encoding, rotation,
+    and integration with folium's marker system.
+    
+    Commonly used for visualizing:
+    - Directional border flow directions with magnitude-based styling
+    - Border price-spread with magnitude-based styling
+    - Any point-based directional data with animation needs
+    
+    Examples:
+        Power flow visualization:
+        >>> from captain_arro import ArrowTypeEnum
+        >>> flow_color_scale = SegmentedContinuousColorscale(...)
+        >>> size_mapping = SegmentedContinuousInputToContinuousOutputMapping(...)
+        >>> 
+        >>> generator = ArrowIconGenerator(
+        ...     ArrowIconFeatureResolver(
+        ...         arrow_type=PropertyMapper.from_kpi_value(
+        ...             lambda v: ArrowTypeEnum.MOVING_FLOW_ARROW if abs(v) > 50
+        ...                       else ArrowTypeEnum.BOUNCING_SPREAD_ARROW
+        ...         ),
+        ...         color=PropertyMapper.from_kpi_value(lambda v: flow_color_scale(abs(v))),
+        ...         width=PropertyMapper.from_kpi_value(lambda v: size_mapping(abs(v))),
+        ...         reverse_direction=PropertyMapper.from_kpi_value(lambda v: v < 0),
+        ...         rotation_angle=PropertyMapper.from_item_attr('azimuth_angle'),
+        ...         speed_in_duration_seconds=4
+        ...     )
+        ... )
+        >>> 
+        >>> fg = folium.FeatureGroup('Flow Arrows')
+        >>> generator.generate_objects_for_kpi_collection(flow_kpis, fg)
+        >>> fg.add_to(map)
+        
+        Border flow indicators:
+        >>> generator.generate_objects_for_model_df(border_df, feature_group)
+    """
     def _feature_resolver_type(self) -> Type[ArrowIconFeatureResolver]:
         return ArrowIconFeatureResolver
 
     def generate(self, data_item: VisualizableDataItem, feature_group: folium.FeatureGroup) -> None:
+        """
+        Generate and add a folium Marker with animated SVG arrow icon.
+        
+        Args:
+            data_item: Data item containing point location and associated data
+            feature_group: Folium feature group to add the arrow marker to
+        """
         style = self.feature_resolver.resolve_feature(data_item)
         if style.location is None:
             return

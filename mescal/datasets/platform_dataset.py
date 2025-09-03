@@ -46,63 +46,80 @@ class PlatformDataset(
     ABC
 ):
     """
-    Base class for managing platform-specific data interpreters in a type-safe way.
+    Base class for platform-specific datasets with automatic interpreter management.
 
-    PlatformDataset serves as a registry and container for data interpreters that handle
-    different aspects of platform data. It ensures type safety through generics and
-    automatically initializes registered interpreters when instantiated.
+    PlatformDataset provides the foundation for integrating MESCAL with specific
+    energy modeling platforms (PyPSA, PLEXOS, etc.). It manages a registry of
+    data interpreters and automatically instantiates them to handle different
+    types of platform data.
 
-    Type Parameters
-    --------------
-    DatasetType : TypeVar
-        Must be a subclass of Dataset. Defines the type of interpreters that can be
-        registered with this platform dataset.
+    Key Features:
+        - Automatic interpreter registration and instantiation
+        - Type-safe interpreter management through generics
+        - Flexible argument passing to interpreter constructors
+        - Support for study-specific interpreter extensions
+        - Unified data access through DatasetLinkCollection routing
 
-    Attributes
-    ----------
-    _interpreter_registry : list[Type[DatasetType]]
-        List of registered interpreter classes, ordered by registration time (newest first)
+    Architecture:
+        - Uses DatasetLinkCollection for automatic flag routing
+        - Manages interpreter registry at class level
+        - Auto-instantiates all registered interpreters on construction
+        - Supports inheritance and interpreter registration on subclasses
 
-    Usage
-    -----
-    To create a platform-specific dataset:
-    1. Subclass PlatformDataset
-    2. Define get_child_dataset_type
-    3. Create interpreters that inherit from collection_member_dataset_type
-    4. Register interpreters using the @register_interpreter decorator
+    Type Parameters:
+        DatasetType: Base type for all interpreters (must be Dataset subclass)
+        DatasetConfigType: Configuration class for dataset behavior
+        FlagType: Type used for data flag identification
+        FlagIndexType: Flag index implementation for flag mapping
 
-    Example
-    -------
-    >>> class MyPlatformDataset(PlatformDataset[MyInterpreterBase]):
-    ...     @classmethod
-    ...     def get_child_dataset_type(cls) -> type[DatasetType]:
-    ...         return MyInterpreterBase
-    ...
-    >>> @MyPlatformDataset.register_interpreter
-    ... class ModelCSVInterpreter(MyInterpreterBase):
-    ...     def _fetch(self, flag: FlagType, ...) -> pd.DataFrame:
-    ...         # Implementation
-    ...         pass
-    ...
-    >>> @MyPlatformDataset.register_interpreter
-    ... class ResultCSVInterpreter(MyInterpreterBase):
-    ...     def _fetch(self, flag: FlagType, ...) -> pd.DataFrame:
-    ...         # Implementation
-    ...         pass
-    ...
-    >>> @MyPlatformDataset.register_interpreter
-    ... class StudySpecificVariable(MyInterpreterBase):
-    ...     def _fetch(self, flag: FlagType, ...) -> pd.DataFrame:
-    ...         # Implementation
-    ...         pass
+    Class Attributes:
+        _interpreter_registry: List of registered interpreter classes
 
-    Notes
-    -----
-    - Interpreters are initialized automatically when the platform dataset is instantiated
-    - Registration order determines interpreter priority (last registered = first checked)
-    - Each interpreter must implement the interface defined by child_dataset_type
-    - Arguments required by interpreters are automatically extracted and passed during
-      initialization
+    Usage Pattern:
+        1. Create platform dataset class inheriting from PlatformDataset
+        2. Define get_child_dataset_type() to specify interpreter base class
+        3. Create interpreter classes inheriting from the base interpreter
+        4. Register interpreters using @PlatformDataset.register_interpreter
+        5. Instantiate platform dataset - interpreters are auto-created
+
+    Example:
+        >>> # Define platform dataset
+        >>> class PyPSADataset(PlatformDataset[PyPSAInterpreter, ...]):
+        ...     @classmethod
+        ...     def get_child_dataset_type(cls):
+        ...         return PyPSAInterpreter
+        ...
+        >>> # Register core interpreters
+        >>> @PyPSADataset.register_interpreter
+        ... class PyPSAModelInterpreter(PyPSAInterpreter):
+        ...     @property
+        ...     def accepted_flags(self):
+        ...         return {'buses', 'generators', 'lines'}
+        ...
+        >>> @PyPSADataset.register_interpreter  
+        ... class PyPSATimeSeriesInterpreter(PyPSAInterpreter):
+        ...     @property
+        ...     def accepted_flags(self):
+        ...         return {'buses_t.marginal_price', 'generators_t.p'}
+        ...
+        >>> # Register study-specific interpreter
+        >>> @PyPSADataset.register_interpreter
+        ... class CustomVariableInterpreter(PyPSAInterpreter):
+        ...     @property
+        ...     def accepted_flags(self):
+        ...         return {'custom_metric'}
+        ...
+        >>> # Use platform dataset
+        >>> dataset = PyPSADataset(network=my_network)
+        >>> buses = dataset.fetch('buses')  # Routes to ModelInterpreter
+        >>> prices = dataset.fetch('buses_t.marginal_price')  # Routes to TimeSeriesInterpreter
+        >>> custom = dataset.fetch('custom_metric')  # Routes to CustomVariableInterpreter
+
+    Notes:
+        - Interpreters are registered at class level and shared across instances
+        - Registration order affects routing (last registered = first checked)
+        - All registered interpreters are instantiated for each platform dataset
+        - Constructor arguments are automatically extracted and passed to interpreters
     """
 
     _interpreter_registry: list[Type[DatasetType]] = []
@@ -130,6 +147,32 @@ class PlatformDataset(
 
     @classmethod
     def register_interpreter(cls, interpreter: Type[DatasetType]) -> Type['DatasetType']:
+        """
+        Register a data interpreter class with this platform dataset.
+        
+        This method is typically used as a decorator to register interpreter classes
+        that handle specific types of platform data. Registered interpreters are
+        automatically instantiated when the platform dataset is created.
+        
+        Args:
+            interpreter: Interpreter class that must inherit from get_child_dataset_type()
+            
+        Returns:
+            The interpreter class (unchanged) to support decorator usage
+            
+        Raises:
+            TypeError: If interpreter doesn't inherit from the required base class
+            
+        Example:
+            >>> @PyPSADataset.register_interpreter
+            ... class CustomInterpreter(PyPSAInterpreter):
+            ...     @property
+            ...     def accepted_flags(self):
+            ...         return {'custom_flag'}
+            ...     
+            ...     def _fetch(self, flag, config, **kwargs):
+            ...         return compute_custom_data()
+        """
         cls._validate_interpreter_type(interpreter)
         if interpreter not in cls._interpreter_registry:
             cls._add_interpreter_to_registry(interpreter)
