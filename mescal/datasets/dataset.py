@@ -302,11 +302,6 @@ class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
             >>> # With custom configuration
             >>> prices = dataset.fetch('buses_t.marginal_price', 
             ...                       config={'use_database': False})
-            >>> 
-            >>> # With additional parameters
-            >>> filtered_data = dataset.fetch('generators_t.p',
-            ...                              start_date='2023-01-01',
-            ...                              end_date='2023-12-31')
         """
         effective_config = self._prepare_config(config)
         use_database = self._database is not None and effective_config.use_database
