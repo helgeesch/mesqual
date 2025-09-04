@@ -3,24 +3,51 @@ import numpy as np
 
 
 class VolumeWeightedPriceAggregator:
-    """Computes volume-weighted prices for regions based on bidding zone data.
+    """Computes volume-weighted electricity prices for regions from node-level data.
 
-    For each timestamp, the volume weights are determined by:
-    1. If any bidding zone in the region has demand > 0: use matched demand as weights
-    2. If no demand but some supply > 0: use matched supply as weights
-    3. If no demand or supply: use simple average (equal weights)
+    This aggregator calculates representative regional prices from node-level electricity
+    prices using volume weighting based on matched demand and/or supply. This approach
+    provides more accurate regional price representations than simple averaging, especially
+    in markets with significant node-level price differences.
 
-    Node filtering (e.g., for virtual nodes only) should be done before passing
-    the node_model_df to this class (e.g. pass node_model_df.query('is_virtual == True').
+    The weighting logic follows electricity market conventions where demand takes precedence
+    over supply when both are available:
+
+    Priority-based weighting per timestamp:
+    1. If any node in the region has demand > 0: use matched demand as weights
+    2. If no demand but some supply > 0: use matched supply as weights  
+    3. If neither demand nor supply: use simple average (equal weights)
+
+    This approach ensures that the aggregated price reflects the actual market clearing
+    behavior where demand-driven markets typically provide better price representation
+    than supply-driven aggregation.
+
+    Node filtering (e.g., for virtual nodes only) should be done before passing the
+    node_model_df to this class to ensure only relevant nodes are included in the
+    aggregation process.
+
+    Args:
+        node_model_df: DataFrame with node-region mapping. Should be pre-filtered
+            to include only nodes relevant for aggregation.
+        agg_region_column: Column name containing regional identifiers for aggregation.
 
     Example:
-        >>> # Filter nodes before creating aggregator
-        >>> filtered_nodes = node_model_df.query('is_virtual == True')
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> # Node model with region mapping
+        >>> node_model = pd.DataFrame({
+        ...     'country': ['DE', 'DE', 'FR'],
+        ...     'is_virtual': [True, False, True]
+        ... }, index=['DE1', 'DE2', 'FR1'])
+        >>> # Filter for virtual nodes only
+        >>> virtual_nodes = node_model.query('is_virtual == True')
+        >>> # Create aggregator
         >>> aggregator = VolumeWeightedPriceAggregator(
-        ...     node_model_df=filtered_nodes,
+        ...     node_model_df=virtual_nodes,
         ...     agg_region_column="country"
         ... )
-        >>> region_prices = aggregator.aggregate_prices(price_df, matched_demand_df)
+        >>> # Aggregate with demand weighting
+        >>> region_prices = aggregator.aggregate_prices(price_df, demand_df)
     """
 
     def __init__(
@@ -32,12 +59,30 @@ class VolumeWeightedPriceAggregator:
         self.agg_region_column = agg_region_column
 
     def _create_node_to_region_map(self) -> dict:
+        """Create mapping from node identifiers to regional identifiers.
+        
+        Returns:
+            Dictionary mapping node IDs to region names
+        """
         return self.node_model_df[self.agg_region_column].to_dict()
 
     def get_all_regions(self) -> set:
+        """Get all unique regions in the node model.
+        
+        Returns:
+            Set of regional identifiers available for aggregation
+        """
         return set(self.node_model_df[self.agg_region_column].unique())
 
     def get_region_nodes(self, region: str) -> list:
+        """Get all nodes belonging to a specific region.
+        
+        Args:
+            region: Regional identifier
+            
+        Returns:
+            List of node IDs belonging to the specified region
+        """
         return self.node_model_df[self.node_model_df[self.agg_region_column] == region].index.to_list()
 
     def aggregate_prices(
@@ -46,6 +91,41 @@ class VolumeWeightedPriceAggregator:
             matched_demand_df: pd.DataFrame = None,
             matched_supply_df: pd.DataFrame = None
     ) -> pd.DataFrame:
+        """Aggregate node-level prices to regional level using volume weighting.
+        
+        Computes volume-weighted average prices for each region based on the priority
+        weighting scheme: demand first, then supply, finally equal weights. The method
+        handles edge cases like zero volumes and missing data appropriately.
+        
+        Args:
+            price_df: Node-level price time series (€/MWh). Index should be datetime,
+                columns should be node identifiers. All nodes from node_model_df
+                must be present as columns.
+            matched_demand_df: Optional matched demand volumes (MWh) for weighting.
+                Must have same index as price_df and include all relevant nodes.
+                Used as primary weighting factor when available.
+            matched_supply_df: Optional matched supply volumes (MWh) for weighting.
+                Must have same index as price_df and include all relevant nodes.
+                Used as secondary weighting factor when demand is not available.
+                
+        Returns:
+            DataFrame with regional volume-weighted prices. Index matches input
+            price_df, columns are regional identifiers. Values represent volume-weighted
+            average prices in same units as input (€/MWh).
+            
+        Raises:
+            TypeError: If input DataFrames are not pandas DataFrames
+            ValueError: If required nodes are missing from input DataFrames
+            ValueError: If index mismatch between price and volume DataFrames
+            
+        Example:
+            >>> # Simple price aggregation without volumes
+            >>> regional_prices = aggregator.aggregate_prices(prices)
+            >>> # Demand-weighted aggregation
+            >>> weighted_prices = aggregator.aggregate_prices(prices, demand_volumes)
+            >>> # Both demand and supply available
+            >>> full_weighted = aggregator.aggregate_prices(prices, demand_volumes, supply_volumes)
+        """
         self._check_input(price_df, matched_demand_df, matched_supply_df)
         result_dict = {}
 
@@ -62,6 +142,20 @@ class VolumeWeightedPriceAggregator:
         return result_df
 
     def _compute_volume_weights(self, prices, matched_demand_df, matched_supply_df):
+        """Compute volume-based weights for price aggregation.
+        
+        Implements the priority-based weighting scheme: demand volumes first,
+        supply volumes second, equal weights as fallback. Handles zero-volume
+        periods appropriately.
+        
+        Args:
+            prices: Regional price DataFrame for determining structure
+            matched_demand_df: Optional demand volumes for weighting
+            matched_supply_df: Optional supply volumes for weighting
+            
+        Returns:
+            DataFrame with normalized weights (sum to 1.0 per timestamp)
+        """
         region_nodes = prices.columns
         num_nodes = len(region_nodes)
 
@@ -89,6 +183,20 @@ class VolumeWeightedPriceAggregator:
             matched_demand_df: pd.DataFrame | None,
             matched_supply_df: pd.DataFrame | None
     ):
+        """Validate input DataFrames for consistency and completeness.
+        
+        Ensures that all required nodes are present in price data and that
+        volume DataFrames have compatible structure with prices.
+        
+        Args:
+            price_df: Node-level price data
+            matched_demand_df: Optional demand volume data
+            matched_supply_df: Optional supply volume data
+            
+        Raises:
+            TypeError: If inputs are not proper DataFrame types
+            ValueError: If required nodes are missing or index mismatches exist
+        """
         if not isinstance(price_df, pd.DataFrame):
             raise TypeError("price_df must be a pandas DataFrame")
 

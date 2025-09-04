@@ -7,6 +7,37 @@ from mescal.utils.multi_key_utils.common_base_key_finder import CommonBaseKeyFin
 
 
 class BaseMembershipPairsAppender(ABC):
+    """Abstract base class for appending combination columns to DataFrames with paired relationships.
+    
+    This class provides utilities for creating combined identifiers from paired columns
+    (typically "_from" and "_to" relationships) in energy system models. It's particularly
+    useful for network data where you need to create unique identifiers for connections
+    between nodes, areas, or other entities.
+    
+    The class supports three types of combinations:
+    - Directional: Preserves order (A->B different from B->A)
+    - Sorted: Alphabetical order (A->B same as B->A becomes A-B)  
+    - Opposite: Reverses direction (A->B becomes B->A)
+    
+    This abstraction allows for different combination strategies (strings, tuples, etc.)
+    while maintaining consistent column naming patterns across MESCAL energy data models.
+    
+    Args:
+        from_identifier: Suffix identifying "from" columns (default: '_from')
+        to_identifier: Suffix identifying "to" columns (default: '_to')  
+        combo_col_suffix: Suffix for directional combination columns
+        combo_col_prefix: Prefix for directional combination columns
+        sorted_combo_col_suffix: Suffix for sorted combination columns
+        sorted_combo_col_prefix: Prefix for sorted combination columns
+        opposite_combo_col_suffix: Suffix for opposite combination columns
+        opposite_combo_col_prefix: Prefix for opposite combination columns
+        
+    Note:
+        Either suffix or prefix must be provided for each combination type.
+        
+    Example:
+        Used as base class for StringMembershipPairsAppender and TupleMembershipPairsAppender.
+    """
     def __init__(
             self,
             from_identifier: str = '_from',
