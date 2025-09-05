@@ -23,6 +23,14 @@ class ResolvedTextOverlayFeature(ResolvedFeature):
         return self.get('location')
 
     @property
+    def offset(self) -> tuple[float, float]:
+        return self.get('offset')
+
+    @property
+    def azimuth_angle(self) -> float:
+        return self.get('azimuth_angle')
+
+    @property
     def text_color(self) -> str:
         return self.get('text_color')
 
@@ -60,6 +68,8 @@ class TextOverlayFeatureResolver(FeatureResolver[ResolvedTextOverlayFeature]):
             tooltip: PropertyMapper | str | bool = True,
             popup: PropertyMapper | folium.Popup | bool = False,
             location: PropertyMapper | Point = None,
+            offset: PropertyMapper | tuple[float, float] = (0, 0),
+            azimuth_angle: PropertyMapper | float = 90,
             **property_mappers: PropertyMapper | Any,
     ):
         mappers = dict(
@@ -73,6 +83,8 @@ class TextOverlayFeatureResolver(FeatureResolver[ResolvedTextOverlayFeature]):
             tooltip=tooltip,
             popup=popup,
             location=self._explicit_or_fallback(location, self._default_location_mapper()),
+            offset=offset,
+            azimuth_angle=azimuth_angle,
             **property_mappers
         )
         super().__init__(feature_type=ResolvedTextOverlayFeature, **mappers)
@@ -99,12 +111,15 @@ class TextOverlayGenerator(FoliumObjectGenerator[TextOverlayFeatureResolver]):
         shadow_size = style.shadow_size
         shadow_color = style.shadow_color
 
+        angle = float(style.azimuth_angle) - 90  # Folium counts clockwise from right-pointing direction; normal convention is CCW
+        x_offset, y_offset = style.offset
+
         icon_html = f'''
             <div style="
                 position: absolute;
                 left: 50%;
                 top: 50%;
-                transform: translate(-50%, -50%);
+                transform: translate(-50%, -50%) translate({x_offset}px, {-y_offset}px) rotate({angle}deg);
                 text-align: center;
                 font-size: {font_size};
                 font-weight: {font_weight};

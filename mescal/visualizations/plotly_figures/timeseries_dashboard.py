@@ -403,7 +403,7 @@ class TimeSeriesDashboardGenerator:
             title: str = None,
             color_continuous_scale: str | list[str] | list[tuple[float, str]] = None,
             color_continuous_midpoint: int | float = None,
-            range_color: list[int | float] = None,
+            range_color: tuple[float, float] | list[int | float] = None,
             per_facet_col_colorscale: bool = False,
             per_facet_row_colorscale: bool = False,
             facet_row_color_settings: dict = None,
@@ -460,7 +460,7 @@ class TimeSeriesDashboardGenerator:
 
         if not kwargs.get('_skip_validation', False):
             self.data_processor_cls.validate_input_data_and_config(data, self.config)
-        data = self.data_processor_cls.prepare_dataframe_for_facet(data, self.config)
+        data = self.data_processor_cls.prepare_dataframe_for_facet(data.copy(), self.config)
         data = self.data_processor_cls.ensure_df_has_two_column_levels(data, self.config)
         self.data_processor_cls.update_facet_config(data, self.config)
 
