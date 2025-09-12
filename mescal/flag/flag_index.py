@@ -188,8 +188,8 @@ class FlagIndex(Generic[FlagType], ABC):
         Get the preferred visualization type for a flag.
         
         Visualization types suggest how data associated with a flag should be
-        displayed, such as geographic maps for location-based data, time series
-        plots for temporal data, or network diagrams for topology-related data.
+        displayed, such as geographic areas for areas, point for nodal objects,
+        lines for line objects.
         
         Args:
             flag: The flag to get visualization preferences for
@@ -199,7 +199,7 @@ class FlagIndex(Generic[FlagType], ABC):
         
         Examples:
             >>> flag_index.get_visualization_type("Node.x")
-            VisualizationTypeEnum.Node
+            VisualizationTypeEnum.Point
             >>> flag_index.get_visualization_type("BiddingZone.Results.Price")
             VisualizationTypeEnum.Area
         """
@@ -211,7 +211,7 @@ class FlagIndex(Generic[FlagType], ABC):
         Get the energy system topology type for a flag.
         
         Topology types classify flags according to their role in the energy system
-        topology, such as Node (buses/nodes), Branch (transmission lines), Generator
+        topology, such as Node (buses/nodes), Edges (transmission lines, converters), NodeConnectedElement
         (generation units), etc. This classification helps with network analysis
         and appropriate data organization.
         
@@ -223,9 +223,9 @@ class FlagIndex(Generic[FlagType], ABC):
         
         Examples:
             >>> flag_index.get_topology_type("Generator.p_nom_opt")
-            TopologyTypeEnum.Generator
+            TopologyTypeEnum.NodeConnectedElement
             >>> flag_index.get_topology_type("Line.s_nom")
-            TopologyTypeEnum.Branch
+            TopologyTypeEnum.Edge
         """
         return self._get_topology_type(flag)
 
@@ -233,12 +233,7 @@ class FlagIndex(Generic[FlagType], ABC):
     def get_unit(self, flag: FlagType) -> Units.Unit:
         """
         Get the physical unit for a flag.
-        
-        Returns the physical unit associated with the flag's data, enabling proper
-        unit handling, conversion, and validation throughout MESCAL operations.
-        Units are essential for energy system analysis to ensure dimensional
-        consistency and enable meaningful calculations.
-        
+
         Args:
             flag: The flag to get units for
         
@@ -255,24 +250,20 @@ class FlagIndex(Generic[FlagType], ABC):
 
     def get_quantity_type_enum(self, flag: FlagType) -> QuantityTypeEnum:
         """
-        Get the quantity type classification for a flag based on its unit.
-        
-        Quantity types classify variables into categories like Power, Energy, Distance,
-        etc., based on their physical dimensions. This classification is derived from
-        the flag's unit and is used for appropriate aggregation, visualization, and
-        analysis operations.
+        Get the quantity type classification for a flag based on its unit
+        (INTENSIVE vs EXTENSIVE quantities).
         
         Args:
             flag: The flag to classify
         
         Returns:
-            QuantityTypeEnum: The quantity type category based on the flag's unit
+            QuantityTypeEnum: The quantity type category based on the flag's unit (INTENSIVE or EXTENSIVE).
         
         Examples:
-            >>> flag_index.get_quantity_type_enum("Generator.p_nom_opt")
-            QuantityTypeEnum.Power
-            >>> flag_index.get_quantity_type_enum("Storage.energy_nom")
-            QuantityTypeEnum.Energy
+            >>> flag_index.get_quantity_type_enum("Generator.p_nom_opt")  # MW
+            QuantityTypeEnum.INTENSIVE
+            >>> flag_index.get_quantity_type_enum("Storage.energy_nom")  # MWh
+            QuantityTypeEnum.EXTENSIVE
         """
         unit = self.get_unit(flag)
         return Units.get_quantity_type_enum(unit)
@@ -284,7 +275,7 @@ class FlagIndex(Generic[FlagType], ABC):
         This method discovers all time series variables that belong to a particular
         model type by examining the dataset's accepted flags and checking their
         linked model relationships. This is useful for finding all variables
-        associated with a particular component type (e.g., all Generator variables).
+        associated with a particular component type (e.g., all Generator time-series variables).
         
         Args:
             dataset: The dataset to search for flags
@@ -430,8 +421,8 @@ class FlagIndex(Generic[FlagType], ABC):
         
         This method resolves membership relationships in energy system models,
         where one component type references another through a membership column.
-        For example, generators typically have a 'node' column that references
-        the node (bus) they're connected to.
+        For example, generators might have a 'node' column that references
+        the node they're connected to.
         
         Args:
             membership_column_name: Name of the membership column in model DataFrames

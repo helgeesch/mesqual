@@ -1,10 +1,3 @@
-"""
-Flag type protocol for MESCAL.
-
-Defines the interface requirements for flag types: must be hashable (for use as
-dictionary keys) and convertible to strings (for logging and serialization).
-"""
-
 from typing import Protocol
 
 
