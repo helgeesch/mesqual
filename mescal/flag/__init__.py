@@ -14,3 +14,11 @@ Key features:
 
 from .flag import FlagTypeProtocol
 from .flag_index import FlagIndex, EmptyFlagIndex
+
+__all__ = [
+    'FlagTypeProtocol',
+    'FlagIndex',
+    'EmptyFlagIndex',
+]
+
+__version__ = '0.1.0'
