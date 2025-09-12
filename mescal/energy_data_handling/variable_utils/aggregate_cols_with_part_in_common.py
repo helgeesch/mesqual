@@ -13,20 +13,13 @@ class AggregatedColumnAppender:
     need to be aggregated into totals for analysis or visualization.
     
     The class handles both single-level and multi-level DataFrame columns, making it suitable for
-    MESCAL's energy variable structures that often include hierarchical indexing (time, scenarios,
+    MESCAL's energy variable structures that often include hierarchical indexing (time,
     regions, technologies, etc.).
     
     Energy Domain Context:
         - Aggregates extensive quantities (volumes, energy, capacities) by summation
-        - Preserves intensive quantities when all components are NaN
-        - Handles hierarchical energy variable structures common in multi-scenario analysis
+        - Preserves NaN when all quantities in an aggregation are NaNs
         - Suitable for technology groupings, regional aggregations, and fuel type summations
-        
-    MESCAL Integration:
-        - Compatible with MESCAL's multi-level DataFrame structures
-        - Preserves time series granularity and scenario dimensions
-        - Follows MESCAL naming conventions for aggregated variables
-        - Maintains data integrity for downstream analysis and visualization
     
     Args:
         in_common_part (str): The common substring to search for in column names. All columns
@@ -80,8 +73,7 @@ class AggregatedColumnAppender:
         - Aggregate different technology types (e.g., all wind sources)
         - Sum regional contributions (e.g., all demand in a country)
         - Combine fuel types (e.g., all fossil fuel generators)
-        - Create technology group totals (e.g., all renewable sources)
-        
+
         Args:
             df (pd.DataFrame): Input DataFrame containing energy variables. Can have single-level
                 or multi-level column structure. For multi-level columns, aggregation is performed
@@ -197,8 +189,10 @@ if __name__ == '__main__':
     regions = ['DE', 'FR', 'NL']
     scenarios = ['base', 'high_res']
     
-    columns = pd.MultiIndex.from_product([technologies, regions, scenarios],
-                                       names=['technology', 'region', 'scenario'])
+    columns = pd.MultiIndex.from_product(
+        [technologies, regions, scenarios],
+        names=['technology', 'region', 'scenario']
+    )
     
     # Create sample data for 24 hours
     np.random.seed(42)  # For reproducible results
@@ -209,8 +203,8 @@ if __name__ == '__main__':
         columns=columns
     )
     
-    print("Original multi-level storage data (first 3 hours):")
-    print(storage_data.iloc[:3, :8].round(1))  # Show subset for readability
+    print("Original multi-level storage data head")
+    print(storage_data.head().round(1))  # Show subset for readability
     
     # Aggregate all storage technologies
     storage_aggregator = AggregatedColumnAppender('storage', agg_col_name_prefix='total_')
@@ -218,62 +212,4 @@ if __name__ == '__main__':
     
     print(f"\nAggregated storage totals by region and scenario:")
     storage_totals = storage_result['total_storage']
-    print(storage_totals.iloc[:3].round(1))  # Show first 3 time periods
-    
-    # Example 3: Handling missing data (NaN) in energy time series
-    print("\n\n3. NaN Handling in Energy Price Data")
-    print("-" * 42)
-    
-    price_data = pd.DataFrame({
-        'price_day_ahead_EUR': [45.2, np.nan, 38.7, 52.3],
-        'price_intraday_EUR': [46.1, 41.2, np.nan, np.nan],
-        'price_balancing_EUR': [np.nan, np.nan, np.nan, 55.8],
-        'carbon_price_EUR': [25.0, 26.5, 24.8, 27.2]
-    }, index=pd.date_range('2024-01-01', periods=4, freq='h'))
-    
-    print("Original price data with NaN values:")
-    print(price_data)
-    
-    price_aggregator = AggregatedColumnAppender('price', agg_col_name_suffix='_avg_EUR')
-    price_result = price_aggregator.add_aggregated_column(price_data)
-    
-    print(f"\nAggregated price column (handles NaN appropriately):")
-    print(f"price_avg_EUR: {price_result['price_avg_EUR'].values}")
-    print("Note: Row 1 preserves NaN when all price inputs are NaN")
-    
-    # Example 4: Energy system component aggregation
-    print("\n\n4. Energy System Component Aggregation")
-    print("-" * 45)
-    
-    system_data = pd.DataFrame({
-        'demand_residential_MWh': [800, 750, 900, 850],
-        'demand_industrial_MWh': [1200, 1100, 1300, 1250],
-        'demand_commercial_MWh': [400, 350, 450, 420],
-        'supply_nuclear_MWh': [1800, 1800, 1800, 1800],
-        'supply_coal_MWh': [300, 250, 400, 350],
-        'supply_gas_MWh': [300, 150, 450, 370]
-    }, index=pd.date_range('2024-01-01', periods=4, freq='6h'))
-    
-    print("Energy system component data:")
-    print(system_data)
-    
-    # Aggregate demand and supply separately
-    demand_agg = AggregatedColumnAppender('demand', agg_col_name_suffix='_total_MWh')
-    supply_agg = AggregatedColumnAppender('supply', agg_col_name_suffix='_total_MWh') 
-    
-    result_demand = demand_agg.add_aggregated_column(system_data)
-    result_final = supply_agg.add_aggregated_column(result_demand)
-    
-    print(f"\nSystem totals:")
-    totals = result_final[['demand_total_MWh', 'supply_total_MWh']]
-    print(totals)
-    print(f"\nEnergy balance check (supply - demand):")
-    balance = totals['supply_total_MWh'] - totals['demand_total_MWh'] 
-    print(balance.round(1))
-    
-    print("\n=== End of Examples ===")
-    print("\nThese examples demonstrate typical MESCAL energy data aggregation patterns:")
-    print("- Technology grouping for renewable energy analysis")
-    print("- Multi-scenario and multi-regional data handling")
-    print("- Proper NaN handling in time series data")
-    print("- Energy system balance calculations")
+    print(storage_totals.head().round(1))

@@ -13,22 +13,12 @@ class AreaBorderVariableCalculatorBase(ABC, AreaBorderNamingConventions):
     """Abstract base class for calculating energy variables at area border level.
     
     This base class provides functionality for aggregating line-level energy data 
-    (flows, capacities, prices) to area border level. An area border represents 
-    the transmission interface between two areas (countries, bidding zones, etc.).
+    (flows, capacities, price spreads) to area border level. An area border represents
+    the interface between two areas (countries, bidding zones, etc.).
     
     The class handles the complex mapping from transmission lines to area borders,
     including proper handling of line directionality. Lines are classified as either
     "up" or "down" relative to the border direction based on their node endpoints.
-    
-    Energy market context:
-    In electricity markets, transmission lines connect nodes within and between 
-    different market areas. Border variables represent aggregated quantities at 
-    the interface between areas, which are crucial for:
-    - Cross-border flow analysis
-    - Market coupling calculations  
-    - Congestion rent allocation
-    - Transmission capacity planning
-    - Price spread analysis between areas
     
     Border directionality:
     - "Up" direction: From area_from to area_to (as defined in border naming)
@@ -214,9 +204,6 @@ class AreaBorderVariableCalculatorBase(ABC, AreaBorderNamingConventions):
         
         Returns:
             String name of the variable (e.g., 'border_flow', 'border_capacity')
-            
-        Raises:
-            NotImplementedError: This is an abstract property
         """
         pass
 
@@ -232,112 +219,3 @@ class AreaBorderVariableCalculatorBase(ABC, AreaBorderNamingConventions):
         """
         if not isinstance(df.index, pd.DatetimeIndex):
             logger.warning(f"{data_name} does not have DatetimeIndex")
-
-
-if __name__ == "__main__":
-    # Example implementation of the abstract base class
-    class ExampleBorderCapacityCalculator(AreaBorderVariableCalculatorBase):
-        """Example implementation that calculates border capacities."""
-        
-        @property 
-        def variable_name(self) -> str:
-            return "example_capacity"
-            
-        def calculate(self, line_capacities: pd.DataFrame) -> pd.DataFrame:
-            """Sum line capacities for each border."""
-            self._validate_time_series_data(line_capacities, "line_capacities")
-            
-            border_results = {}
-            
-            for border_id in self.area_border_model_df.index:
-                lines_up, lines_down = self.get_border_lines_in_topological_up_and_down_direction(border_id)
-                all_border_lines = lines_up + lines_down
-                
-                if all_border_lines:
-                    # Filter to lines that exist in capacity data
-                    available_lines = [line for line in all_border_lines if line in line_capacities.columns]
-                    if available_lines:
-                        border_results[border_id] = line_capacities[available_lines].sum(axis=1)
-                    else:
-                        # Create empty series if no capacity data available
-                        border_results[border_id] = pd.Series(index=line_capacities.index, dtype=float)
-                else:
-                    # No lines found for this border
-                    border_results[border_id] = pd.Series(index=line_capacities.index, dtype=float)
-            
-            result_df = pd.DataFrame(border_results)
-            result_df.columns.name = self.border_identifier
-            return result_df
-    
-    # Create example data structures
-    # Node model with area assignments
-    node_model_df = pd.DataFrame({
-        'country': ['DE', 'DE', 'FR', 'FR', 'BE', 'BE'],
-        'voltage': [380, 220, 380, 220, 380, 220]
-    }, index=['DE1', 'DE2', 'FR1', 'FR2', 'BE1', 'BE2'])
-    
-    # Line model with interconnections
-    line_model_df = pd.DataFrame({
-        'node_from': ['DE1', 'DE2', 'FR1', 'FR2', 'BE1'],
-        'node_to': ['FR1', 'FR2', 'BE1', 'BE2', 'DE1'],  # Lines connecting different countries
-        'voltage': [380, 220, 380, 220, 380],
-        'length_km': [500, 400, 300, 250, 600]
-    }, index=['DE-FR1', 'DE-FR2', 'FR-BE1', 'FR-BE2', 'BE-DE1'])
-    
-    # Area border model (borders between countries)
-    area_border_model_df = pd.DataFrame({
-        'capacity_limit': [2000, 1500, 1200]  # MW
-    }, index=['DE-FR', 'FR-BE', 'BE-DE'])
-    
-    print("Node model (countries):")
-    print(node_model_df)
-    print("\nLine model (interconnections):")
-    print(line_model_df)
-    print("\nBorder model:")
-    print(area_border_model_df)
-    
-    # Initialize the calculator
-    calculator = ExampleBorderCapacityCalculator(
-        area_border_model_df=area_border_model_df,
-        line_model_df=line_model_df,
-        node_model_df=node_model_df,
-        area_column='country'
-    )
-    
-    # Test border line identification
-    print(f"\nBorder line direction analysis:")
-    for border_id in area_border_model_df.index:
-        lines_up, lines_down = calculator.get_border_lines_in_topological_up_and_down_direction(border_id)
-        print(f"Border {border_id}:")
-        print(f"  - Lines up: {lines_up}")
-        print(f"  - Lines down: {lines_down}")
-        
-        # Show which areas these correspond to
-        area_from, area_to = calculator.decompose_area_border_name_to_areas(border_id)
-        print(f"  - Direction: {area_from} → {area_to} (up), {area_to} → {area_from} (down)")
-    
-    # Create example capacity time series
-    import numpy as np
-    time_index = pd.date_range('2024-01-01', periods=24, freq='h')
-    line_capacities = pd.DataFrame(
-        np.random.uniform(800, 1200, size=(24, len(line_model_df))),
-        index=time_index,
-        columns=line_model_df.index
-    )
-    
-    print(f"\nLine capacities (first 5 hours):")
-    print(line_capacities.head())
-    
-    # Calculate border capacities
-    border_capacities = calculator.calculate(line_capacities)
-    print(f"\nBorder capacities (first 5 hours):")
-    print(border_capacities.head())
-    
-    # Demonstrate validation
-    print(f"\nValidator test - Non-datetime index:")
-    non_datetime_data = pd.DataFrame(
-        np.random.uniform(800, 1200, size=(3, len(line_model_df))),
-        index=[1, 2, 3],  # Non-datetime index
-        columns=line_model_df.index
-    )
-    result_with_warning = calculator.calculate(non_datetime_data)

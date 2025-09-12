@@ -1,5 +1,4 @@
 from typing import Literal
-from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -12,24 +11,13 @@ class BorderFlowCalculator(AreaBorderVariableCalculatorBase):
     """Calculates aggregated power flows for area borders.
     
     This calculator aggregates line-level power flows to border level, handling
-    bidirectional flow data and transmission losses. It's essential for analyzing
-    cross-border electricity trade, market coupling, and grid congestion patterns.
-    
+    bidirectional flow data and transmission losses.
     The calculator can aggregate both sent and received flows, accounting for
     transmission losses that occur between sending and receiving ends. It supports
     multiple output formats including directional flows and net flows.
     
-    Energy market context:
-    Power flows represent actual electricity transfers between areas and are
-    fundamental for:
-    - Cross-border trade analysis and market coupling calculations
-    - Grid congestion identification and congestion rent calculations  
-    - Load flow validation and grid security assessment
-    - Market surveillance and compliance monitoring
-    - Transmission loss allocation and settlement
-    
     Flow aggregation logic:
-    - Lines are classified as "up" or "down" based on topological direction
+    - Lines and flows are classified as "up" or "down" based on topological direction
     - Flows are aggregated respecting directionality and loss conventions
     - Net flows represent the algebraic sum (up_flow - down_flow)
     
@@ -45,7 +33,6 @@ class BorderFlowCalculator(AreaBorderVariableCalculatorBase):
     
     @property
     def variable_name(self) -> str:
-        """Returns the variable name for this calculator."""
         return "border_flow"
     
     def calculate(

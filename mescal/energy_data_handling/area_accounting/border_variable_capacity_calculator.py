@@ -1,7 +1,5 @@
 from typing import Literal
-from dataclasses import dataclass
 
-import numpy as np
 import pandas as pd
 
 from mescal.energy_data_handling.network_lines_data import NetworkLineCapacitiesData
@@ -12,20 +10,7 @@ class BorderCapacityCalculator(AreaBorderVariableCalculatorBase):
     """Calculates aggregated transmission capacities for area borders.
     
     This calculator aggregates line-level transmission capacities to border level,
-    handling bidirectional capacity data and proper directional aggregation. It's
-    essential for analyzing cross-border transmission limits and market coupling
-    constraints between different areas.
-    
-    Energy market context:
-    Transmission capacity represents the maximum power that can flow through 
-    transmission lines or borders. Border capacities are critical for:
-    - Market coupling calculations (determining maximum trade volumes)
-    - Congestion analysis and pricing
-    - Grid security and N-1 contingency analysis
-    - Long-term transmission planning and investment decisions
-    
-    The calculator handles asymmetric capacities where the limit may differ
-    between directions due to technical constraints or operational procedures.
+    handling bidirectional capacity data with proper directional aggregation.
     
     Example:
         >>> from mescal.energy_data_handling.network_lines_data import NetworkLineCapacitiesData
@@ -49,7 +34,6 @@ class BorderCapacityCalculator(AreaBorderVariableCalculatorBase):
 
     @property
     def variable_name(self) -> str:
-        """Returns the variable name for this calculator."""
         return "border_capacity"
 
     def calculate(
@@ -156,7 +140,7 @@ class BorderCapacityCalculator(AreaBorderVariableCalculatorBase):
 
 if __name__ == "__main__":
     import numpy as np
-    
+
     # Create example network structure
     node_model_df = pd.DataFrame({
         'country': ['DE', 'DE', 'FR', 'FR', 'BE'],
@@ -169,7 +153,7 @@ if __name__ == "__main__":
         'capacity': [1000, 800, 1200]
     }, index=['DE-FR_Line1', 'DE-FR_Line2', 'FR-BE_Line1'])
     
-    area_border_model_df = pd.DataFrame(index=['DE-FR', 'FR-BE'])
+    area_border_model_df = pd.DataFrame(index=['DE - FR', 'FR - DE', 'FR - BE'])
     
     print("Network structure:")
     print("Node model:")
@@ -258,24 +242,3 @@ if __name__ == "__main__":
         min_cap = down_capacities[border].min() 
         max_cap = down_capacities[border].max()
         print(f"  {border}: Mean={mean_cap:.0f}, Min={min_cap:.0f}, Max={max_cap:.0f}")
-    
-    # Demonstrate asymmetry
-    print(f"\nCapacity asymmetry analysis:")
-    for border in up_capacities.columns:
-        if border in down_capacities.columns:
-            asymmetry = (up_capacities[border] / down_capacities[border] - 1) * 100
-            print(f"{border}: Average asymmetry = {asymmetry.mean():.1f}% (up vs down)")
-    
-    # Test edge case: empty border
-    empty_border_df = pd.DataFrame(index=['NON-EXISTENT'])
-    calculator_empty = BorderCapacityCalculator(
-        area_border_model_df=empty_border_df,
-        line_model_df=line_model_df,
-        node_model_df=node_model_df,
-        area_column='country'
-    )
-    
-    empty_result = calculator_empty.calculate(capacity_data, direction='up')
-    print(f"\nEmpty border test:")
-    print(f"Result shape: {empty_result.shape}")
-    print(f"All values NaN: {empty_result.isna().all().all()}")

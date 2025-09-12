@@ -1,5 +1,3 @@
-from typing import Literal
-
 import numpy as np
 import pandas as pd
 
@@ -115,14 +113,6 @@ class AreaPriceCalculator(AreaVariableCalculatorBase):
         return result
     
     def _calculate_simple_average(self, prices: pd.DataFrame) -> pd.Series:
-        """Calculate simple arithmetic average of prices across nodes.
-        
-        Args:
-            prices: DataFrame with price time series for nodes in an area
-            
-        Returns:
-            Series with averaged prices over time
-        """
         return prices.mean(axis=1)
     
     def _calculate_weighted_average(
@@ -157,8 +147,6 @@ class AreaPriceCalculator(AreaVariableCalculatorBase):
 
 
 if __name__ == '__main__':
-    import numpy as np
-    
     print("=== MESCAL Area Price Calculator Examples ===\n")
     
     # Create sample node model with area mapping

@@ -7,6 +7,7 @@ from mescal.energy_data_handling.area_accounting.model_generator_base import Geo
 
 
 class AreaModelGenerator(GeoModelGeneratorBase):
+    # TODO: docstrings for class and methods in AreaModelGenerator
     """Generates area model DataFrame from node-to-area mapping."""
     
     def __init__(

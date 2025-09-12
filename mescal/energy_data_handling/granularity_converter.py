@@ -96,10 +96,10 @@ class TimeSeriesGranularityConverter:
             
         Example:
             >>> # For extensive quantities (energy), values are divided
-            >>> series = pd.Series([100, np.nan, np.nan, 200], 
-            ...                   index=pd.date_range('2024-01-01', freq='15min', periods=4))
+            >>> series = pd.Series([100, np.nan, np.nan, np.nan, 200, np.nan, np.nan, np.nan],
+            ...                   index=pd.date_range('2024-01-01', freq='15min', periods=5))
             >>> converter.upsample_through_fillna(series, QuantityTypeEnum.EXTENSIVE)
-            # Results in [33.33, 33.33, 33.33, 200] - first value split across 3 periods
+            # Results in [25, 25, 25, 25, 50, 50, 50, 50]
         """
         if isinstance(data, pd.Series):
             return self._upsample_series(data, quantity_type)

@@ -1,7 +1,7 @@
 """Border model generation for energy system area connectivity analysis.
 
 This module provides functionality for identifying and modeling borders between
-energy system areas based on transmission line connectivity. It supports the
+energy system areas based on line topologies. It supports the
 creation of comprehensive border models that capture directional relationships,
 naming conventions, and geometric properties essential for energy market analysis.
 
@@ -10,10 +10,10 @@ Key Capabilities:
     - Standardized border naming conventions with directional awareness
     - Integration with geometric border calculators
     - Network graph generation for area connectivity analysis
-    - Support for both physical and logical borders
+    - Support for both physical and logical borders (geographically touching borders vs geographically separated borders)
 
 Typical Energy Use Cases:
-    - Modeling interconnections between market zones
+    - Modeling interconnections between countries, control areas, or market zones
     - Cross-border capacity and flow analysis
     - Transmission system topology representation
     - Multi-area energy market modeling
@@ -117,27 +117,12 @@ class AreaBorderNamingConventions:
         self.target_area_identifier = target_area_identifier or self._default_target_area_identifier()
 
     def _default_border_identifier(self) -> str:
-        """Generate default border identifier column name.
-        
-        Returns:
-            str: Default border column name in format '{area_column}_border'
-        """
         return f'{self.area_column}_border'
 
     def _default_source_area_identifier(self) -> str:
-        """Generate default source area identifier column name.
-        
-        Returns:
-            str: Default source area column name with '_from' suffix
-        """
         return f'{self.SOURCE_AREA_IDENTIFIER_PREFIX}{self.area_column}{self.SOURCE_AREA_IDENTIFIER_SUFFIX}'
 
     def _default_target_area_identifier(self) -> str:
-        """Generate default target area identifier column name.
-        
-        Returns:
-            str: Default target area column name with '_to' suffix
-        """
         return f'{self.TARGET_AREA_IDENTIFIER_PREFIX}{self.area_column}{self.TARGET_AREA_IDENTIFIER_SUFFIX}'
 
     def get_area_border_name(self, area_from: str, area_to: str) -> str:
@@ -148,7 +133,7 @@ class AreaBorderNamingConventions:
             area_to: Target area identifier (e.g., 'FR', 'DE_South')
             
         Returns:
-            str: Formatted border name using the configured separator
+            str: Formatted border name using the configured separator (e.g. 'DE - FR', 'FR_North - DE_South')
             
         Example:
             >>> conventions = AreaBorderNamingConventions('country')
@@ -204,7 +189,7 @@ class AreaBorderNamingConventions:
         
         Creates a canonical representation where area names are sorted
         alphabetically, useful for identifying unique borders regardless
-        of direction specification.
+        of direction specification, or for matching borders of opposite direction.
         
         Args:
             border_name: Border name in any direction (e.g., 'FR - DE' or 'DE - FR')
@@ -228,14 +213,13 @@ class AreaBorderNamingConventions:
 class AreaBorderModelGenerator(AreaBorderNamingConventions):
     """Generates comprehensive border models from energy system topology.
     
-    This class analyzes transmission line connectivity and node-to-area mappings
+    This class analyzes line connectivity and node-to-area mappings
     to automatically identify borders between energy system areas. It creates
-    comprehensive border models with standardized naming, directional relationships,
+    a comprehensive border_model_df with standardized naming, directional relationships,
     and integration points for geometric analysis.
     
-    The generator processes line topology data to identify cross-area connections,
-    handling both physical transmission lines and logical interconnections. It
-    supports bidirectional relationship tracking and provides network graph
+    The generator processes line topology data to identify cross-area connections.
+    It supports bidirectional relationship tracking and provides network graph
     representations for connectivity analysis.
     
     Key Features:
@@ -320,14 +304,11 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
         Raises:
             ValueError: If any required columns are missing from input DataFrames
         """
-        # Validate node model columns
         if self.area_column not in self.node_model_df.columns:
             raise ValueError(
                 f"Area column '{self.area_column}' not found in node_model_df. "
                 f"Available columns: {list(self.node_model_df.columns)}"
             )
-            
-        # Validate line model columns
         if self.node_from_col not in self.line_model_df.columns:
             raise ValueError(
                 f"Source node column '{self.node_from_col}' not found in line_model_df. "
@@ -418,10 +399,10 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
         return border_model_df
 
     def _identify_borders(self) -> set[tuple[str, str]]:
-        """Identify borders from transmission line topology.
+        """Identify borders from line topology.
         
         Analyzes line connectivity to find areas that are connected by
-        transmission lines, creating bidirectional border relationships.
+        lines, creating bidirectional border relationships.
         
         Returns:
             set: Set of (area_from, area_to) tuples representing directional borders.
@@ -448,7 +429,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
         return borders
     
     def _get_lines_for_border(self, area_from: str, area_to: str) -> list[str]:
-        """Get transmission lines that form a specific directional border.
+        """Get all lines that cross a specific directional border.
         
         Args:
             area_from: Source area identifier
@@ -507,7 +488,6 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
             - Network resilience studies
             - Regional clustering for analysis
         """
-        """Returns a networkx graph of areas connected by borders."""
         graph = nx.Graph()
         borders = self._identify_borders()
         
@@ -526,8 +506,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
         
         Integrates with AreaBorderGeometryCalculator to add geometric information
         to borders, including representative points, directional angles, and
-        line geometries. This enables advanced visualization and spatial analysis
-        of energy system borders.
+        line geometries. This enables advanced visualization of energy system borders.
         
         Args:
             border_model_df: Border model DataFrame to enhance
@@ -549,25 +528,10 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
             >>> enhanced_borders = generator.enhance_with_geometry(border_model, geo_calc)
             >>> print(enhanced_borders.columns)  # Includes geometric properties
             
-        Energy Domain Applications:
-            - Cross-border flow visualization with directional arrows
-            - Map-based energy market analysis
-            - Capacity constraint visualization
-            - Regional interconnection studies
-            
         Note:
             Geometric enhancement may fail for some borders due to missing
             area geometries or calculation errors. Such failures are logged
             as warnings without stopping the overall process.
-        """
-        """Enhance border model with geometric properties.
-        
-        Args:
-            border_model_df: Border model DataFrame to enhance
-            area_geometry_calculator: Geometry calculator with area geometries
-            
-        Returns:
-            Enhanced DataFrame with geometry, projection_point, and projection_angle
         """
         enhanced_df = border_model_df.copy()
         
@@ -689,47 +653,8 @@ if __name__ == '__main__':
                     print(f"  {source} → {target}: {' → '.join(path)} (length: {len(path)-1})")
         print()
     
-    # 4. Border capacity analysis
-    print("4. BORDER CAPACITY ANALYSIS")
-    print("=" * 40)
-    
-    border_capacities = []
-    for border_id, row in border_model_country.iterrows():
-        area_from = row['country_from']
-        area_to = row['country_to']
-        
-        # Get lines for this border direction
-        lines_for_border = generator_country._get_lines_for_border(area_from, area_to)
-        total_capacity = 0
-        line_count = 0
-        
-        for line_id in lines_for_border:
-            if line_id in line_model_df.index:
-                capacity = line_model_df.loc[line_id, 'capacity_mw']
-                total_capacity += capacity
-                line_count += 1
-        
-        border_capacities.append({
-            'border': border_id,
-            'area_from': area_from,
-            'area_to': area_to,
-            'total_capacity_mw': total_capacity,
-            'line_count': line_count,
-            'lines': lines_for_border
-        })
-    
-    border_capacity_df = pd.DataFrame(border_capacities)
-    border_capacity_df = border_capacity_df.set_index('border')
-    
-    print("Border capacities:")
-    for _, row in border_capacity_df.iterrows():
-        if row['total_capacity_mw'] > 0:
-            print(f"  {row['area_from']} → {row['area_to']}: "
-                  f"{row['total_capacity_mw']:,} MW ({row['line_count']} lines)")
-    print()
-    
-    # 5. Demonstrate naming conventions
-    print("5. NAMING CONVENTIONS DEMONSTRATION")
+    # 4. Demonstrate naming conventions
+    print("4. NAMING CONVENTIONS DEMONSTRATION")
     print("=" * 40)
     
     conventions = AreaBorderNamingConventions('market_zone')
@@ -746,44 +671,3 @@ if __name__ == '__main__':
         print(f"  Opposite: {opposite}")
         print(f"  Canonical: {canonical}")
         print()
-    
-    # 6. Validation and error handling demonstration
-    print("6. VALIDATION AND ERROR HANDLING")
-    print("=" * 40)
-    
-    try:
-        # This should raise an error due to missing column
-        bad_generator = AreaBorderModelGenerator(
-            node_model_df,
-            line_model_df,
-            area_column='nonexistent_column',
-            node_from_col='node_from',
-            node_to_col='node_to'
-        )
-    except ValueError as e:
-        print(f"Expected validation error for missing area column: {e}")
-    
-    try:
-        # This should raise an error due to missing line column
-        bad_generator = AreaBorderModelGenerator(
-            node_model_df,
-            line_model_df,
-            area_column='country',
-            node_from_col='nonexistent_from',
-            node_to_col='node_to'
-        )
-    except ValueError as e:
-        print(f"Expected validation error for missing line column: {e}")
-    
-    print()
-    
-    print("=== DEMONSTRATION COMPLETE ===")
-    print("\nThis example demonstrates:")
-    print("- Automatic border identification from transmission topology")
-    print("- Country and bidding zone level border modeling")
-    print("- Directional relationship tracking with naming conventions")
-    print("- Network connectivity analysis using NetworkX integration")
-    print("- Border capacity aggregation from individual transmission lines")
-    print("- Flexible naming convention system")
-    print("- Input validation and comprehensive error handling")
-    print("- Integration patterns for energy system analysis workflows")

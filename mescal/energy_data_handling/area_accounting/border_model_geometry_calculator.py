@@ -1,37 +1,3 @@
-"""Geometric calculation engine for energy system area border analysis.
-
-This module provides sophisticated geometric calculations for borders between
-energy system areas, supporting both physical borders (areas that touch) and
-logical borders (non-adjacent areas). It enables advanced spatial analysis
-for energy market visualization, cross-border flow representation, and
-directional indicator placement.
-
-Key Capabilities:
-    - Physical border detection and line extraction
-    - Logical border path computation with obstacle avoidance
-    - Representative point calculation for label/arrow placement
-    - Directional angle computation for flow visualization
-    - Integration with area models and border generators
-
-Advanced Features:
-    - Pole of inaccessibility computation for optimal point placement
-    - Non-crossing path finding for logical borders
-    - Geometric validation and cleanup
-    - Performance optimization with caching
-
-Typical Energy Use Cases:
-    - Cross-border flow visualization on energy market maps
-    - Directional arrow placement for import/export flows
-    - Border capacity constraint visualization
-    - Multi-area energy system spatial analysis
-    - Professional energy market cartography
-
-MESCAL Integration:
-    Integrates with MESCAL's area accounting system to provide geometric
-    processing capabilities that enhance border models with visualization-ready
-    spatial properties.
-"""
-
 from typing import Tuple, Union, List
 import math
 import itertools
@@ -48,15 +14,15 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
     
     This class provides sophisticated geometric calculations for borders between
     energy system areas, handling both physical borders (adjacent areas sharing
-    boundaries) and logical borders (non-adjacent areas requiring connection paths).
-    It's specifically designed for energy market visualization and cross-border
-    flow analysis.
+    geographic boundaries) and logical borders (non-adjacent areas requiring
+    connection paths, e.g. through the sea). It's specifically designed to generate
+    properties for energy market cross-border visualizations.
     
     The calculator combines multiple geometric algorithms:
     - Physical border extraction using geometric intersection
-    - Logical border path finding with obstacle avoidance  
-    - Representative point computation using pole of inaccessibility
-    - Directional angle calculation for flow visualization
+    - Logical geo-line-border path finding with obstacle avoidance
+    - Representative point computation using pole of inaccessibility for label placements on maps
+    - Azimuth angle calculation for flow icon (arrow) visualization
     - Geometric validation and optimization
     
     Key Features:
@@ -68,11 +34,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
         - Integration with MESCAL area accounting workflows
     
     Energy Domain Applications:
-        - Cross-border electricity flow visualization
-        - Market coupling interconnection analysis
-        - Transmission capacity constraint mapping
-        - Regional energy trade route visualization
-        - Multi-area energy model spatial representation
+        - Visualization of cross-border (cross-country, cross-biddingzone, cross-macroregion) variables (flows, spreads, capacities, ...)
     
     Attributes:
         area_model_gdf (gpd.GeoDataFrame): GeoDataFrame with area polygon geometries
@@ -166,7 +128,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             2. For physical borders: extract shared boundary line
             3. For logical borders: compute optimal connection path
             4. Calculate representative point for label/arrow placement
-            5. Compute directional angle for flow visualization
+            5. Compute azimuth angle for arrow icon visualization
         
         Args:
             area_from: Source area identifier (must exist in area_model_gdf index)
@@ -192,24 +154,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             >>> is_physical = border_info['is_physical']
             >>> 
             >>> print(f"Border DE→FR: {point} at {angle}° ({'physical' if is_physical else 'logical'})")
-            
-        Energy Domain Context:
-            This method provides all geometric information needed for professional
-            energy market visualization, including cross-border flow arrows,
-            capacity constraint indicators, and regional trade analysis maps.
-        """
-        """Calculate complete geometric properties for an area border.
-        
-        Args:
-            area_from: Source area identifier
-            area_to: Target area identifier
-            
-        Returns:
-            Dictionary containing:
-                - projection_point: Point for placing labels/arrows
-                - projection_angle: Angle in degrees for directional indicators
-                - border_line: LineString representing the border
-                - is_physical: Whether areas share a common edge
         """
         midpoint, angle = self.get_area_border_midpoint_and_angle(area_from, area_to)
         
@@ -230,7 +174,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
         }
     
     def areas_touch(self, area_from: str, area_to: str) -> bool:
-        """Check if two areas share a common physical border.
+        """Check if two areas share a common physical (geographic) border.
         
         Uses Shapely's touches() method to determine if area boundaries
         intersect without overlapping. This is the standard definition
@@ -246,11 +190,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
         Example:
             >>> touching = calculator.areas_touch('DE', 'FR')  # True for neighboring countries
             >>> separated = calculator.areas_touch('DE', 'GB')  # False for non-adjacent countries
-            
-        Energy Domain Context:
-            Physical borders typically represent direct transmission interconnections
-            between energy market areas, while non-touching areas require more
-            complex modeling for energy trade relationships.
         """
         geom_from = self.get_area_geometry(area_from)
         geom_to = self.get_area_geometry(area_to)
@@ -309,20 +248,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
         Example:
             >>> point, angle = calculator.get_area_border_midpoint_and_angle('DE', 'FR')
             >>> print(f"Place arrow at {point} oriented at {angle}° for DE→FR flow")
-            
-        Energy Domain Applications:
-            - Cross-border electricity flow arrows on energy market maps
-            - Capacity constraint indicators between market zones
-            - Regional trade balance visualization
-            - Interconnection analysis in multi-area energy models
-        """
-        """Get the midpoint and directional angle for a border.
-        
-        The angle points from area_from to area_to, suitable for directional indicators
-        like arrows on maps.
-            
-        Returns:
-            Tuple of (midpoint, angle_in_degrees)
         """
         geom_from = self.get_area_geometry(area_from)
         geom_to = self.get_area_geometry(area_to)
@@ -363,7 +288,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
         
         Creates a direct line connection between area boundaries, with intelligent
         path optimization to avoid crossing other areas when possible. This is
-        particularly important for logical borders in energy market visualization.
+        particularly important for non-physical borders.
         
         Algorithm:
             1. Find representative points for both areas
@@ -392,12 +317,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             Results are cached to improve performance for repeated calculations.
             Path optimization can be computationally intensive for complex geometries.
         """
-        """Get a straight line connecting two areas.
-
-        For non-touching areas, finds the best line that avoids crossing other areas
-        if possible.
-        """
-
         key = tuple(sorted((area_from, area_to)))
         if key in self._line_cache:
             return self._line_cache[key]
@@ -454,7 +373,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             3. Calculate border bearing and perpendicular angle
             4. Ensure angle points from source to target area
         """
-        """Calculate midpoint and angle for areas that share a border."""
         border_line = self._get_continuous_border_line(geom_from, geom_to)
         midpoint = border_line.interpolate(0.5, normalized=True)
         
@@ -509,7 +427,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             2. Compute angular differences between proposed angle and both bearings
             3. Return True if angle is closer to target bearing than source bearing
         """
-        """Check if angle points from source to target geometry."""
         centroid_from = self.get_representative_area_point(geom_from)
         centroid_to = self.get_representative_area_point(geom_to)
         
@@ -698,17 +615,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             This operation can be computationally intensive for complex geometries
             and large numbers of areas. Results are cached for efficiency.
         """
-        """Find shortest line between areas that doesn't cross other areas.
-        
-        Args:
-            area_from: Source area identifier
-            area_to: Target area identifier
-            min_clearance: Minimum distance from other areas (in projected CRS units)
-            num_points: Number of points to test on each area boundary
-            
-        Returns:
-            LineString if found, None otherwise
-        """
         poly_from = self._get_largest_polygon(self.get_area_geometry(area_from))
         poly_to = self._get_largest_polygon(self.get_area_geometry(area_to))
 
@@ -732,11 +638,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             
         Returns:
             Polygon: Largest polygon component by area
-            
-        Energy Domain Context:
-            In energy market analysis, focusing on the largest polygon component
-            is often appropriate since it typically contains the majority of
-            energy infrastructure and generation capacity.
         """
         if isinstance(geom, Polygon):
             return geom
@@ -767,7 +668,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             borders that may be represented as multiple disconnected segments
             in geographic datasets.
         """
-        """Merge a MultiLineString into a single continuous LineString."""
         merged = linemerge(list(mls.geoms))
         
         if isinstance(merged, LineString):
@@ -830,17 +730,13 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
         return LineString([line.coords[0], line.coords[-1]])
     
     def _calculate_bearing(self, line: LineString) -> float:
-        """Calculate compass bearing angle for a LineString.
-        
-        Computes the geographic bearing from the start to end of a line using
-        spherical trigonometry formulas. Essential for proper directional
-        indicator orientation in energy market visualizations.
+        """Calculate compass bearing (Azimuth angle) for a LineString.
         
         Args:
             line: LineString from which to calculate bearing
             
         Returns:
-            float: Compass bearing in degrees (0-360)
+            float: Compass bearing (Azimuth angle) in degrees (0-360)
                 - 0° = North
                 - 90° = East  
                 - 180° = South
@@ -856,14 +752,6 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             This implementation assumes coordinates are in geographic (lat/lon)
             format. For projected coordinates, results approximate true bearings
             within reasonable accuracy for visualization purposes.
-        """
-        """Calculate compass bearing in degrees for a line.
-        
-        Args:
-            line: LineString from which to calculate bearing
-            
-        Returns:
-            Bearing in degrees (0-360, where 0 is north)
         """
         start = line.coords[0]
         end = line.coords[-1]
@@ -907,15 +795,14 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
 class NonCrossingPathFinder:
     """Optimized path finder for non-crossing connections between areas.
     
-    This class implements a sophisticated algorithm for finding the shortest
+    This class implements an algorithm for finding the shortest
     path between two polygon areas while maintaining specified clearance from
     other areas. It's specifically designed for energy system visualization
-    where border lines should not misleadingly cross through other market areas.
+    where geographic border line representations should not misleadingly
+    cross through other market areas.
     
-    The algorithm uses a brute-force approach with intelligent sampling to
-    test multiple potential paths and select the optimal solution. While
-    computationally intensive, it provides reliable results for complex
-    geometric scenarios common in energy market analysis.
+    The algorithm uses a brute-force approach to test multiple potential paths
+    and select the optimal solution.
     
     Key Features:
         - Configurable boundary point sampling density
@@ -980,7 +867,8 @@ class NonCrossingPathFinder:
         
         Tests all combinations of boundary points between two polygons to find
         the shortest connection that maintains minimum clearance from other areas.
-        This ensures clean visualization paths for energy market border analysis.
+        If the algorithm succeedes and finds a non-crossing LineString, it ensures
+        clean visualization paths for energy market border analysis.
         
         Args:
             polygon1: Source polygon geometry
@@ -1120,7 +1008,7 @@ if __name__ == '__main__':
     area_geometries = {
         'DE': box(8, 47, 15, 55),           # Germany (approximate bounds)
         'FR': box(0, 42, 8, 51),            # France (touches Germany)
-        'GB': box(-8, 50, 2, 59),           # Great Britain (separated)
+        'GB': box(-8, 50, 2, 59),                   # Great Britain (separated)
         'PL': box(14, 49, 24, 55),          # Poland (touches Germany)
         'ES': box(-9, 36, 4, 44),           # Spain (touches France)
         'IT': box(6, 36, 19, 47),           # Italy (separated from most)

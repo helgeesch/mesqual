@@ -17,31 +17,19 @@ Core Components
 - Area variables: Price aggregation (volume-weighted) and sum-based calculations
 - Border variables: Cross-border flows, capacity aggregation, and price spreads
 - Flexible node-to-area mapping with time series support
-
-**Applications:**
-Multi-area market analysis, cross-border studies, transmission planning, 
-and policy analysis for energy system modeling.
-
-Architecture follows hierarchical design: base classes, model generators, 
-variable calculators, and geometry calculators with extensible framework 
-for custom variable types and calculation methods.
 """
 
-# Core model generators
 from .area_model_generator import AreaModelGenerator
 from .border_model_generator import AreaBorderModelGenerator, AreaBorderNamingConventions
 from .border_model_geometry_calculator import AreaBorderGeometryCalculator, NonCrossingPathFinder
 
-# Base classes for extensibility
 from .area_variable_base import AreaVariableCalculatorBase
 from .border_variable_base import AreaBorderVariableCalculatorBase
 from .model_generator_base import GeoModelGeneratorBase
 
-# Area variable calculators
 from .area_variable_price_calculator import AreaPriceCalculator
 from .area_variable_sum_calculator import AreaSumCalculator
 
-# Border variable calculators  
 from .border_variable_flow_calculator import BorderFlowCalculator
 from .border_variable_price_spread_calculator import BorderPriceSpreadCalculator
 from .border_variable_capacity_calculator import BorderCapacityCalculator

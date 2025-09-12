@@ -24,12 +24,6 @@ class CongestionRentCalculator:
     - Congestion rent (down) = granularity × (received_down × price_from - sent_down × price_to)
     - Total congestion rent = congestion_rent_up + congestion_rent_down
     
-    Energy market context:
-    Congestion rents arise when transmission capacity is limited and prevents
-    energy from flowing from low-price to high-price areas. They represent
-    the economic value of transmission infrastructure and are important for
-    market analysis, revenue adequacy studies, and transmission planning.
-    
     Attributes:
         sent_up: Power sent in up direction (MW or MWh)
         received_up: Power received in up direction after losses (MW or MWh)  

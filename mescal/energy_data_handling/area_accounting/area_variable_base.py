@@ -83,12 +83,6 @@ class AreaVariableCalculatorBase(ABC):
             raise ValueError(f"Column '{self.area_column}' not found in node_model_df")
     
     def _create_node_to_area_map(self) -> dict[str, str]:
-        """Create a mapping dictionary from node IDs to area names.
-        
-        Returns:
-            Dictionary with node IDs as keys and area names as values.
-            Nodes with NaN area assignments will have NaN values.
-        """
         return self.node_model_df[self.area_column].to_dict()
     
     def get_area_nodes(self, area: str) -> list[str]:
@@ -208,10 +202,3 @@ if __name__ == "__main__":
     market_aggregated = calculator_market.calculate(node_data)
     print("\nMarket area aggregated data (first 5 hours):")
     print(market_aggregated.head())
-    
-    # Example 3: Test with missing nodes (data validation)
-    partial_data = node_data[['DE1', 'FR1', 'MISSING_NODE']]  # Include a non-existent node
-    print("\nTesting with partial data (includes missing node):")
-    country_partial = calculator_country.calculate(partial_data)
-    print("Result with partial data:")
-    print(country_partial.head())

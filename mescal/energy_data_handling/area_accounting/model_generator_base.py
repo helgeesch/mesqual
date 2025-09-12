@@ -1,25 +1,6 @@
-"""Base classes for geometric model generation in energy system area accounting.
-
-This module provides foundational functionality for working with spatial representations
-of energy system components, particularly focusing on the computation of representative
-points within complex geometries. These capabilities are essential for energy market
-analysis workflows that require spatial aggregation and visualization.
-
-Typical Use Cases:
-    - Converting node-level energy data to area-level representations
-    - Computing representative points for market zones and bidding areas
-    - Supporting map visualization of energy system regions
-    - Enabling spatial aggregation in multi-area energy models
-
-MESCAL Integration:
-    This module integrates with MESCAL's area accounting system to provide
-    geometric processing capabilities for energy system spatial analysis.
-"""
-
 from typing import Union, Literal, List
 
 from shapely import Polygon, MultiPolygon, Point
-
 from polylabel import polylabel
 
 
@@ -34,11 +15,6 @@ class GeoModelGeneratorBase:
     The class supports two methods for computing representative points:
     - 'polylabel': Uses pole of inaccessibility algorithm for optimal label placement
     - 'representative_point': Uses Shapely's built-in representative point method
-    
-    MESCAL Integration:
-        This base class is designed to work with MESCAL's area accounting system,
-        supporting the spatial aggregation workflows commonly used in energy
-        system modeling for market zones, bidding areas, and transmission regions.
     
     Attributes:
         REPRESENTATIVE_POINT_METHOD (str): Method used for computing representative
@@ -144,11 +120,6 @@ class GeoModelGeneratorBase:
             >>> power_plants = [Point(1, 1), Point(3, 2), Point(2, 4)]
             >>> centroid = GeoModelGeneratorBase._compute_representative_point_from_cloud_of_2d_points(power_plants)
             >>> print(f"Regional centroid: {centroid.x:.2f}, {centroid.y:.2f}")
-            
-        Energy Domain Context:
-            This method is commonly used when aggregating node-level energy data
-            (individual power plants, substations) into area-level representations
-            (market zones, bidding areas) for visualization and analysis purposes.
         """
         from scipy.spatial import ConvexHull
         

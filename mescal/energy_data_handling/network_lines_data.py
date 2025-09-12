@@ -6,7 +6,7 @@ import pandas as pd
 class NetworkLineFlowsData:
     """Wrapper for bidirectional flow data of network transmission lines.
 
-    This class encapsulates flow data for transmission lines in both directions,
+    This class encapsulates energy or power flow data for lines in both directions,
     accounting for transmission losses. It provides a standardized interface for
     handling complex flow patterns in electrical network analysis.
 
@@ -319,14 +319,3 @@ if __name__ == '__main__':
         capacities_down=capacities_down
     )
     print(f"\nAsymmetric capacities - different up/down: {not capacity_data_asym.capacities_up.equals(capacity_data_asym.capacities_down)}")
-    
-    # Test error handling
-    print("\n=== Error Handling Examples ===")
-    try:
-        # Mismatched indices should raise error
-        bad_flows_down = flows_down.iloc[:-1]  # Remove last row
-        NetworkLineFlowsData.from_up_and_down_flow_without_losses(flows_up, bad_flows_down)
-    except ValueError as e:
-        print(f"Caught expected error: {e}")
-    
-    print("\nAll examples completed successfully!")

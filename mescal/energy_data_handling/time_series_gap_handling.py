@@ -6,11 +6,10 @@ class TimeSeriesGapHandler:
     """Handles gaps in time series data by inserting NaN values at detected gaps.
     
     This class is useful for identifying and marking gaps in time series data that exceed
-    a specified threshold. It's particularly important for energy data analysis where
-    missing data periods should be explicitly represented rather than implicitly filled.
-    
-    The handler inserts NaN values at the beginning of detected gaps to maintain data
-    integrity and make gaps visible for downstream processing.
+    a specified threshold. The handler inserts NaN values at the beginning of detected gaps
+    to make gaps visible for downstream processing. This is particularly useful for line plots,
+    where you often prefer to have a visual line-gap in a data gap instead of the line bridging
+    the two surrounding values.
     
     Args:
         max_gap_in_minutes: Maximum allowed gap duration in minutes. Gaps longer than
@@ -84,11 +83,13 @@ class TimeSeriesGapHandler:
 
 
 if __name__ == '__main__':
-    dates = pd.date_range('2024-01-01', periods=5, freq='30min')
-    dates = dates.delete(2)
+    dates = pd.date_range('2024-01-01', periods=10, freq='30min')
+    dates = dates.delete([3, 4, 5, 6])  # Create data gap of 4 periods
     values = np.random.rand(len(dates))
     sample_series = pd.Series(values, index=dates)
 
     handler = TimeSeriesGapHandler(max_gap_in_minutes=30)
     result = handler.insert_nans_at_gaps(sample_series)
+    print("See how we created a gap of 4 periods, while there is only 1 NaN value inserted.")
+    print("If you now create a line plot, you'll see a visual gap instead of a bridge between the surrounding values.")
     print(result)

@@ -13,7 +13,7 @@ class AreaSumCalculator(AreaVariableCalculatorBase):
 
     Unlike intensive quantities (like prices), extensive quantities should be summed
     when aggregating to higher geographic levels, making this calculator appropriate
-    for most physical quantities in energy modeling.
+    for many physical quantities in energy modeling.
 
     Inherits from AreaVariableCalculatorBase and provides the MESCAL framework's
     standard approach for area-level aggregation of extensive variables.

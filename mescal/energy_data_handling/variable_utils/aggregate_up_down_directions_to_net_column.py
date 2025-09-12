@@ -21,9 +21,7 @@ class UpDownNetAppender:
     
     Common use cases:
     - Power flow analysis: Converting line flows to net flows
-    - Trade balance: Net imports/exports from bilateral trade data  
-    - Capacity utilization: Total utilization from bidirectional capacities
-    - Market coupling: Net positions from bilateral exchanges
+    - Trade balance: Net imports/exports from bilateral trade data
     
     The class uses CommonBaseKeyFinder to identify related column pairs and
     supports flexible naming conventions for input and output columns.
@@ -37,9 +35,8 @@ class UpDownNetAppender:
         total_col_prefix: Prefix for generated total columns (default: None)
         
     Raises:
-        Exception: If neither net_col_suffix nor net_col_prefix is provided
-        Exception: If neither total_col_suffix nor total_col_prefix is provided
-        
+        AttributeError: If neither suffix nor prefix provided for net or total columns
+
     Example:
         >>> import pandas as pd
         >>> # Data with bidirectional flows
@@ -75,7 +72,7 @@ class UpDownNetAppender:
             total_col_prefix: Prefix for generated total columns
             
         Raises:
-            Exception: If neither suffix nor prefix provided for net or total columns
+            AttributeError: If neither suffix nor prefix provided for net or total columns
         """
         self._up_identifier = up_identifier
         self._down_identifier = down_identifier
@@ -83,12 +80,12 @@ class UpDownNetAppender:
         self._net_col_suffix = net_col_suffix or ''
         self._net_col_prefix = net_col_prefix or ''
         if not any([self._net_col_suffix, self._net_col_prefix]):
-            raise Exception("Either net_col_suffix or net_col_prefix must be provided")
+            raise AttributeError("Either net_col_suffix or net_col_prefix must be provided")
 
         self._total_col_suffix = total_col_suffix or ''
         self._total_col_prefix = total_col_prefix or ''
         if not any([self._total_col_suffix, self._total_col_prefix]):
-            raise Exception("Either total_col_suffix or total_col_prefix must be provided")
+            raise AttributeError("Either total_col_suffix or total_col_prefix must be provided")
 
         self._common_base_key_finder = CommonBaseKeyFinder(up_identifier, down_identifier)
 
@@ -212,130 +209,4 @@ if __name__ == '__main__':
     result_basic = appender.append_total_columns_from_up_down_columns(result_basic)
     
     print("\nWith net and total columns:")
-    print(result_basic)
-    
-    # Example 2: Multi-level columns (common in energy data)
-    print("\n" + "="*50)
-    print("Example 2: Multi-level Columns (Country → Region)")
-    
-    # Create multi-level column structure
-    countries = ['DE', 'FR']
-    regions = ['North', 'South'] 
-    directions = ['up', 'down']
-    
-    multi_columns = pd.MultiIndex.from_product(
-        [countries, regions, directions],
-        names=['country', 'region', 'direction']
-    )
-    
-    multi_data = pd.DataFrame(
-        np.random.uniform(50, 500, size=(5, len(multi_columns))),
-        index=time_index,
-        columns=multi_columns
-    )
-    
-    print("Multi-level data structure:")
-    print(multi_data.head())
-    
-    # Use custom identifiers for multi-level
-    multi_appender = UpDownNetAppender(
-        up_identifier='up',
-        down_identifier='down', 
-        net_col_suffix='net'
-    )
-    
-    result_multi = multi_appender.append_net_columns_from_up_down_columns(multi_data)
-    print(f"\nAfter adding net columns:")
-    print(f"Column levels: {result_multi.columns.nlevels}")
-    print(f"New columns include 'net': {any('net' in str(col) for col in result_multi.columns)}")
-    print(result_multi.head())
-    
-    # Example 3: Real-world energy market scenario
-    print("\n" + "="*50)
-    print("Example 3: Energy Market Trade Balance")
-    
-    # Simulate hourly bilateral trade data
-    hours = pd.date_range('2024-01-01', periods=24, freq='h')
-    
-    # Generate realistic trade patterns with daily cycles
-    base_export = 200 + 100 * np.sin(np.arange(24) * 2 * np.pi / 24)  # Daily pattern
-    base_import = 150 + 50 * np.sin((np.arange(24) + 12) * 2 * np.pi / 24)  # Opposite pattern
-    
-    trade_data = pd.DataFrame({
-        'DE_export_to_FR_up': base_export + np.random.normal(0, 20, 24),
-        'DE_import_from_FR_down': base_import + np.random.normal(0, 15, 24),
-        'FR_export_to_BE_up': base_export * 0.7 + np.random.normal(0, 15, 24),
-        'FR_import_from_BE_down': base_import * 0.8 + np.random.normal(0, 10, 24)
-    }, index=hours)
-    
-    # Ensure non-negative flows
-    trade_data = trade_data.clip(lower=0)
-    
-    print("Trade flow data (first 8 hours):")
-    print(trade_data.head(8))
-    
-    # Create trade balance calculator with custom naming
-    trade_appender = UpDownNetAppender(
-        up_identifier='_up',
-        down_identifier='_down',
-        net_col_prefix='net_',
-        total_col_prefix='total_'
-    )
-    
-    trade_result = trade_appender.append_net_columns_from_up_down_columns(trade_data)
-    trade_result = trade_appender.append_total_columns_from_up_down_columns(trade_result)
-    
-    print("\nTrade balance analysis (first 8 hours):")
-    print(trade_result.head(8))
-    
-    # Show summary statistics
-    print("\nDaily Trade Statistics:")
-    net_cols = [col for col in trade_result.columns if 'net_' in col]
-    total_cols = [col for col in trade_result.columns if 'total_' in col]
-    
-    for net_col, total_col in zip(net_cols, total_cols):
-        net_avg = trade_result[net_col].mean()
-        total_avg = trade_result[total_col].mean()
-        net_direction = "net export" if net_avg > 0 else "net import"
-        
-        print(f"{net_col}: {net_avg:.1f} MW average ({net_direction})")
-        print(f"{total_col}: {total_avg:.1f} MW average total activity")
-        
-    # Example 4: Error handling demonstration
-    print("\n" + "="*50)
-    print("Example 4: Edge Cases and Validation")
-    
-    # Test with missing pairs
-    incomplete_data = pd.DataFrame({
-        'complete_flow_up': [100, 200, 300],
-        'complete_flow_down': [50, 75, 100],
-        'orphan_up': [10, 20, 30],  # No matching _down column
-        'standalone_data': [5, 10, 15]  # No directional identifier
-    })
-    
-    result_incomplete = appender.append_net_columns_from_up_down_columns(incomplete_data)
-    print("Data with incomplete pairs:")
-    print("Original columns:", list(incomplete_data.columns))
-    print("Result columns:", list(result_incomplete.columns))
-    print("Net column created for 'complete_flow':", 'complete_flow_net' in result_incomplete.columns)
-    
-    # Show final comparison
-    print("\n" + "="*50)
-    print("Final Comparison: Net vs Total Analysis")
-    sample_data = pd.DataFrame({
-        'border_up': [100, 50, 200],
-        'border_down': [80, 120, 150]
-    })
-    
-    final_result = appender.append_net_columns_from_up_down_columns(sample_data)
-    final_result = appender.append_total_columns_from_up_down_columns(final_result)
-    
-    print(final_result)
-    print("\nInterpretation:")
-    for i, row in final_result.iterrows():
-        net = row['border_net']
-        total = row['border_total'] 
-        if net > 0:
-            print(f"Hour {i}: Net export of {net:.0f} MW, total activity {total:.0f} MW")
-        else:
-            print(f"Hour {i}: Net import of {abs(net):.0f} MW, total activity {total:.0f} MW")
+    print(result_basic.iloc[:, -4:])

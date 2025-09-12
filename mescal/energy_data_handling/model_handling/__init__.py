@@ -9,11 +9,11 @@ Key Components:
 - Directional relationship handling for from/to column pairs in network data
 - Membership pairs appenders for creating combination identifiers from paired columns
 
-Common use cases:
-- Enriching generator data with node properties (spatial analysis)
-- Adding fuel/technology properties to generation assets
-- Creating transmission line endpoints analysis with node characteristics
-- Building combination identifiers for network connections
+Example use cases:
+- Enriching generator data with node properties
+  (e.g. generator_model_df then has node_voltage, node_country, ...)
+- Enriching line_model_df with node_from and node_to characteristics
+  (e.g. region_from, region_to, voltage_from, voltage_to, ...)
 """
 
 from .membership_property_enrichers import (
@@ -41,3 +41,5 @@ __all__ = [
     'StringMembershipPairsAppender',
     'TupleMembershipPairsAppender',
 ]
+
+__version__ = '0.1.0'

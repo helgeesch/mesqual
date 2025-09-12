@@ -403,12 +403,6 @@ class DirectionalMembershipPropertyEnricher:
             ...     trade_df, dataset, MembershipTagging.PREFIX
             ... )
             >>> # Result: trade data + 'region_gdp_from', 'region_gdp_to', etc.
-            
-            Energy system insights enabled:
-            - Voltage level compatibility analysis for transmission lines
-            - Regional economic impact assessment for trade flows
-            - Technology mix comparison between connected areas
-            - Market price differential analysis across connections
         """
         membership_base_columns = self.identify_from_to_columns(target_df.columns, dataset)
         result_df = target_df.copy()
@@ -430,55 +424,55 @@ class DirectionalMembershipPropertyEnricher:
             base_column: str,
             membership_tagging: MembershipTagging = MembershipTagging.NONE
     ) -> pd.DataFrame:
+        source_flag = dataset.flag_index.get_linked_model_flag_for_membership_column(base_column)
+        source_df = dataset.fetch(source_flag)
+        return self.append_directional_properties_in_source_to_target_df(
+            target_df,
+            source_df,
+            base_column,
+            membership_tagging,
+        )
+
+    def append_directional_properties_in_source_to_target_df(
+            self,
+            target_df: pd.DataFrame,
+            source_df: pd.DataFrame,
+            base_column: str,
+            membership_tagging: MembershipTagging = MembershipTagging.NONE
+    ) -> pd.DataFrame:
         """
-        Enriches DataFrame with properties from a specific directional relationship.
-        
-        Handles a single from/to membership pair by fetching the corresponding model
-        DataFrame and adding its properties with directional tags. Provides precise
-        control over individual directional relationships, useful for custom logic
-        or selective enrichment scenarios.
-        
+        Enriches DataFrame with properties from a directional relationship.
+
+        Handles a single from/to membership pair by adding the corresponding model
+        DataFrame's properties with directional tags.
+
         The method processes both directions (from/to) for the specified base column,
         adding properties with appropriate directional suffixes. Missing references
         are handled gracefully with NaN preservation.
-        
+
         Args:
             target_df: DataFrame containing the directional columns
-            dataset: MESCAL Dataset with access to the linked model DataFrame
+            source_df: DataFrame containing the properties
             base_column: Base membership name (e.g., 'node' for 'node_from'/'node_to')
             membership_tagging: Property naming strategy (applied before directional tags)
-        
+
         Returns:
             DataFrame with directional properties added for the specified relationship.
             Properties follow naming pattern: [prefix_]property[_suffix]_direction
-            
+
         Raises:
             Warning: Logged when referenced objects are missing from source DataFrame
-            
+
         Examples:
             Targeted directional enrichment:
-            
+
             >>> # Add only node properties to transmission lines
             >>> lines_with_nodes = enricher.append_directional_properties(
-            ...     transmission_df, dataset, 'node', MembershipTagging.NONE
+            ...     line_df, node_df, 'node', MembershipTagging.NONE
             ... )
             >>> # Result: lines + 'voltage_from', 'voltage_to', 'area_from', 'area_to'
-            
-            >>> # Sequential processing with different strategies
-            >>> result = transmission_df.copy()
-            >>> # Add node properties with prefix
-            >>> result = enricher.append_directional_properties(
-            ...     result, dataset, 'node', MembershipTagging.PREFIX
-            ... )
-            >>> # Add region properties with suffix
-            >>> result = enricher.append_directional_properties(
-            ...     result, dataset, 'region', MembershipTagging.SUFFIX
-            ... )
         """
-        source_flag = dataset.flag_index.get_linked_model_flag_for_membership_column(base_column)
-        source_df = dataset.fetch(source_flag)
         result_df = target_df.copy()
-
         for tag in [self._from_identifier, self._to_identifier]:
             membership_column = self._get_full_column_name(base_column, tag, target_df.columns)
 
@@ -507,7 +501,6 @@ class DirectionalMembershipPropertyEnricher:
                 right_index=True,
                 how="left"
             )
-
         return result_df
 
     def _get_full_column_name(self, base_column: str, tag: str, df_columns: list[str]) -> str:
@@ -549,202 +542,34 @@ class DirectionalMembershipPropertyEnricher:
 
 
 if __name__ == "__main__":
-    """
-    Comprehensive examples demonstrating membership property enrichment for energy systems.
-    
-    This example section showcases both basic and advanced usage patterns for enriching
-    energy system DataFrames with related object properties. Examples cover typical
-    energy modeling scenarios including generators, transmission lines, and storage units.
-    """
-    # TODO: replace with pypsa example
-    from mescal_mock import MockDataset
-    import numpy as np
+    node_model_df = pd.DataFrame({
+        'voltage_kv': [380, 380, 220, 380, 220, 150, 400, 220, 380, 150],
+        'asset_type': ['transmission', 'transmission', 'distribution', 'transmission',
+                       'distribution', 'distribution', 'transmission', 'distribution',
+                       'transmission', 'distribution'],
+        'country': ['DE', 'DE', 'FR', 'FR', 'BE', 'BE', 'NL', 'NL', 'PL', 'PL'],
+        'bidding_zone': ['DE_LU', 'DE_LU', 'FR', 'FR', 'BE', 'BE', 'NL', 'NL', 'PL', 'PL'],
+        'capacity_mw': [2000, 1500, 800, 1200, 600, 400, 1800, 700, 1600, 500],
+        'operator': ['TenneT', '50Hertz', 'RTE', 'RTE', 'Elia', 'Elia', 'TenneT', 'Stedin', 'PSE', 'PSE']
+    }, index=['DE_T1', 'DE_T2', 'FR_D1', 'FR_T1', 'BE_D1', 'BE_D2', 'NL_T1', 'NL_D1', 'PL_T1', 'PL_D2'])
 
-    print("=" * 80)
-    print("MESCAL Energy Data Handling - Membership Property Enrichment Examples")
-    print("=" * 80)
+    line_model_df = pd.DataFrame({
+        'node_from': ['DE_T1', 'DE_T2', 'FR_T1', 'FR_T1', 'BE_D1', 'BE_D2', 'NL_T1', 'DE_T1', 'PL_T1'],
+        'node_to': ['FR_T1', 'BE_D1', 'BE_D1', 'DE_T1', 'NL_T1', 'FR_D1', 'DE_T2', 'PL_T1', 'DE_T2'],
+        'length_km': [650, 320, 180, 650, 120, 280, 180, 580, 180],
+        'technology': ['AC', 'AC', 'AC', 'AC', 'AC', 'AC', 'DC', 'AC', 'AC']
+    }, index=['L_DE_FR_1', 'L_DE_BE_1', 'L_FR_BE_1', 'L_FR_DE_1', 'L_BE_NL_1', 'L_BE_FR_1', 'L_NL_DE_1', 'L_DE_PL_1',
+              'L_PL_DE_1'])
 
-    # Initialize mock dataset and enrichers
-    mock_ds = MockDataset()
-    enricher = MembershipPropertyEnricher(membership_tag_separator='_')
-    directional_enricher = DirectionalMembershipPropertyEnricher()
-
-    # Fetch model DataFrames representing typical energy system objects
-    generator_df = mock_ds.fetch('Generator.Model')
-    line_df = mock_ds.fetch('Line.Model')
-    
-    # Simulate realistic data scenarios with missing relationships
-    generator_df.loc[generator_df.index[0], 'node'] = pd.NA
-    line_df.loc[line_df.index[0], 'node_from'] = pd.NA
-
-    print("\n1. ORIGINAL DATA STRUCTURES")
-    print("-" * 40)
-    print("Generator DataFrame (partial):")
-    print(generator_df.head(3))
-    print(f"\nColumns: {list(generator_df.columns)}")
-    
-    print("\nTransmission Line DataFrame (partial):")
-    print(line_df.head(3))
-    print(f"\nColumns: {list(line_df.columns)}")
-
-    # Example 1: Automatic enrichment with different tagging strategies
-    print("\n\n2. AUTOMATIC MEMBERSHIP ENRICHMENT")
-    print("-" * 40)
-    
-    # Demonstrate different tagging approaches
-    tagging_examples = [
-        (MembershipTagging.NONE, "No tagging (may cause column conflicts)"),
-        (MembershipTagging.PREFIX, "Prefix tagging (membership_property)"),
-        (MembershipTagging.SUFFIX, "Suffix tagging (property_membership)")
-    ]
-    
-    for tagging, description in tagging_examples:
-        print(f"\nTagging Strategy: {description}")
-        enriched_gen = enricher.append_properties(
-            generator_df.copy(),
-            mock_ds,
-            membership_tagging=tagging
-        )
-        print(f"Enriched columns: {len(enriched_gen.columns)} (was {len(generator_df.columns)})")
-        new_columns = set(enriched_gen.columns) - set(generator_df.columns)
-        print(f"New properties added: {sorted(list(new_columns))}")
-
-    # Example 2: Manual membership identification and processing
-    print("\n\n3. MANUAL MEMBERSHIP PROCESSING")
-    print("-" * 40)
-    
-    membership_cols = enricher.identify_membership_columns(generator_df.columns, mock_ds)
-    print(f"Identified membership columns: {membership_cols}")
-    
-    # Sequential processing with custom logic for each membership
-    enriched_generator_df = generator_df.copy()
-    for i, col in enumerate(membership_cols):
-        print(f"\nProcessing membership '{col}'...")
-        before_cols = len(enriched_generator_df.columns)
-        
-        # Demonstrate custom processing per membership type
-        if 'node' in col.lower():
-            # Use PREFIX for spatial relationships
-            tagging = MembershipTagging.PREFIX
-        elif 'fuel' in col.lower() or 'tech' in col.lower():
-            # Use SUFFIX for technology/fuel classifications
-            tagging = MembershipTagging.SUFFIX
-        else:
-            # Use NONE for other relationships
-            tagging = MembershipTagging.NONE
-            
-        enriched_generator_df = enricher.append_single_membership_properties(
-            enriched_generator_df,
-            mock_ds,
-            col,
-            membership_tagging=tagging
-        )
-        after_cols = len(enriched_generator_df.columns)
-        print(f"  Added {after_cols - before_cols} properties with {tagging.value} tagging")
-
-    print(f"\nFinal enriched generator DataFrame shape: {enriched_generator_df.shape}")
-
-    # Example 3: Directional relationship enrichment
-    print("\n\n4. DIRECTIONAL RELATIONSHIP ENRICHMENT")
-    print("-" * 40)
-    
-    # Identify directional relationships
-    base_columns = directional_enricher.identify_from_to_columns(line_df.columns, mock_ds)
-    print(f"Identified from/to base columns: {base_columns}")
-    
-    # Automatic directional enrichment
-    enriched_line_df = directional_enricher.append_properties(
-        line_df.copy(),
-        mock_ds,
-        membership_tagging=MembershipTagging.NONE
+    enricher = DirectionalMembershipPropertyEnricher(
+        from_identifier='_from',
+        to_identifier='_to',
+        membership_tag_separator='_'
     )
-    
-    print(f"\nOriginal line DataFrame: {line_df.shape[1]} columns")
-    print(f"Enriched line DataFrame: {enriched_line_df.shape[1]} columns")
-    
-    # Show directional properties
-    directional_cols = [col for col in enriched_line_df.columns 
-                       if col.endswith('_from') or col.endswith('_to')]
-    print(f"Directional properties added: {len(directional_cols)}")
-    print(f"Sample directional columns: {directional_cols[:6]}")
-
-    # Example 4: Manual directional processing with custom logic
-    print("\n\n5. MANUAL DIRECTIONAL PROCESSING")
-    print("-" * 40)
-    
-    result_line_df = line_df.copy()
-    for base_col in base_columns:
-        print(f"\nProcessing directional relationship: {base_col}")
-        before_cols = len(result_line_df.columns)
-        
-        # Custom tagging strategy based on relationship type
-        if 'node' in base_col.lower():
-            tagging = MembershipTagging.NONE  # Clean names for network analysis
-        elif 'region' in base_col.lower():
-            tagging = MembershipTagging.PREFIX  # Clear regional context
-        else:
-            tagging = MembershipTagging.SUFFIX  # Default strategy
-            
-        result_line_df = directional_enricher.append_directional_properties(
-            result_line_df,
-            mock_ds,
-            base_col,
-            membership_tagging=tagging
-        )
-        
-        after_cols = len(result_line_df.columns)
-        print(f"  Added {after_cols - before_cols} properties for '{base_col}' relationships")
-
-    # Example 5: Practical energy analysis scenarios
-    print("\n\n6. PRACTICAL ENERGY ANALYSIS SCENARIOS")
-    print("-" * 40)
-    
-    print("\nScenario A: Generator Spatial Analysis")
-    print("Adding node properties to understand generator geographical distribution:")
-    spatial_generators = enricher.append_properties(
-        generator_df.copy(), mock_ds, MembershipTagging.PREFIX
+    enriched_line_model_df = enricher.append_directional_properties_in_source_to_target_df(
+        line_model_df,
+        node_model_df,
+        'node',
+        MembershipTagging.SUFFIX
     )
-    node_props = [col for col in spatial_generators.columns if col.startswith('node_')]
-    print(f"Available node properties: {node_props}")
-    
-    print("\nScenario B: Transmission Network Analysis")
-    print("Adding node properties to analyze transmission line characteristics:")
-    network_lines = directional_enricher.append_properties(
-        line_df.copy(), mock_ds, MembershipTagging.NONE
-    )
-    # Demonstrate voltage compatibility analysis
-    from_voltage_cols = [col for col in network_lines.columns if 'voltage' in col and '_from' in col]
-    to_voltage_cols = [col for col in network_lines.columns if 'voltage' in col and '_to' in col]
-    if from_voltage_cols and to_voltage_cols:
-        print(f"Can analyze voltage compatibility using: {from_voltage_cols[0]} vs {to_voltage_cols[0]}")
-    
-    print("\nScenario C: Missing Data Handling")
-    print("Demonstrating graceful handling of incomplete relationships:")
-    # Count NaN relationships before and after enrichment
-    original_nans = generator_df.isna().sum().sum()
-    enriched_nans = spatial_generators.isna().sum().sum()
-    print(f"Original NaN values: {original_nans}")
-    print(f"After enrichment NaN values: {enriched_nans} (preserved + new from missing refs)")
-    
-    # Example 6: Performance and memory considerations
-    print("\n\n7. PERFORMANCE AND MEMORY CONSIDERATIONS")
-    print("-" * 40)
-    
-    # Memory usage comparison
-    import sys
-    original_memory = sys.getsizeof(generator_df) + sys.getsizeof(line_df)
-    enriched_memory = sys.getsizeof(spatial_generators) + sys.getsizeof(network_lines)
-    
-    print(f"Original DataFrames memory usage: {original_memory:,} bytes")
-    print(f"Enriched DataFrames memory usage: {enriched_memory:,} bytes")
-    print(f"Memory increase factor: {enriched_memory / original_memory:.2f}x")
-    
-    # Processing time consideration
-    print("\nFor large datasets, consider:")
-    print("- Processing in chunks if memory is constrained")
-    print("- Using specific membership selection instead of full auto-enrichment")
-    print("- Monitoring for missing reference warnings in production")
-    
-    print("\n" + "=" * 80)
-    print("Example completed successfully!")
-    print("=" * 80)
+    print(enriched_line_model_df)
