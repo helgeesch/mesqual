@@ -7,6 +7,7 @@ from mescal.energy_data_handling.area_accounting.model_generator_base import Geo
 
 
 class AreaModelGenerator(GeoModelGeneratorBase):
+    # TODO: docstrings for class and methods in AreaModelGenerator
     """Generates area model DataFrame from node-to-area mapping."""
     
     def __init__(
@@ -21,8 +22,16 @@ class AreaModelGenerator(GeoModelGeneratorBase):
         self._validate_inputs()
     
     def _validate_inputs(self):
+        """Validate constructor inputs for data consistency.
+        
+        Raises:
+            ValueError: If area_column is not found in node_model_df
+        """
         if self.area_column not in self.node_model_df.columns:
-            raise ValueError(f"Column '{self.area_column}' not found in node_model_df")
+            raise ValueError(
+                f"Area column '{self.area_column}' not found in node_model_df. "
+                f"Available columns: {list(self.node_model_df.columns)}"
+            )
 
     def _identify_geo_location_column(self) -> str | None:
         for c in self.node_model_df.columns:
@@ -84,7 +93,10 @@ class AreaModelGenerator(GeoModelGeneratorBase):
                 if not nodes.empty:
                     locations = [n for n in nodes.values if n is not None]
                     if not all(isinstance(i, Point) for i in locations):
-                        raise TypeError(f'Can only handle Point objects in node_point_column {self.geo_location_column}.')
+                        raise TypeError(
+                            f'Geographic location column "{self.geo_location_column}" must contain only '
+                            f'Point objects. Found: {[type(i).__name__ for i in locations if not isinstance(i, Point)]}'
+                        )
                     representative_point = self._compute_representative_point_from_cloud_of_2d_points(locations)
                     enhanced_df.loc[area, target_column_name] = round_point(representative_point)
         return enhanced_df
