@@ -278,4 +278,4 @@ class KPICollectionMapVisualizer:
             html += '<br><p>&nbsp;</p></table>'
             return html
 
-        return PropertyMapper.from_item(generate_tooltip)
+        return PropertyMapper(generate_tooltip)
