@@ -14,9 +14,9 @@ class StudyManager:
     computation, and export functionality.
     
     The class implements three primary data access patterns:
-    - `.scen`: Access to individual scenario data (DatasetConcatCollection)
-    - `.comp`: Access to scenario comparison deltas (DatasetConcatCollectionOfComparisons)  
-    - `.scen_comp`: Unified access to both scenarios and comparisons with type distinction
+        - `.scen`: Access to individual scenario data (DatasetConcatCollection)
+        - `.comp`: Access to scenario comparison deltas (DatasetConcatCollectionOfComparisons)
+        - `.scen_comp`: Unified access to both scenarios and comparisons with type distinction
     
     Attributes:
         scen (DatasetConcatCollection): Collection of scenario datasets with consistent .fetch() interface
