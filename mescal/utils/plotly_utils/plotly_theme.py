@@ -91,24 +91,35 @@ colors = ColorPalette
 
 @dataclass
 class PlotlyTheme:
-    default_colorway: list[str] = field(default_factory=lambda: QualitativeColors.default)
-    background_color: str = '#F2F2F2'
+    """A dataclass to define and apply a custom Plotly theme."""
+    default_colorway: list[str] = field(default_factory=list)
+    font: dict = field(default_factory=dict)
     paper_color: str = '#ffffff'
+    background_color: str = '#F2F2F2'
+    xaxis: dict = field(default_factory=dict)
+    yaxis: dict = field(default_factory=dict)
+    legend: dict = field(default_factory=dict)
     watermark_text: str = None
     watermark_position: tuple[float, float] = (0.99, 0.01)
     watermark_opacity: float = 0.1
-    font: dict[str, str] = field(default_factory=lambda: dict(family="Arial", size=12))
 
     def apply(self) -> None:
+        """Applies the theme settings to Plotly's default template."""
         template = go.layout.Template()
 
-        template.layout.plot_bgcolor = self.background_color
+        template.layout.colorway = self.default_colorway
+        template.layout.font = self.font
         template.layout.paper_bgcolor = self.paper_color
-        if self.font:
-            template.layout.font = self.font
+        template.layout.plot_bgcolor = self.background_color
+        template.layout.xaxis.update(self.xaxis)
+        template.layout.yaxis.update(self.yaxis)
+        template.layout.legend.update(self.legend)
+
         template.layout.title = dict(x=0.5)
 
-        template.layout.colorway = self.default_colorway
+        template.data.bar = [
+            go.Bar(marker=dict(line=dict(width=0)))
+        ]
 
         if self.watermark_text:
             template.layout.annotations = [

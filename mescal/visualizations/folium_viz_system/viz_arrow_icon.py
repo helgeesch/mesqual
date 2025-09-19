@@ -31,6 +31,10 @@ class ResolvedArrowIconFeature(ResolvedFeature):
         return self.get('location')
 
     @property
+    def offset(self) -> tuple[float, float]:
+        return self.get('offset')
+
+    @property
     def azimuth_angle(self) -> float:
         return self.get('azimuth_angle')
 
@@ -143,6 +147,7 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
             tooltip: PropertyMapper | str | bool = True,
             popup: PropertyMapper | folium.Popup | bool = False,
             location: PropertyMapper | Point = None,
+            offset: PropertyMapper | tuple[float, float] = (0, 0),
             azimuth_angle: PropertyMapper | float = None,
             **property_mappers: PropertyMapper | Any,
     ):
@@ -161,6 +166,7 @@ class ArrowIconFeatureResolver(FeatureResolver[ResolvedArrowIconFeature]):
             tooltip=tooltip,
             popup=popup,
             location=self._explicit_or_fallback(location, self._default_location_mapper()),
+            offset=offset,
             azimuth_angle=self._explicit_or_fallback(azimuth_angle, self._default_rotation_angle_mapper()),
             **property_mappers
         )
@@ -237,15 +243,15 @@ class ArrowIconGenerator(FoliumObjectGenerator[ArrowIconFeatureResolver]):
         svg_content = self._generate_arrow_svg(style, data_item)
         encoded_svg = base64.b64encode(svg_content.encode()).decode()
 
-        # Folium counts clockwise from right-pointing direction; normal convention is CCW
-        angle = float(style.azimuth_angle) - 90
+        angle = float(style.azimuth_angle) - 90  # Folium counts clockwise from right-pointing direction; normal convention is CCW
+        x_offset, y_offset = style.offset
 
         icon_html = f'''
             <div style="
                 position: absolute;
                 left: 50%;
                 top: 50%;
-                transform: translate(-50%, -50%) rotate({angle}deg);
+                transform: translate(-50%, -50%) translate({x_offset}px, {-y_offset}px) rotate({angle}deg);
                 opacity: {style.opacity};
             ">
                 <img src="data:image/svg+xml;base64,{encoded_svg}" 
