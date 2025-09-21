@@ -157,6 +157,7 @@ class CongestionRentCalculator:
             Series with total congestion rents in €
             
         Example:
+            
             >>> # Net flow with price data
             >>> net_flow = pd.Series([100, -50, 75], index=time_index)  
             >>> rent = CongestionRentCalculator.from_net_flow_without_losses(
@@ -201,6 +202,7 @@ class CongestionRentCalculator:
             Series with total congestion rents in €
             
         Example:
+            
             >>> # Separate up/down flows
             >>> flow_up = pd.Series([100, 0, 75], index=time_index)
             >>> flow_down = pd.Series([0, 50, 0], index=time_index)

@@ -26,25 +26,31 @@ class AreaPriceCalculator(AreaVariableCalculatorBase):
         area_column: Column name containing area identifiers
         
     Example:
+
         >>> import pandas as pd
         >>> import numpy as np
+        >>>
         >>> # Node model with area mapping
         >>> node_model = pd.DataFrame({
         ...     'bidding_zone': ['DE_LU', 'DE_LU', 'FR', 'FR']
         ... }, index=['DE1', 'DE2', 'FR1', 'FR2'])
+        >>>
         >>> # Price calculator
         >>> calc = AreaPriceCalculator(node_model, 'bidding_zone')
+        >>>
         >>> # Node prices
         >>> prices = pd.DataFrame({
         ...     'DE1': [50.0, 45.0], 'DE2': [52.0, 47.0],
         ...     'FR1': [55.0, 48.0], 'FR2': [53.0, 46.0]
         ... }, index=pd.date_range('2024-01-01', periods=2, freq='h'))
+        >>>
         >>> # Simple average
         >>> area_prices = calc.calculate(prices)
         >>> print(area_prices)
-        bidding_zone  DE_LU  FR
-        2024-01-01 00:00:00  51.0  54.0
-        2024-01-01 01:00:00  46.0  47.0
+                   bidding_zone  DE_LU FR
+            datetime
+            2024-01-01 00:00:00  51.0  54.0
+            2024-01-01 01:00:00  46.0  47.0
     """
     
     def calculate(
@@ -81,6 +87,7 @@ class AreaPriceCalculator(AreaVariableCalculatorBase):
             KeyError: If required nodes are missing from weighting_factor_df
 
         Example:
+
             >>> # Simple average
             >>> area_prices = calc.calculate(node_prices)
             >>> 

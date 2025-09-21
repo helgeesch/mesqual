@@ -61,6 +61,7 @@ class AreaBorderNamingConventions:
         NAME_IS_ALPHABETICALLY_SORTED_IDENTIFIER (str): Boolean indicator column
     
     Example:
+
         >>> conventions = AreaBorderNamingConventions('country')
         >>> border_name = conventions.get_area_border_name('DE', 'FR')
         >>> print(border_name)  # 'DE - FR'
@@ -100,6 +101,7 @@ class AreaBorderNamingConventions:
                 Defaults to '{area_column}_to'
                 
         Example:
+
             >>> # Standard naming
             >>> conventions = AreaBorderNamingConventions('country')
             >>> print(conventions.border_identifier)  # 'country_border'
@@ -136,6 +138,7 @@ class AreaBorderNamingConventions:
             str: Formatted border name using the configured separator (e.g. 'DE - FR', 'FR_North - DE_South')
             
         Example:
+
             >>> conventions = AreaBorderNamingConventions('country')
             >>> border_name = conventions.get_area_border_name('DE', 'FR')
             >>> print(border_name)  # 'DE - FR'
@@ -155,6 +158,7 @@ class AreaBorderNamingConventions:
             ValueError: If border_name doesn't contain the expected separator
             
         Example:
+
             >>> conventions = AreaBorderNamingConventions('country')
             >>> area_from, area_to = conventions.decompose_area_border_name_to_areas('DE - FR')
             >>> print(f"From: {area_from}, To: {area_to}")  # From: DE, To: FR
@@ -172,6 +176,7 @@ class AreaBorderNamingConventions:
             str: Opposite direction border name (e.g., 'FR - DE')
             
         Example:
+
             >>> conventions = AreaBorderNamingConventions('country')
             >>> opposite = conventions.get_opposite_area_border_name('DE - FR')
             >>> print(opposite)  # 'FR - DE'
@@ -198,6 +203,7 @@ class AreaBorderNamingConventions:
             str: Alphabetically sorted border name (e.g., 'DE - FR')
             
         Example:
+
             >>> conventions = AreaBorderNamingConventions('country')
             >>> sorted_border = conventions.get_alphabetically_sorted_border('FR - DE')
             >>> print(sorted_border)  # 'DE - FR'
@@ -243,6 +249,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
         node_to_area_map (dict): Mapping from nodes to their assigned areas
     
     Example:
+
         >>> # Create border model from transmission data
         >>> generator = AreaBorderModelGenerator(
         ...     node_df, line_df, 'country', 'node_from', 'node_to'
@@ -281,6 +288,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
             ValueError: If required columns are not found in input DataFrames
             
         Example:
+
             >>> generator = AreaBorderModelGenerator(
             ...     nodes_df=node_data,
             ...     lines_df=transmission_data,
@@ -351,6 +359,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
                 Returns empty DataFrame with proper column structure if no borders found.
                 
         Example:
+
             >>> border_model = generator.generate_area_border_model()
             >>> print(border_model.columns)
             ['country_from', 'country_to', 'opposite_border', 'sorted_border', 'name_is_alphabetically_sorted']
@@ -440,6 +449,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
                 in the given direction
                 
         Example:
+
             >>> lines = generator._get_lines_for_border('DE', 'FR')
             >>> print(f"Lines from DE to FR: {lines}")
             
@@ -474,6 +484,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
                 are not fully interconnected.
                 
         Example:
+
             >>> graph = generator.get_area_graph()
             >>> print(f"Areas: {list(graph.nodes())}")
             >>> print(f"Borders: {list(graph.edges())}")
@@ -521,6 +532,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
                 - geo_line_string: LineString geometry representing the border
                 
         Example:
+
             >>> # Setup geometry calculator with area polygons
             >>> geo_calc = AreaBorderGeometryCalculator(area_polygons_gdf)
             >>> 

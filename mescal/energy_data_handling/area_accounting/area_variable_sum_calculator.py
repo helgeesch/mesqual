@@ -23,12 +23,15 @@ class AreaSumCalculator(AreaVariableCalculatorBase):
         area_column: Column name containing area identifiers
 
     Example:
+
         >>> import pandas as pd
         >>> import numpy as np
+        >>>
         >>> # Node model
         >>> node_model = pd.DataFrame({
         ...     'bidding_zone': ['DE_LU', 'DE_LU', 'FR', 'FR']
         ... }, index=['DE1', 'DE2', 'FR1', 'FR2'])
+        >>>
         >>> # Sum calculator
         >>> calc = AreaSumCalculator(node_model, 'bidding_zone')
         >>> # Node generation data
@@ -36,12 +39,13 @@ class AreaSumCalculator(AreaVariableCalculatorBase):
         ...     'DE1': [800, 850], 'DE2': [750, 780],
         ...     'FR1': [900, 920], 'FR2': [850, 870]
         ... }, index=pd.date_range('2024-01-01', periods=2, freq='h'))
+        >>>
         >>> # Sum to areas
         >>> area_generation = calc.calculate(generation)
         >>> print(area_generation)
-        bidding_zone  DE_LU   FR
-        2024-01-01 00:00:00  1550  1750
-        2024-01-01 01:00:00  1630  1790
+            bidding_zone  DE_LU   FR
+            2024-01-01 00:00:00  1550  1750
+            2024-01-01 01:00:00  1630  1790
     """
 
     def calculate(self, node_data_df: pd.DataFrame) -> pd.DataFrame:
@@ -72,8 +76,10 @@ class AreaSumCalculator(AreaVariableCalculatorBase):
             ValueError: If node_data_df structure is invalid
 
         Example:
+
             >>> # Sum generation across nodes
             >>> area_generation = calc.calculate(node_generation_df)
+            >>>
             >>> # Sum demand across nodes  
             >>> area_demand = calc.calculate(node_demand_df)
         """

@@ -43,6 +43,7 @@ class GeoModelGeneratorBase:
             ValueError: If REPRESENTATIVE_POINT_METHOD is not supported
             
         Example:
+            
             >>> from shapely.geometry import Polygon, Point
             >>> generator = GeoModelGeneratorBase()
             >>> area_polygon = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
@@ -116,6 +117,7 @@ class GeoModelGeneratorBase:
             ValueError: If the input list is empty
             
         Example:
+            
             >>> from shapely.geometry import Point
             >>> power_plants = [Point(1, 1), Point(3, 2), Point(2, 4)]
             >>> centroid = GeoModelGeneratorBase._compute_representative_point_from_cloud_of_2d_points(power_plants)

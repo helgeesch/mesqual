@@ -108,6 +108,7 @@ class UpDownNetAppender:
             positive when up > down, negative when down > up.
             
         Example:
+            
             >>> data = pd.DataFrame({
             ...     'flow_up': [100, 200], 'flow_down': [30, 50]
             ... })
@@ -135,6 +136,7 @@ class UpDownNetAppender:
             represent the sum of absolute flows in both directions.
             
         Example:
+            
             >>> data = pd.DataFrame({
             ...     'flow_up': [100, 200], 'flow_down': [30, 50]  
             ... })

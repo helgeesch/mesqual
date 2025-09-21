@@ -40,6 +40,7 @@ class AreaVariableCalculatorBase(ABC):
         ValueError: If area_column is not found in node_model_df
         
     Example:
+
         >>> import pandas as pd
         >>> # Node model with area assignments
         >>> node_model = pd.DataFrame({
@@ -95,6 +96,7 @@ class AreaVariableCalculatorBase(ABC):
             List of node IDs that belong to the specified area
             
         Example:
+
             >>> calculator = MyAreaCalculator(node_model, 'country')
             >>> german_nodes = calculator.get_area_nodes('DE')
             >>> print(german_nodes)  # ['DE1', 'DE2']
@@ -133,8 +135,9 @@ class AreaVariableCalculatorBase(ABC):
             data_name: Descriptive name of the data being validated (for logging)
             
         Example:
+
+            >>> # Log warning if generation_data has nodes not in node_model_df
             >>> calculator._validate_node_data(generation_data, "generation")
-            # Logs warning if generation_data has nodes not in node_model_df
         """
         missing_nodes = set(node_df.columns) - set(self.node_model_df.index)
         if missing_nodes:

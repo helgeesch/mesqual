@@ -95,6 +95,7 @@ class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
         dotfetch (_DotNotationFetcher): Enables dot notation data access
         
     Example:
+
         >>> # Basic usage pattern
         >>> data = dataset.fetch('buses_t.marginal_price')
         >>> flags = dataset.accepted_flags
@@ -225,8 +226,9 @@ class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
             Set of flags that can be used with the fetch() method
             
         Example:
-            >>> dataset.accepted_flags
-            {'buses', 'buses_t.marginal_price', 'generators', 'generators_t.p', ...}
+
+            >>> print(dataset.accepted_flags)
+                {'buses', 'buses_t.marginal_price', 'generators', 'generators_t.p', ...}
         """
         return set()
 
@@ -244,11 +246,12 @@ class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
             Set of accepted flags containing the substring
             
         Example:
+
             >>> ds = PyPSADataset()
             >>> ds.get_accepted_flags_containing_x('generators')
-            {'generators', 'generators_t.p', 'generators_t.efficiency', ...}
+                {'generators', 'generators_t.p', 'generators_t.efficiency', ...}
             >>> ds.get_accepted_flags_containing_x('BUSES', match_case=True)
-            set()  # Empty because case doesn't match
+                set()  # Empty because case doesn't match
         """
         if match_case:
             return {f for f in self.accepted_flags if x in str(f)}
@@ -296,6 +299,7 @@ class Dataset(Generic[DatasetConfigType, FlagType, FlagIndexType], ABC):
             ValueError: If the flag is not accepted by this dataset
             
         Examples:
+
             >>> # Basic usage
             >>> prices = dataset.fetch('buses_t.marginal_price')
             >>>

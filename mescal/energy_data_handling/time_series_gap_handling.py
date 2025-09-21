@@ -55,6 +55,7 @@ class TimeSeriesGapHandler:
             TypeError: If data index is not a DatetimeIndex.
         
         Example:
+            
             >>> dates = pd.date_range('2024-01-01', freq='1H', periods=5)
             >>> dates = dates.delete([2, 3])  # Create 2-hour gap
             >>> series = pd.Series([1, 2, 3], index=dates[[0, 1, 4]])

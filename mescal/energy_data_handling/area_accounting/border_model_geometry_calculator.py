@@ -43,6 +43,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
         _line_cache (dict): Cached border lines for repeated calculations
     
     Example:
+        
         >>> import geopandas as gpd
         >>> from shapely.geometry import box
         >>> 
@@ -76,6 +77,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             ValueError: If geometries are invalid or area_model_gdf lacks required structure
             
         Example:
+            
             >>> areas_gdf = gpd.read_file('countries.geojson').set_index('ISO_A2')
             >>> calculator = AreaBorderGeometryCalculator(areas_gdf)
             >>> 
@@ -146,6 +148,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             ValueError: If geometric calculations fail
             
         Example:
+            
             >>> border_info = calculator.calculate_border_geometry('DE', 'FR')
             >>> 
             >>> # Use for visualization
@@ -188,6 +191,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             bool: True if areas share a common boundary, False otherwise
             
         Example:
+            
             >>> touching = calculator.areas_touch('DE', 'FR')  # True for neighboring countries
             >>> separated = calculator.areas_touch('DE', 'GB')  # False for non-adjacent countries
         """
@@ -246,6 +250,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
                 Angle range: 0-360 degrees, where 0° is North, 90° is East.
                 
         Example:
+            
             >>> point, angle = calculator.get_area_border_midpoint_and_angle('DE', 'FR')
             >>> print(f"Place arrow at {point} oriented at {angle}° for DE→FR flow")
         """
@@ -309,6 +314,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             ValueError: If areas are touching (should use physical border instead)
             
         Example:
+            
             >>> # Connect non-adjacent areas (e.g., Germany to UK)
             >>> line = calculator.get_straight_line_between_areas('DE', 'GB')
             >>> print(f"Connection length: {line.length:.0f} km")
@@ -785,6 +791,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
             float: Minimum angular difference in degrees (0-180)
             
         Example:
+            
             >>> diff = calculator._angular_difference(10, 350)  # Returns 20, not 340
             >>> diff = calculator._angular_difference(90, 270)  # Returns 180
         """
@@ -845,6 +852,7 @@ class NonCrossingPathFinder:
                 Useful for long-running operations with high num_points values.
                 
         Example:
+            
             >>> # High-precision finder for detailed analysis
             >>> finder = NonCrossingPathFinder(
             ...     num_points=300,      # High sampling density
@@ -893,6 +901,7 @@ class NonCrossingPathFinder:
             - Computation time scales roughly O(n² × m) where m = number of other areas
             
         Example:
+            
             >>> path = finder.find_shortest_path(
             ...     source_area, target_area, obstacles_gdf, "Germany to UK"
             ... )

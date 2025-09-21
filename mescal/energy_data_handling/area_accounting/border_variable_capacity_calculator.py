@@ -74,6 +74,7 @@ class BorderCapacityCalculator(AreaBorderVariableCalculatorBase):
             ValueError: If direction is not 'up' or 'down'
             
         Example:
+            
             >>> # Calculate up-direction capacities (exports from area_from)
             >>> up_caps = calculator.calculate(capacity_data, direction='up')
             >>> 

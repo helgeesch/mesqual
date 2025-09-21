@@ -155,6 +155,7 @@ class AreaBorderVariableCalculatorBase(ABC, AreaBorderNamingConventions):
             - lines_down: Line IDs for lines in the "down" direction
             
         Example:
+            
             >>> # For border 'DE-FR'
             >>> lines_up, lines_down = calculator.get_border_lines_in_topological_up_and_down_direction('DE-FR')
             >>> # lines_up: Lines from German nodes to French nodes  

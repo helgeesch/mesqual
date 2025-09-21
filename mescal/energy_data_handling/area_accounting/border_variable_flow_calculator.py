@@ -82,6 +82,7 @@ class BorderFlowCalculator(AreaBorderVariableCalculatorBase):
                 not in ['up', 'down', 'net']
                 
         Example:
+            
             >>> # Calculate net sent flows (most common use case)
             >>> net_sent = calculator.calculate(flows, 'sent', 'net')
             >>> 
