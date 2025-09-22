@@ -30,6 +30,7 @@ class AggregatedColumnAppender:
             Defaults to empty string.
     
     Examples:
+
         >>> # Basic energy variable aggregation
         >>> data = pd.DataFrame({
         ...     'wind_onshore_gen': [100, 200, 300],
@@ -88,7 +89,7 @@ class AggregatedColumnAppender:
             TypeError: If input is not a pandas DataFrame.
             
         Examples:
-            >>> # Single-level columns - technology aggregation
+            Single-level columns - technology aggregation:
             >>> gen_data = pd.DataFrame({
             ...     'wind_onshore_MW': [120, 150, 180],
             ...     'wind_offshore_MW': [80, 90, 100],
@@ -99,7 +100,7 @@ class AggregatedColumnAppender:
             >>> result = appender.add_aggregated_column(gen_data)
             >>> result['wind_total_MW']  # [200, 240, 280]
             
-            >>> # Multi-level columns - scenario and regional analysis  
+            Multi-level columns - scenario and regional analysis
             >>> idx = pd.date_range('2024-01-01', periods=3, freq='h')
             >>> cols = pd.MultiIndex.from_tuples([
             ...     ('storage_battery', 'DE', 'scenario_1'), 
@@ -112,7 +113,7 @@ class AggregatedColumnAppender:
             >>> result = appender.add_aggregated_column(data)
             >>> # Creates 'total_storage' with sums grouped by (region, scenario)
             
-            >>> # Handling NaN values in energy time series
+            Handling NaN values in energy time series
             >>> price_data = pd.DataFrame({
             ...     'price_day_ahead': [50.0, np.nan, 45.0],
             ...     'price_intraday': [np.nan, np.nan, 47.0],  

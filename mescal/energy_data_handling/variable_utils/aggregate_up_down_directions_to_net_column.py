@@ -38,6 +38,7 @@ class UpDownNetAppender:
         AttributeError: If neither suffix nor prefix provided for net or total columns
 
     Example:
+
         >>> import pandas as pd
         >>> # Data with bidirectional flows
         >>> data = pd.DataFrame({

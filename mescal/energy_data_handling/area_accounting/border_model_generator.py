@@ -2,8 +2,8 @@
 
 This module provides functionality for identifying and modeling borders between
 energy system areas based on line topologies. It supports the
-creation of comprehensive border models that capture directional relationships,
-naming conventions, and geometric properties essential for energy market analysis.
+creation of comprehensive border_model_dfs that capture directional relationships,
+naming conventions, and geometric properties essential for energy systems analysis.
 
 Key Capabilities:
     - Automatic border identification from line topology
@@ -15,15 +15,14 @@ Key Capabilities:
 Typical Energy Use Cases:
     - Modeling interconnections between countries, control areas, or market zones
     - Cross-border capacity and flow analysis
-    - Transmission system topology representation
-    - Multi-area energy market modeling
     - Network visualization and analysis
 
 MESCAL Integration:
     This module integrates with MESCAL's area accounting system to provide
-    border modeling capabilities that support spatial energy system analysis
+    border_model_df building capabilities that support spatial energy system analysis
     and cross-border flow calculations.
 """
+from __future__ import annotations
 
 from typing import Tuple
 import pandas as pd
@@ -307,11 +306,6 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
         self.node_to_area_map = self._create_node_to_area_map()
 
     def _validate_inputs(self):
-        """Validate input DataFrames for required columns.
-        
-        Raises:
-            ValueError: If any required columns are missing from input DataFrames
-        """
         if self.area_column not in self.node_model_df.columns:
             raise ValueError(
                 f"Area column '{self.area_column}' not found in node_model_df. "
@@ -367,11 +361,6 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
             >>> # Access border relationships
             >>> for border_id, row in border_model.iterrows():
             ...     print(f"{border_id}: {row['country_from']} → {row['country_to']}")
-            
-        Energy Domain Context:
-            Border models are fundamental for energy market analysis, enabling
-            cross-border capacity assessment, flow analysis, and market coupling
-            studies in multi-area energy systems.
         """
         borders = self._identify_borders()
         
@@ -452,10 +441,6 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
 
             >>> lines = generator._get_lines_for_border('DE', 'FR')
             >>> print(f"Lines from DE to FR: {lines}")
-            
-        Energy Domain Context:
-            Individual lines within a border are important for capacity
-            analysis, flow disaggregation, and detailed network studies.
         """
         lines = []
         
@@ -492,12 +477,6 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
             >>> # Check connectivity
             >>> connected = nx.is_connected(graph)
             >>> print(f"All areas connected: {connected}")
-            
-        Energy Applications:
-            - Market coupling analysis (identifying isolated areas)
-            - Shortest path analysis for energy trading
-            - Network resilience studies
-            - Regional clustering for analysis
         """
         graph = nx.Graph()
         borders = self._identify_borders()
@@ -511,7 +490,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
     def enhance_with_geometry(
         self, 
         border_model_df: pd.DataFrame,
-        area_geometry_calculator: 'AreaBorderGeometryCalculator'
+        area_geometry_calculator: AreaBorderGeometryCalculator
     ) -> pd.DataFrame:
         """Enhance border model with geometric properties for visualization.
         

@@ -34,6 +34,7 @@ class CongestionRentCalculator:
         granularity_hrs: Time granularity in hours (auto-detected if None)
         
     Example:
+
         >>> import pandas as pd
         >>> # Time series data
         >>> index = pd.date_range('2024-01-01', periods=3, freq='h')

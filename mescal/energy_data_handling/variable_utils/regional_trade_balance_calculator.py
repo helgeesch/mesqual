@@ -22,6 +22,7 @@ class RegionalTradeBalanceCalculator:
     node-to-node trade balance analysis without aggregation.
 
     Example for regional aggregation:
+
         >>> line_model_df = pd.DataFrame({
         ...     "node_from": ["DE1", "FR1"],
         ...     "node_to": ["FR1", "BE1"]
@@ -36,6 +37,7 @@ class RegionalTradeBalanceCalculator:
         ... )
 
     Example for node-level flows:
+
         >>> aggregator = RegionalTradeBalanceCalculator(
         ...     line_model_df=line_model_df,
         ...     node_model_df=node_model_df,

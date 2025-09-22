@@ -582,13 +582,7 @@ class AreaBorderGeometryCalculator(GeoModelGeneratorBase):
                 
         Returns:
             bool: True if line crosses any non-excluded areas, False otherwise
-            
-        Energy Domain Context:
-            In energy market visualization, border lines should represent direct
-            connections without implying transit through intermediate areas unless
-            explicitly modeled.
         """
-        """Check if a line crosses any areas except the excluded ones."""
         other_areas = self.area_model_gdf.drop(list(exclude_areas))
         return other_areas.geometry.crosses(line).any()
     

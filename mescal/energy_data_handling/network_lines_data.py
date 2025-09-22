@@ -30,6 +30,7 @@ class NetworkLineFlowsData:
         ValueError: If indices or columns of the four DataFrames don't match
 
     Example:
+
         >>> import pandas as pd
         >>> index = pd.date_range('2024-01-01', periods=24, freq='1H')
         >>> columns = ['Line_A_B', 'Line_B_C']
@@ -193,6 +194,7 @@ class NetworkLineCapacitiesData:
         ValueError: If indices or columns of the two DataFrames don't match
 
     Example:
+
         >>> import pandas as pd
         >>> index = pd.date_range('2024-01-01', periods=24, freq='1H')
         >>> columns = ['Line_A_B', 'Line_B_C']

@@ -16,6 +16,7 @@ class TimeSeriesGapHandler:
             this threshold will have NaN values inserted. Default is 60 minutes.
     
     Example:
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> dates = pd.date_range('2024-01-01', periods=5, freq='30min')

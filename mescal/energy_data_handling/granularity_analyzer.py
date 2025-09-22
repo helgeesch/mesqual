@@ -39,10 +39,11 @@ class TimeSeriesGranularityAnalyzer:
             are detected. If False, only issues warnings. Default is True.
 
     Example:
+
         >>> analyzer = TimeSeriesGranularityAnalyzer()
         >>> index = pd.date_range('2024-01-01', periods=24, freq='h')
         >>> analyzer.get_granularity_as_timedelta(index)
-        Timedelta('1 hours')
+            Timedelta('1 hours')
     """
 
     def __init__(self, strict_mode: bool = True):
