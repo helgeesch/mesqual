@@ -48,11 +48,24 @@ nav:
     - Validation: api_reference/validation.md
 
   - Visualization Modules:
-      - TimeSeriesDashboard: api_reference/time_series_dashboard.md
+      - api_reference/visualization/index.md
+      - TimeSeriesDashboard: api_reference/visualization/time_series_dashboard.md
       - Folium Viz System:
-        - api_reference/folium_viz_system/index.md
+        - api_reference/visualization/folium_viz_system/index.md
+        - Areas: api_reference/visualization/folium_viz_system/areas.md
+        - Circle Marker: api_reference/visualization/folium_viz_system/circle_marker.md
+        - Text Overlay: api_reference/visualization/folium_viz_system/text_overlay.md
+        - Lines: api_reference/visualization/folium_viz_system/lines.md
+        - Line Text Overlay: api_reference/visualization/folium_viz_system/line_text_overlay.md
+        - Arrow Icon: api_reference/visualization/folium_viz_system/arrow_icon.md
+        - Base:
+          - Abstract System: api_reference/visualization/folium_viz_system/system.md
+          - Data Item: api_reference/visualization/folium_viz_system/data_item.md
+        - KPI Collection Visualizer: api_reference/visualization/folium_viz_system/kpi_collection.md
       - Folium Legend System:
-        - api_reference/folium_legend_system/index.md
+        - api_reference/visualization/folium_legend_system/index.md
+      - HTML Table: api_reference/visualization/html_table.md
+      - HTML Dashboard: api_reference/visualization/html_dashboard.md
   - Energy Data Handling:
       - api_reference/energy_data_handling/index.md
       - Area Accounting:
