@@ -5,18 +5,18 @@ Tools for transforming node-line topology into area-based models and variables.
 Supports multi-level aggregation (countries, bidding zones, market regions) and 
 cross-border flow analysis for energy market studies.
 
-Core Components
+Core Components:
 ---------------
 
-**Model Generators:**
-- Area model creation from node-to-area mappings with geographic visualization
-- Border identification from transmission topology with standardized naming
-- Network graph generation and geometric analysis for spatial representation
+Model Generators:
+    - Area model creation from node-to-area mappings with geographic visualization
+    - Border identification from transmission topology with standardized naming
+    - Network graph generation and geometric analysis for spatial representation
 
-**Variable Calculators:**
-- Area variables: Price aggregation (volume-weighted) and sum-based calculations
-- Border variables: Cross-border flows, capacity aggregation, and price spreads
-- Flexible node-to-area mapping with time series support
+Variable Calculators:
+    - Area variables: Price aggregation (volume-weighted) and sum-based calculations
+    - Border variables: Cross-border flows, capacity aggregation, and price spreads
+    - Flexible node-to-area mapping with time series support
 """
 
 from .area_model_generator import AreaModelGenerator

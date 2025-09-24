@@ -11,31 +11,31 @@ extensive (volumes, energy amounts) quantities.
 Core Components
 ---------------
 
-**Time Series Processing:**
-- Granularity analysis and conversion between different temporal resolutions
-- Gap detection and handling in time series data
-- Support for intensive vs. extensive quantity conversions
+Time Series Processing:
+    - Granularity analysis and conversion between different temporal resolutions
+    - Gap detection and handling in time series data
+    - Support for intensive vs. extensive quantity conversions
 
-**Network Flow Analysis:**
-- Bidirectional transmission line flow data structures
-- Network capacity modeling with loss considerations
-- Flow direction conventions for complex network topologies
+Network Flow Analysis:
+    - Bidirectional transmission line flow data structures
+    - Network capacity modeling with loss considerations
+    - Flow direction conventions for complex network topologies
 
-**Area-Level Aggregations:**
-- Node-to-area aggregation modules with geographic modeling
-- Cross-border flow analysis and capacity calculation modules
-- Price aggregation modules using volume-weighted methods
+Area-Level Aggregations:
+    - Node-to-area aggregation modules with geographic modeling
+    - Cross-border flow analysis and capacity calculation modules
+    - Price aggregation modules using volume-weighted methods
 
-**Variable Utilities:**
-- Regional trade balance calculations
-- Volume-weighted price aggregations
-- Congestion rent analysis
-- Directional data processing (up/down, net flows)
+Variable Utilities:
+    - Regional trade balance calculations
+    - Volume-weighted price aggregations
+    - Congestion rent analysis
+    - Directional data processing (up/down, net flows)
 
-**Model Handling:**
-- DataFrame enrichment with model properties
-- Membership-based property propagation
-- Combination identifier creation for paired relationships
+Model Handling:
+    - DataFrame enrichment with model properties
+    - Membership-based property propagation
+    - Combination identifier creation for paired relationships
 """
 
 from .granularity_analyzer import TimeSeriesGranularityAnalyzer, GranularityError
