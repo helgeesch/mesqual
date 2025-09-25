@@ -21,15 +21,20 @@ class MembershipTagging(Enum):
     column name conflicts and maintain clarity about property origins.
     
     Values:
-        NONE: Property names remain unchanged (may cause conflicts with existing columns)
-        PREFIX: Property names get membership name as prefix (e.g., 'node_voltage' from 'voltage')
-        SUFFIX: Property names get membership name as suffix (e.g., 'voltage_node' from 'voltage')
+        - NONE: Property names remain unchanged (may cause conflicts with existing columns)
+        - PREFIX: Property names get membership name as prefix (e.g., 'node_voltage' from 'voltage')
+        - SUFFIX: Property names get membership name as suffix (e.g., 'voltage_node' from 'voltage')
     
     Examples:
-        For a generator DataFrame with 'node' membership, enriching with node properties:
-        - NONE: 'voltage', 'load' (original names from node DataFrame)
-        - PREFIX: 'node_voltage', 'node_load' 
-        - SUFFIX: 'voltage_node', 'load_node'
+        For a generator DataFrame (target_df) with 'node' membership, enriching with node properties:
+        >>> MembershipPropertyEnricher().append_properties(target_df, dataset, MembershipTagging.NONE)
+        >>> # Returns target_df with new columns ['voltage', 'load'] (original names from node DataFrame)
+        >>>
+        >>> MembershipPropertyEnricher().append_properties(target_df, dataset, MembershipTagging.PREFIX)
+        >>> # Returns target_df with new columns ['node_voltage', 'node_load']
+        >>>
+        >>> MembershipPropertyEnricher().append_properties(target_df, dataset, MembershipTagging.SUFFIX)
+        >>> # Returns target_df with new columns ['voltage_node', 'load_node']
     """
     NONE = "none"
     PREFIX = "prefix"
@@ -286,11 +291,11 @@ class DirectionalMembershipPropertyEnricher:
     model objects with appropriate directional suffixes.
     
     Key Features:
-    - Automatic identification of from/to column pairs
-    - Flexible directional identifiers (customizable beyond '_from'/'_to')
-    - Support for multiple directional relationships in one DataFrame
-    - Preservation of NaN relationships
-    - Integration with MESCAL's model flag system
+        - Automatic identification of from/to column pairs
+        - Flexible directional identifiers (customizable beyond '_from'/'_to')
+        - Support for multiple directional relationships in one DataFrame
+        - Preservation of NaN relationships
+        - Integration with MESCAL's model flag system
     
     Args:
         from_identifier: Suffix/prefix identifying 'from' direction (default: '_from')
@@ -298,6 +303,7 @@ class DirectionalMembershipPropertyEnricher:
         membership_tag_separator: Separator for property name construction
     
     Examples:
+
         >>> enricher = DirectionalMembershipPropertyEnricher()
         >>> # Line DataFrame with 'node_from', 'node_to' columns
         >>> enriched_lines = enricher.append_properties(
