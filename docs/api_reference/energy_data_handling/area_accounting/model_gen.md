@@ -3,9 +3,6 @@
     options:
         show_root_heading: false
         show_root_toc_entry: false
-    members:
-        - ThisClass
-        - this_function
 ::: mescal.energy_data_handling.area_accounting.border_model_generator
     options:
         show_root_heading: false

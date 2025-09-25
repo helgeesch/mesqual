@@ -17,6 +17,8 @@ markdown_extensions:
   - toc:
       permalink: true
       toc_depth: 5
+  - pymdownx.highlight
+  - pymdownx.superfences
 
 plugins:
   - search
@@ -24,7 +26,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [submodules]
+          paths: [submodules, mescal]
           options:
             heading_level: 2
             show_root_heading: true
@@ -34,8 +36,14 @@ plugins:
             show_symbol_type_heading: true
             show_category_heading: false
             show_root_toc_entry: false
+            signature_crossrefs: true
+            show_signature_annotations: true
             show_signature_type_parameters: true
             members_order: source
+            line_length: 20
+            modernize_annotations: true
+            separate_signature: true
+            merge_init_into_class: false
 
 nav:
   - Core:
@@ -73,7 +81,10 @@ nav:
         - Area / Border Model Generators: api_reference/energy_data_handling/area_accounting/model_gen.md
         - Area Variables: api_reference/energy_data_handling/area_accounting/area_variables.md
         - Border Variables: api_reference/energy_data_handling/area_accounting/border_variables.md
-      - Model Membership Handling: api_reference/energy_data_handling/model_handling/index.md
+      - Model Membership Handling:
+        - api_reference/energy_data_handling/model_handling/index.md
+        - Property Enricher: api_reference/energy_data_handling/model_handling/property_enricher.md
+        - Pairs Appender: api_reference/energy_data_handling/model_handling/pairs_appender.md
       - Variable Utils:
         - api_reference/energy_data_handling/variable_utils/index.md
         - In-common Aggregations: api_reference/energy_data_handling/variable_utils/in_common_aggs.md
@@ -83,3 +94,19 @@ nav:
       - Granularity Modules: api_reference/energy_data_handling/granularity_modules.md
       - Network Lines Data: api_reference/energy_data_handling/network_lines_data.md
       - Time Series Gap Handling: api_reference/energy_data_handling/time_series_gap_handling.md
+  - Utils:
+      - pandas_utils:
+        - api_reference/utils/pandas_utils/index.md
+        - Flatten DF: api_reference/utils/pandas_utils/flatten_df.md
+        - Pend Properties: api_reference/utils/pandas_utils/pend_props.md
+        - Filter by Model: api_reference/utils/pandas_utils/filter.md
+        - xs DF: api_reference/utils/pandas_utils/xs_df.md
+        - Sort MultiIndex: api_reference/utils/pandas_utils/sort_multiindex.md
+        - Merge MultiIndex Levels: api_reference/utils/pandas_utils/merge_multi_index_levels.md
+        - Set New Column in MultiIndex: api_reference/utils/pandas_utils/set_new_column.md
+        - Combine DFs: api_reference/utils/pandas_utils/combine_dfs.md
+      - plotly_utils:
+        - api_reference/utils/plotly_utils/index.md
+        - PlotlyTheme: api_reference/utils/plotly_utils/plotly_theme.md
+        - figure_utils: api_reference/utils/plotly_utils/figure_utils.md
+        - px_category_utils: api_reference/utils/plotly_utils/px_category_utils.md
