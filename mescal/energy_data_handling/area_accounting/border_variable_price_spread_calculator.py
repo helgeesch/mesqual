@@ -25,6 +25,7 @@ class BorderPriceSpreadCalculator(AreaBorderVariableCalculatorBase):
         variable_name (str): Returns 'price_spread' for identification
 
     Example:
+
         >>> import pandas as pd
         >>> import numpy as np
         >>>
