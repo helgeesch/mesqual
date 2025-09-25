@@ -12,8 +12,8 @@ The visualization system follows a modular architecture with:
 - Data item abstractions for model and KPI data integration
 
 Example:
-    Basic usage for creating area visualizations:
 
+    Basic usage for creating area visualizations:
     >>> from mescal.visualizations.folium_viz_system import AreaGenerator, AreaFeatureResolver
     >>> area_resolver = AreaFeatureResolver(property_mapper)
     >>> area_generator = AreaGenerator()
