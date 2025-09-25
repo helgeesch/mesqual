@@ -555,8 +555,7 @@ class TimeSeriesDashboardGenerator:
     various time aggregations (daily, weekly, monthly) with configurable grouping
     functions (mean, sum, min, max, etc.).
     
-    Expected Data Format:
-        The input data must be a pandas DataFrame or Series with:
+    Expected Data Format: The input data must be a pandas DataFrame or Series with:
         - DateTime index (required for time-based aggregations)
         - For faceting: MultiIndex columns with named levels
         
