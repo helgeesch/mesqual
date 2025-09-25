@@ -22,6 +22,7 @@ class BorderFlowCalculator(AreaBorderVariableCalculatorBase):
     - Net flows represent the algebraic sum (up_flow - down_flow)
     
     Example:
+
         >>> from mescal.energy_data_handling.network_lines_data import NetworkLineFlowsData
         >>> calculator = BorderFlowCalculator(
         ...     area_border_model_df, line_model_df, node_model_df, 'country'
