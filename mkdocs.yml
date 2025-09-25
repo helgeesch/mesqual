@@ -1,5 +1,5 @@
-site_name: 'mescal Package Documentation'
-# site_url: 'https://github.com/helgeesch/mescal/'
+site_name: 'MESCAL Package Documentation'
+site_url: 'https://docs.mesqual.io/'
 repo_url: 'https://github.com/helgeesch/mescal/'
 
 
@@ -40,7 +40,6 @@ plugins:
             show_signature_annotations: true
             show_signature_type_parameters: true
             members_order: source
-            line_length: 20
             modernize_annotations: true
             separate_signature: true
             merge_init_into_class: false
