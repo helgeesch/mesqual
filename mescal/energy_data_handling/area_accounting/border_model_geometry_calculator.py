@@ -822,6 +822,7 @@ class NonCrossingPathFinder:
         show_progress (bool): Whether to display progress bars for long operations
     
     Example:
+
         >>> # High-precision path finding
         >>> finder = NonCrossingPathFinder(num_points=500, min_clearance=50000)
         >>> path = finder.find_shortest_path(area1_poly, area2_poly, other_areas_gdf)
