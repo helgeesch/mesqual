@@ -35,6 +35,7 @@ class AreaModelGenerator(GeoModelGeneratorBase):
         geo_location_column (str): Column name containing geographic Point objects
     
     Examples:
+
         Basic area model generation:
         >>> import pandas as pd
         >>> from shapely.geometry import Point
@@ -83,11 +84,11 @@ class AreaModelGenerator(GeoModelGeneratorBase):
         >>> print(f"Created area model with {len(final_model)} areas")
     
     Energy Domain Context:
-        Area models are fundamental for energy system analysis, enabling:
-        - Projection of node-level data to area-level data (e.g. nodal prices -> area prices)
-        - Market zone aggregation and analysis
-        - Regional energy balance studies
-        - ...
+        - Area models are fundamental for energy system analysis, enabling:
+            - Projection of node-level data to area-level data (e.g. nodal prices -> area prices)
+            - Market zone aggregation and analysis
+            - Regional energy balance studies
+            - ...
     """
     
     def __init__(
