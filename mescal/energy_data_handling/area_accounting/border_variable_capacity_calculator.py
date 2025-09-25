@@ -13,6 +13,7 @@ class BorderCapacityCalculator(AreaBorderVariableCalculatorBase):
     handling bidirectional capacity data with proper directional aggregation.
     
     Example:
+
         >>> from mescal.energy_data_handling.network_lines_data import NetworkLineCapacitiesData
         >>> import pandas as pd
         >>> 
@@ -74,6 +75,7 @@ class BorderCapacityCalculator(AreaBorderVariableCalculatorBase):
             ValueError: If direction is not 'up' or 'down'
             
         Example:
+            
             >>> # Calculate up-direction capacities (exports from area_from)
             >>> up_caps = calculator.calculate(capacity_data, direction='up')
             >>> 

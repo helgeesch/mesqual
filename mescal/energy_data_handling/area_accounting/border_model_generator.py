@@ -2,8 +2,8 @@
 
 This module provides functionality for identifying and modeling borders between
 energy system areas based on line topologies. It supports the
-creation of comprehensive border models that capture directional relationships,
-naming conventions, and geometric properties essential for energy market analysis.
+creation of comprehensive border_model_dfs that capture directional relationships,
+naming conventions, and geometric properties essential for energy systems analysis.
 
 Key Capabilities:
     - Automatic border identification from line topology
@@ -15,15 +15,14 @@ Key Capabilities:
 Typical Energy Use Cases:
     - Modeling interconnections between countries, control areas, or market zones
     - Cross-border capacity and flow analysis
-    - Transmission system topology representation
-    - Multi-area energy market modeling
     - Network visualization and analysis
 
 MESCAL Integration:
     This module integrates with MESCAL's area accounting system to provide
-    border modeling capabilities that support spatial energy system analysis
+    border_model_df building capabilities that support spatial energy system analysis
     and cross-border flow calculations.
 """
+from __future__ import annotations
 
 from typing import Tuple
 import pandas as pd
@@ -61,6 +60,7 @@ class AreaBorderNamingConventions:
         NAME_IS_ALPHABETICALLY_SORTED_IDENTIFIER (str): Boolean indicator column
     
     Example:
+
         >>> conventions = AreaBorderNamingConventions('country')
         >>> border_name = conventions.get_area_border_name('DE', 'FR')
         >>> print(border_name)  # 'DE - FR'
@@ -100,6 +100,7 @@ class AreaBorderNamingConventions:
                 Defaults to '{area_column}_to'
                 
         Example:
+
             >>> # Standard naming
             >>> conventions = AreaBorderNamingConventions('country')
             >>> print(conventions.border_identifier)  # 'country_border'
@@ -136,6 +137,7 @@ class AreaBorderNamingConventions:
             str: Formatted border name using the configured separator (e.g. 'DE - FR', 'FR_North - DE_South')
             
         Example:
+
             >>> conventions = AreaBorderNamingConventions('country')
             >>> border_name = conventions.get_area_border_name('DE', 'FR')
             >>> print(border_name)  # 'DE - FR'
@@ -155,6 +157,7 @@ class AreaBorderNamingConventions:
             ValueError: If border_name doesn't contain the expected separator
             
         Example:
+
             >>> conventions = AreaBorderNamingConventions('country')
             >>> area_from, area_to = conventions.decompose_area_border_name_to_areas('DE - FR')
             >>> print(f"From: {area_from}, To: {area_to}")  # From: DE, To: FR
@@ -172,6 +175,7 @@ class AreaBorderNamingConventions:
             str: Opposite direction border name (e.g., 'FR - DE')
             
         Example:
+
             >>> conventions = AreaBorderNamingConventions('country')
             >>> opposite = conventions.get_opposite_area_border_name('DE - FR')
             >>> print(opposite)  # 'FR - DE'
@@ -198,6 +202,7 @@ class AreaBorderNamingConventions:
             str: Alphabetically sorted border name (e.g., 'DE - FR')
             
         Example:
+
             >>> conventions = AreaBorderNamingConventions('country')
             >>> sorted_border = conventions.get_alphabetically_sorted_border('FR - DE')
             >>> print(sorted_border)  # 'DE - FR'
@@ -243,6 +248,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
         node_to_area_map (dict): Mapping from nodes to their assigned areas
     
     Example:
+
         >>> # Create border model from transmission data
         >>> generator = AreaBorderModelGenerator(
         ...     node_df, line_df, 'country', 'node_from', 'node_to'
@@ -281,6 +287,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
             ValueError: If required columns are not found in input DataFrames
             
         Example:
+
             >>> generator = AreaBorderModelGenerator(
             ...     nodes_df=node_data,
             ...     lines_df=transmission_data,
@@ -299,11 +306,6 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
         self.node_to_area_map = self._create_node_to_area_map()
 
     def _validate_inputs(self):
-        """Validate input DataFrames for required columns.
-        
-        Raises:
-            ValueError: If any required columns are missing from input DataFrames
-        """
         if self.area_column not in self.node_model_df.columns:
             raise ValueError(
                 f"Area column '{self.area_column}' not found in node_model_df. "
@@ -351,6 +353,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
                 Returns empty DataFrame with proper column structure if no borders found.
                 
         Example:
+
             >>> border_model = generator.generate_area_border_model()
             >>> print(border_model.columns)
             ['country_from', 'country_to', 'opposite_border', 'sorted_border', 'name_is_alphabetically_sorted']
@@ -358,11 +361,6 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
             >>> # Access border relationships
             >>> for border_id, row in border_model.iterrows():
             ...     print(f"{border_id}: {row['country_from']} → {row['country_to']}")
-            
-        Energy Domain Context:
-            Border models are fundamental for energy market analysis, enabling
-            cross-border capacity assessment, flow analysis, and market coupling
-            studies in multi-area energy systems.
         """
         borders = self._identify_borders()
         
@@ -440,12 +438,9 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
                 in the given direction
                 
         Example:
+
             >>> lines = generator._get_lines_for_border('DE', 'FR')
             >>> print(f"Lines from DE to FR: {lines}")
-            
-        Energy Domain Context:
-            Individual lines within a border are important for capacity
-            analysis, flow disaggregation, and detailed network studies.
         """
         lines = []
         
@@ -474,6 +469,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
                 are not fully interconnected.
                 
         Example:
+
             >>> graph = generator.get_area_graph()
             >>> print(f"Areas: {list(graph.nodes())}")
             >>> print(f"Borders: {list(graph.edges())}")
@@ -481,12 +477,6 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
             >>> # Check connectivity
             >>> connected = nx.is_connected(graph)
             >>> print(f"All areas connected: {connected}")
-            
-        Energy Applications:
-            - Market coupling analysis (identifying isolated areas)
-            - Shortest path analysis for energy trading
-            - Network resilience studies
-            - Regional clustering for analysis
         """
         graph = nx.Graph()
         borders = self._identify_borders()
@@ -500,7 +490,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
     def enhance_with_geometry(
         self, 
         border_model_df: pd.DataFrame,
-        area_geometry_calculator: 'AreaBorderGeometryCalculator'
+        area_geometry_calculator: AreaBorderGeometryCalculator
     ) -> pd.DataFrame:
         """Enhance border model with geometric properties for visualization.
         
@@ -521,6 +511,7 @@ class AreaBorderModelGenerator(AreaBorderNamingConventions):
                 - geo_line_string: LineString geometry representing the border
                 
         Example:
+
             >>> # Setup geometry calculator with area polygons
             >>> geo_calc = AreaBorderGeometryCalculator(area_polygons_gdf)
             >>> 

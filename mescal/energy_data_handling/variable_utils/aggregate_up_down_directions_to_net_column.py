@@ -38,6 +38,7 @@ class UpDownNetAppender:
         AttributeError: If neither suffix nor prefix provided for net or total columns
 
     Example:
+
         >>> import pandas as pd
         >>> # Data with bidirectional flows
         >>> data = pd.DataFrame({
@@ -108,6 +109,7 @@ class UpDownNetAppender:
             positive when up > down, negative when down > up.
             
         Example:
+            
             >>> data = pd.DataFrame({
             ...     'flow_up': [100, 200], 'flow_down': [30, 50]
             ... })
@@ -135,6 +137,7 @@ class UpDownNetAppender:
             represent the sum of absolute flows in both directions.
             
         Example:
+            
             >>> data = pd.DataFrame({
             ...     'flow_up': [100, 200], 'flow_down': [30, 50]  
             ... })

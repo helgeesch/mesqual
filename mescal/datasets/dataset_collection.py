@@ -217,6 +217,7 @@ class DatasetLinkCollection(
         returns data from the first dataset that accepts the flag.
         
     Example:
+
         >>> # Platform dataset with multiple interpreters
         >>> link_collection = DatasetLinkCollection([
         ...     ModelInterpreter(network),
@@ -354,6 +355,7 @@ class DatasetConcatCollection(
         for each data point.
         
     Example:
+
         >>> # Collection of scenario datasets
         >>> scenarios = DatasetConcatCollection([
         ...     PyPSADataset(base_network, name='base'),
@@ -364,7 +366,7 @@ class DatasetConcatCollection(
         >>> # Fetch creates MultiIndex DataFrame
         >>> prices = scenarios.fetch('buses_t.marginal_price')
         >>> print(prices.columns.names)
-        ['dataset', 'Bus']  # Original Bus index + dataset level
+            ['dataset', 'Bus']  # Original Bus index + dataset level
         >>> 
         >>> # Access specific scenario data
         >>> base_prices = prices['base']

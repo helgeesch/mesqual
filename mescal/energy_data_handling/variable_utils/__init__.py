@@ -7,10 +7,10 @@ operations on energy data including flow aggregations, price calculations, conge
 and bidirectional data processing.
 
 Key Components:
-- RegionalTradeBalanceCalculator: Aggregates bidirectional power flows between regions
-- CongestionRentCalculator: Calculates congestion rents for transmission lines
-- AggregatedColumnAppender: Aggregates columns by common identifiers (e.g., technology types)
-- UpDownNetAppender: Processes bidirectional data to create net and total columns
+    - RegionalTradeBalanceCalculator: Aggregates bidirectional power flows between regions
+    - CongestionRentCalculator: Calculates congestion rents for transmission lines
+    - AggregatedColumnAppender: Aggregates columns by common identifiers (e.g., technology types)
+    - UpDownNetAppender: Processes bidirectional data to create net and total columns
 """
 
 from .regional_trade_balance_calculator import RegionalTradeBalanceCalculator, FlowType

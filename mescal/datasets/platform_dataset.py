@@ -83,6 +83,7 @@ class PlatformDataset(
         5. Instantiate platform dataset - interpreters are auto-created
 
     Example:
+
         >>> # Define platform dataset
         >>> class PyPSADataset(PlatformDataset[PyPSAInterpreter, ...]):
         ...     @classmethod
@@ -164,6 +165,7 @@ class PlatformDataset(
             TypeError: If interpreter doesn't inherit from the required base class
             
         Example:
+
             >>> @PyPSADataset.register_interpreter
             ... class CustomInterpreter(PyPSAInterpreter):
             ...     @property

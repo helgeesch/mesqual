@@ -16,6 +16,7 @@ class TimeSeriesGapHandler:
             this threshold will have NaN values inserted. Default is 60 minutes.
     
     Example:
+
         >>> import pandas as pd
         >>> import numpy as np
         >>> dates = pd.date_range('2024-01-01', periods=5, freq='30min')
@@ -55,6 +56,7 @@ class TimeSeriesGapHandler:
             TypeError: If data index is not a DatetimeIndex.
         
         Example:
+            
             >>> dates = pd.date_range('2024-01-01', freq='1H', periods=5)
             >>> dates = dates.delete([2, 3])  # Create 2-hour gap
             >>> series = pd.Series([1, 2, 3], index=dates[[0, 1, 4]])

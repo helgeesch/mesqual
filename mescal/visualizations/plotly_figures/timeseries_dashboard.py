@@ -14,6 +14,49 @@ GROUPBY_AGG_TYPES = Union[str, List[str]]
 
 
 class DashboardConfig:
+    """Configuration class for timeseries dashboard visualization.
+    
+    Manages all configuration parameters for generating heatmap-based timeseries
+    dashboards with customizable statistics, faceting, and color schemes.
+    
+    Custom KPI Statistics:
+        You can define custom KPIs by providing a dictionary of functions that
+        operate on pandas Series. Each function should take a Series and return
+        a single numeric value.
+        
+        KPI Customization Example:
+
+            >>> custom_kpis = {
+            ...     'Peak Load': lambda x: x.max(),
+            ...     'Capacity Factor': lambda x: x.mean() / x.max() * 100,
+            ...     'Ramp Rate': lambda x: x.diff().abs().max(),
+            ...     'Hours Above Mean': lambda x: (x > x.mean()).sum(),
+            ...     'Volatility': lambda x: x.std() / x.mean() * 100 if x.mean() != 0 else 0
+            ... }
+
+        Available built-in statistics are provided in DEFAULT_STATISTICS and
+        STATISTICS_LIBRARY class attributes.
+    
+    Data Format Requirements:
+        Input data must be a pandas DataFrame or Series with:
+        - DatetimeIndex (hourly or sub-hourly recommended)
+        - For faceting: MultiIndex columns with named levels
+        - Column names will be used as facet category labels
+        
+        MultiIndex structure for faceting:
+
+            >>> # Two-level MultiIndex example
+            >>> data.columns = pd.MultiIndex.from_tuples([
+            >>>     ('scenario1', 'solar'), ('scenario1', 'wind'),
+            >>>     ('scenario2', 'solar'), ('scenario2', 'wind')
+            >>> ], names=['scenario', 'technology'])
+            >>>
+            >>> # Use column level names for faceting
+            >>> config = DashboardConfig(
+            ...     facet_row='technology',  # Use 'technology' level
+            ...     facet_col='scenario'     # Use 'scenario' level
+            ... )
+    """
     DEFAULT_STATISTICS = {
         'Datums': lambda x: len(x),
         'Abs max': lambda x: x.abs().max(),
@@ -67,6 +110,38 @@ class DashboardConfig:
             use_string_for_axis: bool = False,
             **figure_kwargs
     ):
+        """Initialize dashboard configuration.
+        
+        Args:
+            x_axis: X-axis aggregation type ('date', 'year_month', 'year_week', 'week', 'month', 'year')
+                   or list of aggregation types for faceting.
+            facet_col: Column name to use for column faceting, or 'x_axis'/'groupby_aggregation'
+                      for parameter-based faceting.
+            facet_row: Column name to use for row faceting, or 'x_axis'/'groupby_aggregation'
+                      for parameter-based faceting.
+            facet_col_wrap: Maximum number of columns per row when using column faceting.
+            facet_col_order: Custom ordering for column facets.
+            facet_row_order: Custom ordering for row facets.
+            ratio_of_stat_col: Width ratio of statistics column relative to heatmap column.
+            stat_aggs: Dictionary of statistic names to aggregation functions for KPI calculation.
+            groupby_aggregation: Aggregation method for grouping data ('mean', 'sum', etc.) or list
+                               of methods for faceting.
+            title: Dashboard title.
+            color_continuous_scale: Plotly colorscale name or custom colorscale.
+            color_continuous_midpoint: Midpoint value for diverging colorscales.
+            range_color: Fixed color range [min, max] for heatmaps.
+            per_facet_col_colorscale: Whether to use separate colorscales per column facet.
+            per_facet_row_colorscale: Whether to use separate colorscales per row facet.
+            facet_row_color_settings: Custom color settings per row facet category.
+            facet_col_color_settings: Custom color settings per column facet category.
+            subplots_vertical_spacing: Vertical spacing between subplots.
+            subplots_horizontal_spacing: Horizontal spacing between subplots.
+            time_series_figure_kwargs: Additional kwargs for heatmap traces.
+            stat_figure_kwargs: Additional kwargs for statistics traces.
+            universal_figure_kwargs: kwargs applied to all traces.
+            use_string_for_axis: Whether to convert axis values to strings.
+            **figure_kwargs: Additional figure-level kwargs.
+        """
         self.x_axis = x_axis
         self.facet_col = facet_col
         self.facet_row = facet_row
@@ -214,7 +289,19 @@ class DataProcessor:
 
     @staticmethod
     def get_grouped_data(series: pd.Series, x_axis: str, groupby_aggregation: str) -> pd.DataFrame:
-        """Group and aggregate time series data"""
+        """Group and aggregate time series data into heatmap format.
+        
+        Transforms timeseries data into a matrix suitable for heatmap visualization
+        with hour-of-day on y-axis and specified time aggregation on x-axis.
+        
+        Args:
+            series: Input timeseries data with datetime index.
+            x_axis: Time aggregation method ('date', 'week', 'month', etc.).
+            groupby_aggregation: Aggregation function name ('mean', 'sum', etc.).
+            
+        Returns:
+            DataFrame with time categories as columns and hour-of-day as rows.
+        """
         temp = series.to_frame('value')
         temp.loc[:, 'time'] = temp.index.time
         temp.loc[:, 'minute'] = temp.index.minute
@@ -244,8 +331,22 @@ class DataProcessor:
 
 
 class ColorManager:
+    """Manages color settings and scale computation for dashboard visualizations.
+    
+    Handles colorscale selection, range computation, and facet-specific color
+    customization for heatmap and statistics traces.
+    """
     @staticmethod
     def get_color_settings_for_facet_category(config: DashboardConfig, facet_key: tuple[str, str]):
+        """Get color settings for a specific facet category.
+        
+        Args:
+            config: Dashboard configuration object.
+            facet_key: Tuple of (row_key, col_key) identifying the facet.
+            
+        Returns:
+            Dictionary of color settings for the specified facet category.
+        """
         row_key, col_key = facet_key
         settings = {
             'color_continuous_scale': config.figure_kwargs.get('color_continuous_scale'),
@@ -262,6 +363,19 @@ class ColorManager:
 
     @staticmethod
     def compute_color_params(data, config: DashboardConfig, facet_key: tuple[str, str] = None):
+        """Compute color parameters for heatmap traces.
+        
+        Calculates colorscale, min/max values, and other color-related parameters
+        based on data range and configuration settings.
+        
+        Args:
+            data: Input data for color range calculation.
+            config: Dashboard configuration object.
+            facet_key: Optional facet identifier for per-facet colorscales.
+            
+        Returns:
+            Dictionary of color parameters for plotly traces.
+        """
         if facet_key is not None:
             settings = ColorManager.get_color_settings_for_facet_category(config, facet_key)
         else:
@@ -304,9 +418,26 @@ class ColorManager:
 
 
 class TraceGenerator:
+    """Generates plotly trace objects for dashboard visualization.
+    
+    Creates heatmap traces for timeseries data, statistics traces for KPI display,
+    and colorscale traces for custom color legends.
+    """
 
     @classmethod
     def get_heatmap_trace(cls, data: pd.DataFrame, ts_kwargs, color_kwargs, use_string_for_axis, **kwargs):
+        """Create a heatmap trace for timeseries data visualization.
+        
+        Args:
+            data: DataFrame with time categories as columns and hour-of-day as rows.
+            ts_kwargs: Additional kwargs for the heatmap trace.
+            color_kwargs: Color-related parameters (colorscale, zmin, zmax).
+            use_string_for_axis: Whether to convert axis values to strings.
+            **kwargs: Additional plotly Heatmap parameters.
+            
+        Returns:
+            Plotly Heatmap trace object for timeseries visualization.
+        """
         if set(data.columns).issubset(list(range(1, 13))):
             x = [calendar.month_abbr[m] for m in range(1, 13)]
         else:
@@ -324,6 +455,18 @@ class TraceGenerator:
 
     @classmethod
     def get_stats_trace(cls, series: pd.Series, stat_aggs, stat_kwargs, color_kwargs, **kwargs):
+        """Create a heatmap trace for displaying KPI statistics.
+        
+        Args:
+            series: Input timeseries data for statistics calculation.
+            stat_aggs: Dictionary of statistic names to aggregation functions.
+            stat_kwargs: Additional kwargs for the statistics trace.
+            color_kwargs: Color-related parameters (colorscale, zmin, zmax).
+            **kwargs: Additional plotly Heatmap parameters.
+            
+        Returns:
+            Plotly Heatmap trace object displaying calculated statistics.
+        """
         data_stats = pd.Series({agg: func(series) for agg, func in stat_aggs.items()})
         data_stats = data_stats.to_frame('stats')
         data_stats = DataProcessor._prepend_empty_row(data_stats)
@@ -351,6 +494,18 @@ class TraceGenerator:
 
     @staticmethod
     def create_colorscale_trace(z_min, z_max, colorscale, orientation='v', title=None):
+        """Create a colorscale trace for custom color legend display.
+        
+        Args:
+            z_min: Minimum value for colorscale range.
+            z_max: Maximum value for colorscale range.
+            colorscale: Plotly colorscale specification.
+            orientation: Colorscale orientation ('v' for vertical, 'h' for horizontal).
+            title: Optional title for the colorscale.
+            
+        Returns:
+            Plotly Heatmap trace object representing the colorscale legend.
+        """
         if orientation == 'v':
             z_vals = np.linspace(z_min, z_max, 100).reshape(-1, 1)
         else:
@@ -389,6 +544,110 @@ class TraceGenerator:
 
 
 class TimeSeriesDashboardGenerator:
+    """Main class for generating timeseries heatmap dashboards.
+    
+    Creates comprehensive dashboards that visualize timeseries data as heatmaps
+    with hour-of-day on y-axis and time aggregations on x-axis. Supports faceting
+    by data columns (MultiIndex) or analysis parameters, customizable KPI statistics, and
+    flexible color schemes including per-facet colorscales.
+    
+    The dashboard displays heatmaps alongside statistical summaries and supports
+    various time aggregations (daily, weekly, monthly) with configurable grouping
+    functions (mean, sum, min, max, etc.).
+    
+    Expected Data Format: The input data must be a pandas DataFrame or Series with:
+        - DateTime index (required for time-based aggregations)
+        - For faceting: MultiIndex columns with named levels
+        
+    Examples:
+        Basic usage with single variable:
+        
+        >>> import pandas as pd
+        >>> import numpy as np
+        >>> from datetime import datetime, timedelta
+        >>> 
+        >>> # Create sample timeseries data
+        >>> dates = pd.date_range('2023-01-01', periods=8760, freq='H')
+        >>> data = pd.Series(np.random.randn(8760), index=dates, name='power')
+        >>> 
+        >>> # Generate basic dashboard
+        >>> generator = TimeSeriesDashboardGenerator(x_axis='date')
+        >>> fig = generator.get_figure(data)
+        >>> fig.show()
+        
+        Multi-variable with faceting:
+        
+        >>> # Create multi-column data with proper MultiIndex
+        >>> variables = ['solar', 'wind', 'load']
+        >>> scenarios = ['base', 'high', 'low']
+        >>> 
+        >>> # Method 1: Using pd.concat to create MultiIndex
+        >>> data_dict = {}
+        >>> for scenario in scenarios:
+        >>>     scenario_data = pd.DataFrame({
+        >>>         var: np.random.randn(8760) for var in variables
+        >>>     }, index=dates)
+        >>>     data_dict[scenario] = scenario_data
+        >>> 
+        >>> data_multi = pd.concat(data_dict, axis=1, names=['scenario', 'variable'])
+        >>> print(data_multi)
+            scenario             base  ...   low
+            variable            solar  wind  load  ...  load
+            datetime
+            2023-01-01 00:00:00 -0.95 -1.57  0.89  ...  0.06
+            2023-01-01 01:00:00  1.18  0.88 -0.62  ...  1.18
+            2023-01-01 02:00:00  0.25  0.31  0.12  ...  0.24
+            2023-01-01 03:00:00 -2.02 -0.59 -0.92  ...  0.45
+            2023-01-01 04:00:00  1.13  0.73 -1.04  ... -0.05
+            ...                   ...   ...   ...  ...   ...
+        >>>
+        >>> # Generate dashboard with row and column facets
+        >>> generator = TimeSeriesDashboardGenerator(
+        >>>     x_axis='date',
+        >>>     facet_row='variable',      # First level of MultiIndex
+        >>>     facet_col='scenario',      # Second level of MultiIndex
+        >>>     facet_row_order=['solar', 'wind', 'load'],
+        >>>     facet_col_order=['base', 'high', 'low']
+        >>> )
+        >>> fig = generator.get_figure(data_multi)
+        
+        Custom KPI statistics:
+        
+        >>> # Define custom aggregation functions
+        >>> custom_stats = {
+        >>>     'Peak': lambda x: x.max(),
+        >>>     'Valley': lambda x: x.min(),
+        >>>     'Peak-Valley': lambda x: x.max() - x.min(),
+        >>>     'Above 50%': lambda x: (x > x.quantile(0.5)).sum() / len(x) * 100,
+        >>>     'Volatility': lambda x: x.std() / x.mean() * 100
+        >>> }
+        >>> 
+        >>> generator = TimeSeriesDashboardGenerator(
+        >>>     x_axis='week',
+        >>>     stat_aggs=custom_stats,
+        >>>     facet_row='variable'
+        >>> )
+        >>> fig = generator.get_figure(data_multi)
+        
+        Parameter-based faceting (multiple x-axis or aggregations):
+        
+        >>> # Compare different time aggregations
+        >>> generator = TimeSeriesDashboardGenerator(
+        >>>     x_axis=['date', 'week', 'month'],    # Multiple x-axis types
+        >>>     facet_col='x_axis',                  # Facet by x_axis parameter
+        >>>     facet_row='variable'
+        >>> )
+        >>> fig = generator.get_figure(data_multi)
+        >>> 
+        >>> # Compare different aggregation methods
+        >>> generator = TimeSeriesDashboardGenerator(
+        >>>     x_axis='month',
+        >>>     groupby_aggregation=['min', 'mean', 'max'],  # Multiple agg methods
+        >>>     facet_col='groupby_aggregation',             # Facet by aggregation
+        >>>     facet_row='variable'
+        >>> )
+        >>> fig = generator.get_figure(data_multi)
+    """
     def __init__(
             self,
             x_axis: X_AXIS_TYPES = 'date',
@@ -403,7 +662,7 @@ class TimeSeriesDashboardGenerator:
             title: str = None,
             color_continuous_scale: str | list[str] | list[tuple[float, str]] = None,
             color_continuous_midpoint: int | float = None,
-            range_color: list[int | float] = None,
+            range_color: tuple[float, float] | list[int | float] = None,
             per_facet_col_colorscale: bool = False,
             per_facet_row_colorscale: bool = False,
             facet_row_color_settings: dict = None,
@@ -420,6 +679,38 @@ class TimeSeriesDashboardGenerator:
             trace_generator_cls: type[TraceGenerator] = TraceGenerator,
             **figure_kwargs
     ):
+        """Initialize the timeseries dashboard generator.
+        
+        Args:
+            x_axis: Time aggregation for x-axis or list for faceting.
+            facet_col: Column faceting specification.
+            facet_row: Row faceting specification.
+            facet_col_wrap: Maximum columns per row in faceted layout.
+            facet_col_order: Custom ordering for column facets.
+            facet_row_order: Custom ordering for row facets.
+            ratio_of_stat_col: Width ratio of statistics column to heatmap.
+            stat_aggs: Custom KPI aggregation functions.
+            groupby_aggregation: Data aggregation method or list for faceting.
+            title: Dashboard title.
+            color_continuous_scale: Plotly colorscale specification.
+            color_continuous_midpoint: Midpoint for diverging colorscales.
+            range_color: Fixed color range for heatmaps.
+            per_facet_col_colorscale: Enable separate colorscales per column facet.
+            per_facet_row_colorscale: Enable separate colorscales per row facet.
+            facet_row_color_settings: Custom color settings per row facet.
+            facet_col_color_settings: Custom color settings per column facet.
+            subplots_vertical_spacing: Vertical spacing between subplots.
+            subplots_horizontal_spacing: Horizontal spacing between subplots.
+            time_series_figure_kwargs: Additional heatmap trace parameters.
+            stat_figure_kwargs: Additional statistics trace parameters.
+            universal_figure_kwargs: Parameters applied to all traces.
+            use_string_for_axis: Convert axis values to strings.
+            config_cls: Configuration class for dependency injection.
+            data_processor_cls: Data processor class for dependency injection.
+            color_manager_cls: Color manager class for dependency injection.
+            trace_generator_cls: Trace generator class for dependency injection.
+            **figure_kwargs: Additional figure-level parameters.
+        """
         self.config = config_cls(
             x_axis=x_axis,
             facet_col=facet_col,
@@ -452,6 +743,19 @@ class TimeSeriesDashboardGenerator:
 
 
     def get_figure(self, data: pd.DataFrame, **kwargs):
+        """Generate a complete dashboard figure from timeseries data.
+        
+        Creates a plotly figure containing heatmaps with associated statistics,
+        properly formatted axes, and optional faceting. Applies all configured
+        styling, color schemes, and layout settings.
+        
+        Args:
+            data: Input timeseries DataFrame or Series with datetime index.
+            **kwargs: Runtime configuration overrides.
+            
+        Returns:
+            Plotly Figure object containing the complete dashboard visualization.
+        """
         original_config = copy.deepcopy(self.config)
 
         for key, value in kwargs.items():
@@ -460,7 +764,7 @@ class TimeSeriesDashboardGenerator:
 
         if not kwargs.get('_skip_validation', False):
             self.data_processor_cls.validate_input_data_and_config(data, self.config)
-        data = self.data_processor_cls.prepare_dataframe_for_facet(data, self.config)
+        data = self.data_processor_cls.prepare_dataframe_for_facet(data.copy(), self.config)
         data = self.data_processor_cls.ensure_df_has_two_column_levels(data, self.config)
         self.data_processor_cls.update_facet_config(data, self.config)
 
@@ -493,8 +797,23 @@ class TimeSeriesDashboardGenerator:
             chunk_title_suffix: bool = True,
             **kwargs
     ) -> list[go.Figure]:
-        """
-        Generate multiple figures by splitting facet rows into chunks.
+        """Generate multiple figures by splitting facet rows into chunks.
+        
+        Useful for handling large datasets with many row facets by creating
+        multiple smaller figures instead of one large figure.
+        
+        Args:
+            data: Input timeseries DataFrame with datetime index.
+            max_n_rows_per_figure: Maximum number of row facets per figure.
+            n_figures: Total number of figures to create (alternative to max_n_rows_per_figure).
+            chunk_title_suffix: Whether to add "(Part X/Y)" suffix to titles.
+            **kwargs: Runtime configuration overrides.
+            
+        Returns:
+            List of plotly Figure objects, each containing a subset of row facets.
+            
+        Raises:
+            ValueError: If both or neither of max_n_rows_per_figure and n_figures are provided.
         """
         original_config = copy.deepcopy(self.config)
 

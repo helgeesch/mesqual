@@ -1,0 +1,112 @@
+site_name: 'mescal Package Documentation'
+# site_url: 'https://github.com/helgeesch/mescal/'
+repo_url: 'https://github.com/helgeesch/mescal/'
+
+
+theme:
+  name: material
+  palette:
+    primary: 'teal'
+    accent: 'amber'
+  features:
+    - navigation.tabs
+    - content.tabs.link
+    - navigation.sections
+
+markdown_extensions:
+  - toc:
+      permalink: true
+      toc_depth: 5
+  - pymdownx.highlight
+  - pymdownx.superfences
+
+plugins:
+  - search
+  - section-index
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [submodules, mescal]
+          options:
+            heading_level: 2
+            show_root_heading: true
+            show_root_full_path: false
+            show_object_full_path: false
+            show_root_members_full_path: false
+            show_symbol_type_heading: true
+            show_category_heading: false
+            show_root_toc_entry: false
+            signature_crossrefs: true
+            show_signature_annotations: true
+            show_signature_type_parameters: true
+            members_order: source
+            line_length: 20
+            modernize_annotations: true
+            separate_signature: true
+            merge_init_into_class: false
+
+nav:
+  - Core:
+    - StudyManager: api_reference/study_manager.md
+    - Datasets: api_reference/datasets.md
+    - Flag System:
+      - Flag: api_reference/flag.md
+      - FlagIndex: api_reference/flag_index.md
+    - Units: api_reference/units.md
+    - Validation: api_reference/validation.md
+
+  - Visualization Modules:
+      - api_reference/visualization/index.md
+      - TimeSeriesDashboard: api_reference/visualization/time_series_dashboard.md
+      - Folium Viz System:
+        - api_reference/visualization/folium_viz_system/index.md
+        - Areas: api_reference/visualization/folium_viz_system/areas.md
+        - Circle Marker: api_reference/visualization/folium_viz_system/circle_marker.md
+        - Text Overlay: api_reference/visualization/folium_viz_system/text_overlay.md
+        - Lines: api_reference/visualization/folium_viz_system/lines.md
+        - Line Text Overlay: api_reference/visualization/folium_viz_system/line_text_overlay.md
+        - Arrow Icon: api_reference/visualization/folium_viz_system/arrow_icon.md
+        - Base:
+          - Abstract System: api_reference/visualization/folium_viz_system/system.md
+          - Data Item: api_reference/visualization/folium_viz_system/data_item.md
+        - KPI Collection Visualizer: api_reference/visualization/folium_viz_system/kpi_collection.md
+      - Folium Legend System:
+        - api_reference/visualization/folium_legend_system/index.md
+      - HTML Table: api_reference/visualization/html_table.md
+      - HTML Dashboard: api_reference/visualization/html_dashboard.md
+  - Energy Data Handling:
+      - api_reference/energy_data_handling/index.md
+      - Area Accounting:
+        - api_reference/energy_data_handling/area_accounting/index.md
+        - Area / Border Model Generators: api_reference/energy_data_handling/area_accounting/model_gen.md
+        - Area Variables: api_reference/energy_data_handling/area_accounting/area_variables.md
+        - Border Variables: api_reference/energy_data_handling/area_accounting/border_variables.md
+      - Model Membership Handling:
+        - api_reference/energy_data_handling/model_handling/index.md
+        - Property Enricher: api_reference/energy_data_handling/model_handling/property_enricher.md
+        - Pairs Appender: api_reference/energy_data_handling/model_handling/pairs_appender.md
+      - Variable Utils:
+        - api_reference/energy_data_handling/variable_utils/index.md
+        - In-common Aggregations: api_reference/energy_data_handling/variable_utils/in_common_aggs.md
+        - Up-/Down Directional Aggregations: api_reference/energy_data_handling/variable_utils/direction_aggs.md
+        - Congestion Rent: api_reference/energy_data_handling/variable_utils/congestion_rent.md
+        - Regional Trade Balance: api_reference/energy_data_handling/variable_utils/regional_trade_balance.md
+      - Granularity Modules: api_reference/energy_data_handling/granularity_modules.md
+      - Network Lines Data: api_reference/energy_data_handling/network_lines_data.md
+      - Time Series Gap Handling: api_reference/energy_data_handling/time_series_gap_handling.md
+  - Utils:
+      - pandas_utils:
+        - api_reference/utils/pandas_utils/index.md
+        - Flatten DF: api_reference/utils/pandas_utils/flatten_df.md
+        - Pend Properties: api_reference/utils/pandas_utils/pend_props.md
+        - Filter by Model: api_reference/utils/pandas_utils/filter.md
+        - xs DF: api_reference/utils/pandas_utils/xs_df.md
+        - Sort MultiIndex: api_reference/utils/pandas_utils/sort_multiindex.md
+        - Merge MultiIndex Levels: api_reference/utils/pandas_utils/merge_multi_index_levels.md
+        - Set New Column in MultiIndex: api_reference/utils/pandas_utils/set_new_column.md
+        - Combine DFs: api_reference/utils/pandas_utils/combine_dfs.md
+      - plotly_utils:
+        - api_reference/utils/plotly_utils/index.md
+        - PlotlyTheme: api_reference/utils/plotly_utils/plotly_theme.md
+        - figure_utils: api_reference/utils/plotly_utils/figure_utils.md
+        - px_category_utils: api_reference/utils/plotly_utils/px_category_utils.md

@@ -48,6 +48,7 @@ class DatasetComparison(
         reference_dataset: The dataset representing the baseline for comparison
         
     Example:
+
         >>> # Compare high renewable scenario to base case
         >>> comparison = DatasetComparison(
         ...     variation_dataset=high_res_dataset,
@@ -135,16 +136,21 @@ class DatasetComparison(
             DataFrame or Series with comparison results
             
         Example:
+
             >>> # Basic delta comparison
             >>> deltas = comparison.fetch('buses_t.marginal_price')
             >>> 
             >>> # Highlight only changed values
-            >>> changes_only = comparison.fetch('buses_t.marginal_price',
-            ...                                replace_unchanged_values_by_nan=True)
+            >>> changes_only = comparison.fetch(
+            ...     'buses_t.marginal_price',
+            ...     replace_unchanged_values_by_nan=True
+            ... )
             >>> 
             >>> # Side-by-side comparison
-            >>> both = comparison.fetch('buses_t.marginal_price',
-            ...                        comparison_type=ComparisonTypeEnum.BOTH)
+            >>> both = comparison.fetch(
+            ...     'buses_t.marginal_price',
+            ...     comparison_type=ComparisonTypeEnum.BOTH
+            ... )
         """
         return super().fetch(
             flag=flag,

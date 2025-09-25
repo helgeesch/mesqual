@@ -30,6 +30,7 @@ class NetworkLineFlowsData:
         ValueError: If indices or columns of the four DataFrames don't match
 
     Example:
+
         >>> import pandas as pd
         >>> index = pd.date_range('2024-01-01', periods=24, freq='1H')
         >>> columns = ['Line_A_B', 'Line_B_C']
@@ -120,6 +121,7 @@ class NetworkLineFlowsData:
             NetworkLineFlowsData instance with flows split into up/down directions
             
         Example:
+            
             >>> import pandas as pd
             >>> net_flows = pd.DataFrame({
             ...     'Line_A_B': [100, -50, 75],
@@ -156,6 +158,7 @@ class NetworkLineFlowsData:
             NetworkLineFlowsData instance where sent and received flows are equal
             
         Example:
+            
             >>> import pandas as pd
             >>> up_flows = pd.DataFrame({'Line_A_B': [100, 80, 120]})
             >>> down_flows = pd.DataFrame({'Line_A_B': [50, 60, 40]})
@@ -191,6 +194,7 @@ class NetworkLineCapacitiesData:
         ValueError: If indices or columns of the two DataFrames don't match
 
     Example:
+
         >>> import pandas as pd
         >>> index = pd.date_range('2024-01-01', periods=24, freq='1H')
         >>> columns = ['Line_A_B', 'Line_B_C']
@@ -254,6 +258,7 @@ class NetworkLineCapacitiesData:
             NetworkLineCapacitiesData instance with symmetric capacities
             
         Example:
+            
             >>> import pandas as pd
             >>> caps = pd.DataFrame({
             ...     'Line_A_B': [1000, 1200, 800],

@@ -25,6 +25,7 @@ class BorderPriceSpreadCalculator(AreaBorderVariableCalculatorBase):
         variable_name (str): Returns 'price_spread' for identification
 
     Example:
+
         >>> import pandas as pd
         >>> import numpy as np
         >>>
@@ -94,6 +95,7 @@ class BorderPriceSpreadCalculator(AreaBorderVariableCalculatorBase):
             ValueError: If spread_type is not one of the supported options
 
         Example:
+            
             >>> import pandas as pd
             >>> import numpy as np
             >>>
@@ -177,6 +179,7 @@ class BorderPriceSpreadCalculator(AreaBorderVariableCalculatorBase):
                 - Structure: (time_periods, spread_types × borders)
 
         Example:
+            
             >>> import pandas as pd
             >>> import numpy as np
             >>>
