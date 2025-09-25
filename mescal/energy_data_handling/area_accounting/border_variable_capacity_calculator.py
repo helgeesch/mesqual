@@ -13,6 +13,7 @@ class BorderCapacityCalculator(AreaBorderVariableCalculatorBase):
     handling bidirectional capacity data with proper directional aggregation.
     
     Example:
+
         >>> from mescal.energy_data_handling.network_lines_data import NetworkLineCapacitiesData
         >>> import pandas as pd
         >>> 
