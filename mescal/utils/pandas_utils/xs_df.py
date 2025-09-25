@@ -32,16 +32,15 @@ def xs_df(
         is dropped. For multiple keys, the level is preserved.
 
     Examples:
-
-        Single dataset selection from MESCAL multi-scenario data
+        Single dataset selection from MESCAL multi-scenario data:
         >>> multi_scenario_prices = study.scen.fetch('buses_t.marginal_price')
         >>> base_prices = xs_df(multi_scenario_prices, 'base', level='dataset')
 
-        Multiple scenario selection
+        Multiple scenario selection:
         >>> scenarios = ['base', 'high_renewable', 'low_cost']
         >>> selected_data = xs_df(multi_scenario_prices, scenarios, level='dataset')
 
-        Column-wise selection for specific buses
+        Column-wise selection for specific buses:
         >>> bus_names = ['Bus_1', 'Bus_2', 'Bus_3']
         >>> selected_buses = xs_df(price_data, bus_names, axis='columns', level='Bus')
     """
