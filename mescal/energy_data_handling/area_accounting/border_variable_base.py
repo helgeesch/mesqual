@@ -49,6 +49,7 @@ class AreaBorderVariableCalculatorBase(ABC, AreaBorderNamingConventions):
         ValueError: If required columns are missing from input DataFrames
         
     Example:
+
         >>> import pandas as pd
         >>> # Define borders between areas
         >>> border_model = pd.DataFrame(index=['DE-FR', 'FR-BE'])
