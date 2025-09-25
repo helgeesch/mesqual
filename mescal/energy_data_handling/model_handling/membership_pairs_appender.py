@@ -21,13 +21,13 @@ class BaseMembershipPairsAppender(ABC):
     The class supports three distinct combination strategies:
     
     1. **Directional**: Preserves relationship direction (A→B ≠ B→A)
-       Essential for analyzing flow directions, capacity constraints, and directional costs
+        - Essential for analyzing flow directions, capacity constraints, and directional costs
     
     2. **Sorted**: Creates bidirectional identifiers (A→B = B→A becomes A-B)
-       Useful for identifying unique connections regardless of direction
+        - Useful for identifying unique connections regardless of direction
     
     3. **Opposite**: Reverses relationship direction (A→B becomes B→A)
-       Enables reverse flow analysis and bidirectional modeling
+        - Enables reverse flow analysis and bidirectional modeling
     
     This abstraction enables different implementation strategies (string concatenation,
     tuple creation, etc.) while maintaining consistent naming patterns across MESCAL
@@ -51,16 +51,17 @@ class BaseMembershipPairsAppender(ABC):
         proper column naming conventions.
         
     Examples:
-        Energy system applications:
-        
+
         >>> # For transmission line analysis
         >>> appender = StringMembershipPairsAppender(separator=' → ')
         >>> lines_df = appender.append_combo_columns(transmission_df)
         >>> # Creates 'node_combo' column: 'NodeA → NodeB'
         
-        >>> # For bidirectional connection analysis
+        >>> # For bidirectional connections
         >>> lines_df = appender.append_sorted_combo_columns(transmission_df)
-        >>> # Creates 'node_combo_sorted' column: 'NodeA-NodeB' (alphabetical)
+        >>> # Creates 'node_combo_sorted' column: 'NodeA → NodeB' (alphabetical)
+        >>> lines_df = appender.append_opposite_combo_columns(transmission_df)
+        >>> # Creates 'node_combo_opposite' column: 'NodeB → NodeA' (alphabetical)
     """
     def __init__(
             self,
