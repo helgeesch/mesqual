@@ -2,8 +2,7 @@ import pandas as pd
 
 
 def add_index_as_column(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Adds the DataFrame's index to a new column while preserving the original index.
+    """Adds the DataFrame's index to a new column while preserving the original index.
 
     This function handles single-level, unnamed, and multi-level indices.
     - For a single-level index, a new column with the index's name is created.
@@ -17,6 +16,25 @@ def add_index_as_column(df: pd.DataFrame) -> pd.DataFrame:
     Returns:
         A new DataFrame with the index added as a column. The original DataFrame
         is not modified.
+
+    Examples:
+
+        >>> import pandas as pd
+        >>> # Named index example
+        >>> data = {'A': [10, 20], 'B': [1, 2]}
+        >>> df = pd.DataFrame(data).set_index(pd.Index(['X', 'Y'], name='label'))
+        >>> result = add_index_as_column(df)
+        >>> print('label' in result.columns)
+            True
+        >>>
+        >>> # MultiIndex example
+        >>> df_multi = pd.DataFrame({'value': [100, 200]}).set_index([
+        ...     pd.Index(['A', 'B'], name='cat'),
+        ...     pd.Index([1, 2], name='id')
+        ... ])
+        >>> result = add_index_as_column(df_multi)
+        >>> print('combined_index' in result.columns)
+            True
     """
     # Create a copy to avoid modifying the original DataFrame
     df_copy = df.copy()
