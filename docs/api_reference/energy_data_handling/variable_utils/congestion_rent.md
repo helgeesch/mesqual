@@ -1,2 +1,2 @@
-# MESCAL Congestion Rent Calculator
-::: mescal.energy_data_handling.variable_utils.congestion_rent.CongestionRentCalculator
+# MESQUAL Congestion Rent Calculator
+::: mesqual.energy_data_handling.variable_utils.congestion_rent.CongestionRentCalculator

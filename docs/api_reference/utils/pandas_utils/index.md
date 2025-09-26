@@ -1,5 +1,5 @@
-# MESCAL Pandas Utils
+# MESQUAL Pandas Utils
 
-::: mescal.utils.pandas_utils
+::: mesqual.utils.pandas_utils
     options:
         members: []

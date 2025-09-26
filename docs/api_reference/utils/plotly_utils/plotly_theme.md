@@ -1,3 +1,3 @@
-# MESCAL Plotly Util `PlotlyTheme`
+# MESQUAL Plotly Util `PlotlyTheme`
 
-::: mescal.utils.plotly_utils.plotly_theme
+::: mesqual.utils.plotly_utils.plotly_theme

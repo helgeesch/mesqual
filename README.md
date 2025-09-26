@@ -1,17 +1,17 @@
 [![Python >=3.10](https://img.shields.io/badge/python-≥3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
-![Notebook Tests](https://github.com/helgeesch/mescal/actions/workflows/test-with-vanilla-studies.yml/badge.svg)
+![Notebook Tests](https://github.com/helgeesch/mesqual/actions/workflows/test-with-vanilla-studies.yml/badge.svg)
 
-# MESCAL <img src="assets/logo_no_text_no_bg.svg" width="70" height="70" alt="logo">
-**M**odular **E**nergy **S**cenario **C**omparison **A**nalysis **L**ibrary
+# MESQUAL <img src="assets/logo_no_text_no_bg.svg" width="70" height="70" alt="logo">
+**M**odular **E**nergy **S**cenario **C**omparison **L**ibrary for **Q**uantitative and **Q**ualitative **A**nalysis
 
 A modular Python framework for energy market data analysis, with a focus on scenario comparison, KPI calculation and interactive visualizations.
 
 ## Overview
 
-MESCAL provides a flexible framework for handling energy market data from various sources (simulations, real market data, scenarios). Its modular architecture allows easy integration with different energy market platforms and tools through dedicated interface packages.
+MESQUAL provides a flexible framework for handling energy market data from various sources (simulations, real market data, scenarios). Its modular architecture allows easy integration with different energy market platforms and tools through dedicated interface packages.
 
-**MESCAL value proposition and feature highlights**:
+**MESQUAL value proposition and feature highlights**:
 - Unified interface for handling energy systems data across any modeling platform, or custom data sources and formats
 - Efficient data handling for multi-scenario and multi-scenario-comparison studies
 - Built-in scenario comparison capabilities
@@ -25,18 +25,18 @@ MESCAL provides a flexible framework for handling energy market data from variou
 - And so much more...
 
 This is the foundation package for a whole suite of libraries and repositories. 
-In most cases, you will want to combine this foundation package with at least one existing mescal-platform-interface (e.g. mescal-pypsa, mescal-plexos, ...), or build your own.
+In most cases, you will want to combine this foundation package with at least one existing mesqual-platform-interface (e.g. mesqual-pypsa, mesqual-plexos, ...), or build your own.
 
-To view a hands-on repository and see how the MESCAL-suite is used in action, please visit the vanilla-studies repository. For platform-interfaces, visit those, respectively. The full list of the current MESCAL-suite is:
-- [mescal](https://github.com/helgeesch/mescal)
-- [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies)
-- [mescal-pypsa](https://github.com/helgeesch/mescal-pypsa)
-- [mescal-plexos](https://github.com/helgeesch/mescal-plexos) (to be released)
+To view a hands-on repository and see how the MESQUAL-suite is used in action, please visit the vanilla-studies repository. For platform-interfaces, visit those, respectively. The full list of the current MESQUAL-suite is:
+- [mesqual](https://github.com/helgeesch/mesqual)
+- [mesqual-vanilla-studies](https://github.com/helgeesch/mesqual-vanilla-studies)
+- [mesqual-pypsa](https://github.com/helgeesch/mesqual-pypsa)
+- [mesqual-plexos](https://github.com/helgeesch/mesqual-plexos) (to be released)
 
-[//]: # (- [mescal-etp]&#40;https://github.com/helgeesch/mescal-etp&#41; &#40;to be released&#41;)
-[//]: # (- [mescal-gui]&#40;https://github.com/helgeesch/mescal-gui&#41; &#40;to be released&#41;)
-[//]: # (- [mescal-antares]&#40;https://github.com/helgeesch/mescal-antares&#41; &#40;to be released&#41;)
-[//]: # (- [mescal-bid3]&#40;https://github.com/helgeesch/mescal-bid3&#41; &#40;to be released&#41;)
+[//]: # (- [mesqual-etp]&#40;https://github.com/helgeesch/mesqual-etp&#41; &#40;to be released&#41;)
+[//]: # (- [mesqual-gui]&#40;https://github.com/helgeesch/mesqual-gui&#41; &#40;to be released&#41;)
+[//]: # (- [mesqual-antares]&#40;https://github.com/helgeesch/mesqual-antares&#41; &#40;to be released&#41;)
+[//]: # (- [mesqual-bid3]&#40;https://github.com/helgeesch/mesqual-bid3&#41; &#40;to be released&#41;)
 
 ---
 
@@ -46,8 +46,8 @@ To view a hands-on repository and see how the MESCAL-suite is used in action, pl
 
 ```python
 import pypsa
-from mescal import StudyManager
-from mescal_pypsa import PyPSADataset
+from mesqual import StudyManager
+from mesqual_pypsa import PyPSADataset
 
 # Load networks
 n_base = pypsa.Network('your_base_network.nc')
@@ -77,7 +77,7 @@ df_bus_model = study.scen.get_dataset('base').fetch('buses')
 
 #### Example using Plexos interface to set up simple dataset and fetch data
 ```python
-from mescal_plexos import PlexosDataset
+from mesqual_plexos import PlexosDataset
 
 # Initialize dataset
 dataset = PlexosDataset.from_xml_and_solution_zip(
@@ -91,7 +91,7 @@ df_prices = dataset.fetch("ST.Node.Price")
 df_nodes = dataset.fetch("Node.Model")
 ```
 
-For more elaborate and practical examples, please visit the [mescal-vanilla-studies](https://github.com/helgeesch/mescal-vanilla-studies.git) repository.
+For more elaborate and practical examples, please visit the [mesqual-vanilla-studies](https://github.com/helgeesch/mesqual-vanilla-studies.git) repository.
 
 ---
 
@@ -102,14 +102,14 @@ For more elaborate and practical examples, please visit the [mescal-vanilla-stud
 ---
 
 ## Architecture
-MESCAL follows a modular design where platform-specific implementations are handled through separate packages:
+MESQUAL follows a modular design where platform-specific implementations are handled through separate packages:
 
 ```
-mescal/                         # Core package
-mescal-pypsa/                   # PyPSA interface (separate package)
-mescal-plexos/                  # PLEXOS interface (separate package)
+mesqual/                         # Core package
+mesqual-pypsa/                   # PyPSA interface (separate package)
+mesqual-plexos/                  # PLEXOS interface (separate package)
 ...                             # Other platform interfaces
-mescal-your-custom-interface/   # Custom interface for your platform
+mesqual-your-custom-interface/   # Custom interface for your platform
 ```
 
 The core package provides:
@@ -121,34 +121,34 @@ The core package provides:
 - Data transformation modules and utilities
 - Pandas / Plotly / Folium utilities
 
-## Integrate mescal and mescal-interface packages in your project
+## Integrate mesqual and mesqual-interface packages in your project
 
 You have two ways to pull in the core library and any interfaces:
 
 ### Option A: Install from Git (easy for consumers)
 ```bash
-pip install git+https://github.com/helgeesch/mescal.git
-pip install git+https://github.com/helgeesch/mescal-any-interface.git
+pip install git+https://github.com/helgeesch/mesqual.git
+pip install git+https://github.com/helgeesch/mesqual-any-interface.git
 ```
 
 ### Option B: Local dev with submodules (for active development)
 #### Step 1: Add submodules under your repo:
-Add all required mescal packages as submodules. If you want to build your own interface, just start by including the foundation package and start building your-custom-mescal-interface. If you want to integrate an existing interface, just add that one as a submodule, respectively.
+Add all required mesqual packages as submodules. If you want to build your own interface, just start by including the foundation package and start building your-custom-mesqual-interface. If you want to integrate an existing interface, just add that one as a submodule, respectively.
 ```bash
-git submodule add https://github.com/helgeesch/mescal.git submodules/mescal
-git submodule add https://github.com/path/to/any/mescal-any-interface.git submodules/mescal-any-interface
+git submodule add https://github.com/helgeesch/mesqual.git submodules/mesqual
+git submodule add https://github.com/path/to/any/mesqual-any-interface.git submodules/mesqual-any-interface
 git submodule update --init --recursive
 ```
 The folder `submodules/` should now include the respective packages.
 
 #### Step 2: Install in editable mode so that any code changes “just work”:
 ```bash
-pip install -e ./submodules/mescal
-pip install -e ./submodules/mescal-any-interface
+pip install -e ./submodules/mesqual
+pip install -e ./submodules/mesqual-any-interface
 ```
 
 #### Step 3 (optional): IDE tip
-If you want full autocomplete and go-to-definition in PyCharm/VS Code, mark submodules/mescal (and any other submodule) as a Sources Root in your IDE. This is purely for dev comfort and won’t affect other users.
+If you want full autocomplete and go-to-definition in PyCharm/VS Code, mark submodules/mesqual (and any other submodule) as a Sources Root in your IDE. This is purely for dev comfort and won’t affect other users.
 
 ## Attribution and Licenses
 This project is licensed under the LGPL License - see the LICENSE file for details.
@@ -157,6 +157,6 @@ This project is licensed under the LGPL License - see the LICENSE file for detai
 - `countries.geojson`: Made with [Natural Earth](https://github.com/nvkelso/natural-earth-vector.git)
 
 ## Contact
-For questions or feedback, don't hesitate to [open an issue](https://github.com/helgeesch/mescal/issues) or reach out via LinkedIn.
+For questions or feedback, don't hesitate to [open an issue](https://github.com/helgeesch/mesqual/issues) or reach out via LinkedIn.
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/helge-e-8201041a7/)

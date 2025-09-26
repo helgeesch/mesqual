@@ -1,5 +1,5 @@
-# MESCAL Plotly Utils
+# MESQUAL Plotly Utils
 
-::: mescal.utils.plotly_utils
+::: mesqual.utils.plotly_utils
     options:
         members: []

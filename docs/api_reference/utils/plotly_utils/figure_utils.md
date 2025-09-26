@@ -1,3 +1,3 @@
-# MESCAL Plotly Util `figure_utils`
+# MESQUAL Plotly Util `figure_utils`
 
-::: mescal.utils.plotly_utils.figure_utils
+::: mesqual.utils.plotly_utils.figure_utils

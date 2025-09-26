@@ -1,3 +1,3 @@
-# MESCAL Folium Visualization System Base
+# MESQUAL Folium Visualization System Base
 
-::: mescal.visualizations.folium_viz_system.base_viz_system
+::: mesqual.visualizations.folium_viz_system.base_viz_system

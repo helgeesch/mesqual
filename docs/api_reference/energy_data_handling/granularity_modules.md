@@ -1,4 +1,4 @@
-# MESCAL Granularity Modules
-::: mescal.energy_data_handling.granularity_analyzer.TimeSeriesGranularityAnalyzer
-::: mescal.energy_data_handling.granularity_converter.TimeSeriesGranularityConverter
-::: mescal.energy_data_handling.granularity_converter.SamplingMethodEnum
+# MESQUAL Granularity Modules
+::: mesqual.energy_data_handling.granularity_analyzer.TimeSeriesGranularityAnalyzer
+::: mesqual.energy_data_handling.granularity_converter.TimeSeriesGranularityConverter
+::: mesqual.energy_data_handling.granularity_converter.SamplingMethodEnum

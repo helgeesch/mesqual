@@ -1,3 +1,3 @@
-# MESCAL Folium Area Visualization System
+# MESQUAL Folium Area Visualization System
 
-::: mescal.visualizations.folium_viz_system.viz_areas
+::: mesqual.visualizations.folium_viz_system.viz_areas

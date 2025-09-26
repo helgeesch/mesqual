@@ -1,2 +1,2 @@
 # StudyManager References
-::: mescal.study_manager.StudyManager
+::: mesqual.study_manager.StudyManager

@@ -1,4 +1,4 @@
-# MESCAL Membership Model Handling
-::: mescal.energy_data_handling.model_handling
+# MESQUAL Membership Model Handling
+::: mesqual.energy_data_handling.model_handling
     options:
         members: []

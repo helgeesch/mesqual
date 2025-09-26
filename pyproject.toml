@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mescal"
+name = "mesqual"
 version = "0.1.0"
 description = "Modular Energy Scenario Comparison and Analysis Library"
 readme = "README.md"
@@ -32,13 +32,13 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/helgeesch/mescal"
-Repository = "https://github.com/helgeesch/mescal"
-Documentation = "https://github.com/helgeesch/mescal#readme"
+Homepage = "https://github.com/helgeesch/mesqual"
+Repository = "https://github.com/helgeesch/mesqual"
+Documentation = "https://github.com/helgeesch/mesqual#readme"
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["mescal", "mescal.*"]
+include = ["mesqual", "mesqual.*"]
 
 [tool.setuptools.package-data]
-mescal = ["data/*.geojson"]
+mesqual = ["data/*.geojson"]

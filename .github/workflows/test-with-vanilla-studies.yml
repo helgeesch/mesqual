@@ -14,8 +14,8 @@ jobs:
     steps:
     - name: Clone vanilla-studies repo
       run: |
-        git clone https://github.com/helgeesch/mescal-vanilla-studies.git
-        cd mescal-vanilla-studies
+        git clone https://github.com/helgeesch/mesqual-vanilla-studies.git
+        cd mesqual-vanilla-studies
         git rev-parse HEAD > COMMIT_SHA.txt
 
     - name: Set up Python
@@ -23,9 +23,9 @@ jobs:
       with:
         python-version: '3.10'
 
-    - name: Install mescal-related packages
+    - name: Install mesqual-related packages
       run: |
-        # Use PR SHA for mescal if triggered by PR
+        # Use PR SHA for mesqual if triggered by PR
         if [[ "${{ github.event_name }}" == "pull_request" ]]; then
           COMMIT_SHA="${{ github.event.pull_request.head.sha }}"
         else
@@ -33,17 +33,17 @@ jobs:
         fi
 
         pip install --upgrade pip
-        pip install git+https://github.com/helgeesch/mescal@${COMMIT_SHA}
-        pip install git+https://github.com/helgeesch/mescal-pypsa
+        pip install git+https://github.com/helgeesch/mesqual@${COMMIT_SHA}
+        pip install git+https://github.com/helgeesch/mesqual-pypsa
         pip install git+https://github.com/helgeesch/captain-arro
 
     - name: Install other requirements
       run: |
-        cd mescal-vanilla-studies
+        cd mesqual-vanilla-studies
         pip install -r requirements.txt
         pip install -r requirements-dev.txt
 
     - name: Run notebook tests
       run: |
-        cd mescal-vanilla-studies
+        cd mesqual-vanilla-studies
         python -m pytest tests/test_notebooks.py -v

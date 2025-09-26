@@ -1,0 +1,3 @@
+from mesqual.visualizations.deprecated_styling.segmented_colormap import SegmentedColorMap, SegmentedColorMapLegend
+from mesqual.visualizations.deprecated_styling.segmented_line_width_map import SegmentedLineWidthMap, SegmentedLineWidthMapLegend
+from mesqual.visualizations.deprecated_styling.segmented_opacity_map import SegmentedOpacityMap, SegmentedOpacityMapLegend

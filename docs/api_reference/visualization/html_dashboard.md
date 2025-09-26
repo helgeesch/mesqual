@@ -1,3 +1,3 @@
-# MESCAL HTML Dashboard
+# MESQUAL HTML Dashboard
 
-::: mescal.visualizations.html_dashboard.HTMLDashboard
+::: mesqual.visualizations.html_dashboard.HTMLDashboard
