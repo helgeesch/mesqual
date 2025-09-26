@@ -1,3 +1,3 @@
-# MESCAL Folium-Visualizable Data Item
+# MESQUAL Folium-Visualizable Data Item
 
-::: mescal.visualizations.folium_viz_system.visualizable_data_item
+::: mesqual.visualizations.folium_viz_system.visualizable_data_item

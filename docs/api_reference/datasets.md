@@ -1,9 +1,9 @@
 # Dataset References
-::: mescal.datasets.dataset
-::: mescal.datasets.dataset_collection
+::: mesqual.datasets.dataset
+::: mesqual.datasets.dataset_collection
 
-[//]: # (::: mescal.datasets.dataset_collection.DatasetMergeCollection)
-[//]: # (::: mescal.datasets.dataset_collection.DatasetConcatCollection)
-::: mescal.datasets.dataset_comparison
-::: mescal.datasets.platform_dataset
-::: mescal.datasets.dataset_config
+[//]: # (::: mesqual.datasets.dataset_collection.DatasetMergeCollection)
+[//]: # (::: mesqual.datasets.dataset_collection.DatasetConcatCollection)
+::: mesqual.datasets.dataset_comparison
+::: mesqual.datasets.platform_dataset
+::: mesqual.datasets.dataset_config

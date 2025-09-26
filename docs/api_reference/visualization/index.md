@@ -1,5 +1,5 @@
-# MESCAL Visualization Modules
+# MESQUAL Visualization Modules
 
-::: mescal.visualizations
+::: mesqual.visualizations
     options:
         members: []

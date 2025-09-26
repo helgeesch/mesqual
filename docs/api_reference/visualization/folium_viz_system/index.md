@@ -1,6 +1,6 @@
-# MESCAL Folium Visualization System
+# MESQUAL Folium Visualization System
 
-::: mescal.visualizations.folium_viz_system
+::: mesqual.visualizations.folium_viz_system
     options:
         members: []
         show_root_heading: false

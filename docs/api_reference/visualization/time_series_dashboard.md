@@ -1,7 +1,7 @@
 # TimeSeries Dashboard (Plotly Figure)
 
-::: mescal.visualizations.plotly_figures.timeseries_dashboard.TimeSeriesDashboardGenerator
-::: mescal.visualizations.plotly_figures.timeseries_dashboard.DashboardConfig
-::: mescal.visualizations.plotly_figures.timeseries_dashboard.DataProcessor
-::: mescal.visualizations.plotly_figures.timeseries_dashboard.ColorManager
-::: mescal.visualizations.plotly_figures.timeseries_dashboard.TraceGenerator
+::: mesqual.visualizations.plotly_figures.timeseries_dashboard.TimeSeriesDashboardGenerator
+::: mesqual.visualizations.plotly_figures.timeseries_dashboard.DashboardConfig
+::: mesqual.visualizations.plotly_figures.timeseries_dashboard.DataProcessor
+::: mesqual.visualizations.plotly_figures.timeseries_dashboard.ColorManager
+::: mesqual.visualizations.plotly_figures.timeseries_dashboard.TraceGenerator

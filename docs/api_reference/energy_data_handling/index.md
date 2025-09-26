@@ -1,6 +1,6 @@
 # Energy Data Handling Intro
 
-::: mescal.energy_data_handling
+::: mesqual.energy_data_handling
     options:
         members: []
         show_root_heading: false

@@ -1,3 +1,3 @@
-# MESCAL Network Lines Data
-::: mescal.energy_data_handling.network_lines_data.NetworkLineFlowsData
-::: mescal.energy_data_handling.network_lines_data.NetworkLineCapacitiesData
+# MESQUAL Network Lines Data
+::: mesqual.energy_data_handling.network_lines_data.NetworkLineFlowsData
+::: mesqual.energy_data_handling.network_lines_data.NetworkLineCapacitiesData
