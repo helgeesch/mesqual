@@ -32,9 +32,9 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/helgeesch/mesqual"
+Homepage = "https://mesqual.io"
 Repository = "https://github.com/helgeesch/mesqual"
-Documentation = "https://github.com/helgeesch/mesqual#readme"
+Documentation = "https://docs.mesqual.io"
 
 [tool.setuptools.packages.find]
 where = ["."]
