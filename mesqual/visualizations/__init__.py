@@ -7,14 +7,14 @@ The visualizations package supports multiple output formats and interactive comp
 designed specifically for multi-scenario energy modeling analysis and comparison.
 
 Modules:
-    - **folium_legend_system:** Legend creation and management for Folium maps
-    - **folium_viz_system:** Interactive map visualization system using Folium
-    - **value_mapping_system:** Data value mapping and color scaling utilities
+    - folium_legend_system: Legend creation and management for Folium maps
+    - folium_viz_system: Interactive map visualization system using Folium
+    - value_mapping_system: Data value mapping and color scaling utilities
 
 Classes:
-    - **TimeSeriesDashboardGenerator:** Creates interactive Plotly time series dashboards
-    - **HTMLDashboard:** Generates comprehensive HTML analysis dashboards
-    - **HTMLTable:** Creates formatted HTML tables for data presentation
+    - TimeSeriesDashboardGenerator: Creates interactive Plotly time series dashboards
+    - HTMLDashboard: Generates comprehensive HTML analysis dashboards
+    - HTMLTable: Creates formatted HTML tables for data presentation
 
 Example:
 
