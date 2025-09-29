@@ -2,7 +2,7 @@
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 ![Notebook Tests](https://github.com/helgeesch/mesqual/actions/workflows/test-with-vanilla-studies.yml/badge.svg)
 
-# MESQUAL <img src="assets/logo_no_text_no_bg.svg" width="70" height="70" alt="logo">
+# MESQUAL <img src="assets/logo-turq.svg" width="70" height="70" alt="logo">
 **M**odular **E**nergy **S**cenario **C**omparison **L**ibrary for **Q**uantitative and **Q**ualitative **A**nalysis
 
 A modular Python framework for energy market data analysis, with a focus on scenario comparison, KPI calculation and interactive visualizations.
