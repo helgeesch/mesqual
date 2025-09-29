@@ -14,8 +14,8 @@
     <rect x="120" y="0" width="100" height="60" fill="#55efc4"/>
     <text x="170" y="90" font-family="monospace" font-size="14" text-anchor="middle">#55efc4</text>
 
-    <rect x="240" y="0" width="100" height="60" fill="#00b894"/>
-    <text x="290" y="90" font-family="monospace" font-size="14" text-anchor="middle">#00b894</text>
+    <rect x="240" y="0" width="100" height="60" fill="#00A98F"/>
+    <text x="290" y="90" font-family="monospace" font-size="14" text-anchor="middle">#00A98F</text>
 
     <rect x="360" y="0" width="100" height="60" fill="#009677"/>
     <text x="410" y="90" font-family="monospace" font-size="14" text-anchor="middle">#009677</text>
