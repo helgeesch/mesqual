@@ -1,0 +1,14 @@
+pandas
+geopandas
+shapely
+plotly
+folium
+branca
+jinja2
+numpy
+networkx
+pint
+colorlog
+tqdm
+python-polylabel
+captain-arro
