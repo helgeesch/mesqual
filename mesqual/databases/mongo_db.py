@@ -3,25 +3,20 @@ import json
 from typing import Optional, List, Dict, Any, Union
 from urllib.parse import urlparse
 
-import pandas as pd
-import numpy as np
-from bson import ObjectId
 from datetime import datetime
+import numpy as np
+import pandas as pd
+from shapely.geometry import shape
+import geopandas as gpd
 
 try:
+    from bson import ObjectId
     import pymongo
     from pymongo import MongoClient, ASCENDING, DESCENDING
     from pymongo.errors import ServerSelectionTimeoutError, DuplicateKeyError
     PYMONGO_AVAILABLE = True
 except ImportError:
     PYMONGO_AVAILABLE = False
-
-try:
-    import geopandas as gpd
-    from shapely.geometry import shape
-    GEOPANDAS_AVAILABLE = True
-except ImportError:
-    GEOPANDAS_AVAILABLE = False
 
 from mesqual.typevars import DatasetType, FlagType, DatasetConfigType
 from mesqual.databases.database import Database
@@ -86,7 +81,9 @@ class MongoDatabase(Database):
             ServerSelectionTimeoutError: If cannot connect to MongoDB server
         """
         if not PYMONGO_AVAILABLE:
-            raise ImportError("pymongo is required for MongoDB support. Install with: pip install pymongo")
+            raise ImportError(
+                "pymongo and bson are required for MongoDB support. Install with: pip install pymongo bson"
+            )
 
         self.connection_string = connection_string
         self.collection_prefix = collection_prefix
@@ -388,7 +385,7 @@ class MongoDatabase(Database):
             'columns': list(df.columns),
             'dtypes': {col: str(dtype) for col, dtype in df.dtypes.items()},
             'index_names': df.index.names if hasattr(df.index, 'names') else [df.index.name],
-            'has_geometry': hasattr(df, 'geometry') and GEOPANDAS_AVAILABLE
+            'has_geometry': hasattr(df, 'geometry')
         }
 
         schema_str = json.dumps(schema_info, sort_keys=True)
@@ -425,7 +422,7 @@ class MongoDatabase(Database):
         collection.create_index([("dataset_key", ASCENDING)])
 
         # Create geospatial index if DataFrame has geometry
-        if hasattr(df, 'geometry') and GEOPANDAS_AVAILABLE:
+        if hasattr(df, 'geometry'):
             # Create 2dsphere index for geospatial queries
             geometry_fields = [col for col in df.columns if 'geometry' in col.lower()]
             for geo_field in geometry_fields:
@@ -461,7 +458,7 @@ class MongoDatabase(Database):
 
             # Handle columns
             for col, value in row.items():
-                if hasattr(df, 'geometry') and col == 'geometry' and GEOPANDAS_AVAILABLE:
+                if hasattr(df, 'geometry') and col == 'geometry':
                     # Convert geometry to GeoJSON
                     if pd.notna(value):
                         doc[col] = json.loads(gpd.GeoSeries([value]).to_json())['features'][0]['geometry']
@@ -515,14 +512,13 @@ class MongoDatabase(Database):
         df = pd.DataFrame(df_data, index=index_data)
 
         # Convert to GeoDataFrame if geometry columns exist
-        if GEOPANDAS_AVAILABLE:
-            geometry_cols = [col for col in df.columns if 'geometry' in col.lower()]
-            if geometry_cols:
-                for geo_col in geometry_cols:
-                    df[geo_col] = df[geo_col].apply(
-                        lambda x: shape(x) if x and isinstance(x, dict) else x
-                    )
-                df = gpd.GeoDataFrame(df, geometry=geometry_cols[0])
+        geometry_cols = [col for col in df.columns if 'geometry' in col.lower()]
+        if geometry_cols:
+            for geo_col in geometry_cols:
+                df[geo_col] = df[geo_col].apply(
+                    lambda x: shape(x) if x and isinstance(x, dict) else x
+                )
+            df = gpd.GeoDataFrame(df, geometry=geometry_cols[0])
 
         return df
 
