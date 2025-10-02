@@ -2,8 +2,8 @@
 [![License: LGPL v3](https://img.shields.io/badge/License-LGPL%20v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 ![Notebook Tests](https://github.com/helgeesch/mesqual/actions/workflows/test-with-vanilla-studies.yml/badge.svg)
 
-# MESQUAL <img src="assets/logo-turq.svg" width="70" height="70" alt="logo">
-**M**odular **E**nergy **S**cenario **C**omparison **L**ibrary for **Q**uantitative and **Q**ualitative **A**nalysis
+# <img src="docs/assets/logo-turq.svg" width="30" height="30" alt="logo"> MESQUAL 
+**M**odular **E**nergy **S**cenario Comparison Library for **Q**uantitative and **Qual**itative Analysis
 
 A modular Python framework for energy market data analysis, with a focus on scenario comparison, KPI calculation and interactive visualizations.
 
@@ -31,12 +31,12 @@ To view a hands-on repository and see how the MESQUAL-suite is used in action, p
 - [mesqual](https://github.com/helgeesch/mesqual)
 - [mesqual-vanilla-studies](https://github.com/helgeesch/mesqual-vanilla-studies)
 - [mesqual-pypsa](https://github.com/helgeesch/mesqual-pypsa)
-- [mesqual-plexos](https://github.com/helgeesch/mesqual-plexos) (to be released)
+- [mesqual-plexos](https://github.com/helgeesch/mesqual-plexos) (access required)
 
-[//]: # (- [mesqual-etp]&#40;https://github.com/helgeesch/mesqual-etp&#41; &#40;to be released&#41;)
-[//]: # (- [mesqual-gui]&#40;https://github.com/helgeesch/mesqual-gui&#41; &#40;to be released&#41;)
-[//]: # (- [mesqual-antares]&#40;https://github.com/helgeesch/mesqual-antares&#41; &#40;to be released&#41;)
-[//]: # (- [mesqual-bid3]&#40;https://github.com/helgeesch/mesqual-bid3&#41; &#40;to be released&#41;)
+[//]: # (- [mesqual-etp]&#40;https://github.com/helgeesch/mesqual-etp&#41; &#40;access required&#41;)
+[//]: # (- [mesqual-gui]&#40;https://github.com/helgeesch/mesqual-gui&#41; &#40;access required&#41;)
+[//]: # (- [mesqual-antares]&#40;https://github.com/helgeesch/mesqual-antares&#41; &#40;access required&#41;)
+[//]: # (- [mesqual-bid3]&#40;https://github.com/helgeesch/mesqual-bid3&#41; &#40;access required&#41;)
 
 ---
 
@@ -108,7 +108,7 @@ MESQUAL follows a modular design where platform-specific implementations are han
 mesqual/                         # Core package
 mesqual-pypsa/                   # PyPSA interface (separate package)
 mesqual-plexos/                  # PLEXOS interface (separate package)
-...                             # Other platform interfaces
+...                              # Other platform interfaces
 mesqual-your-custom-interface/   # Custom interface for your platform
 ```
 
