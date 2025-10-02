@@ -31,7 +31,8 @@ To view a hands-on repository and see how the MESQUAL-suite is used in action, p
 - [mesqual](https://github.com/helgeesch/mesqual)
 - [mesqual-vanilla-studies](https://github.com/helgeesch/mesqual-vanilla-studies)
 - [mesqual-pypsa](https://github.com/helgeesch/mesqual-pypsa)
-- [mesqual-plexos](https://github.com/helgeesch/mesqual-plexos) (access required)
+- [mesqual-plexos](https://github.com/helgeesch/mesqual-plexos) (requires access)
+- [mesqual-simfa-euph](https://github.com/helgeesch/mesqual-simfa-euph) (requires access)
 
 [//]: # (- [mesqual-etp]&#40;https://github.com/helgeesch/mesqual-etp&#41; &#40;access required&#41;)
 [//]: # (- [mesqual-gui]&#40;https://github.com/helgeesch/mesqual-gui&#41; &#40;access required&#41;)
