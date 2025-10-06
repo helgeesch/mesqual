@@ -145,7 +145,7 @@ class KPIDataItem(VisualizableDataItem):
     def __init__(self, kpi: KPI, kpi_collection: KPICollection = None, **kwargs):
         self.kpi = kpi
         self.kpi_collection = kpi_collection
-        self._object_info = kpi.get_attributed_object_info_from_model()
+        self._object_info = kpi.get_object_info_from_model()
         self._model_item = ModelDataItem(self._object_info)
         super().__init__(**kwargs)
 

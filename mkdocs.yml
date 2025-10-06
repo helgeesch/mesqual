@@ -54,6 +54,24 @@ nav:
     - Units: api_reference/units.md
     - Validation: api_reference/validation.md
 
+  - KPIs:
+      - api_reference/kpis/index.md
+      - Core Classes:
+        - KPI & Attributes: api_reference/kpis/kpi.md
+        - KPI Collection: api_reference/kpis/collection.md
+        - Aggregations: api_reference/kpis/aggregations.md
+      - Builders:
+        - api_reference/kpis/builders/index.md
+        - Flag Agg Builder: api_reference/kpis/builders/flag_agg_builder.md
+        - Comparison Builder: api_reference/kpis/builders/comparison_builder.md
+        - Base Builder Class: api_reference/kpis/builders/base.md
+      - Definitions:
+        - api_reference/kpis/definitions/index.md
+        - Base Definition: api_reference/kpis/definitions/base.md
+        - Flag Aggregation: api_reference/kpis/definitions/flag_aggregation.md
+        - Comparison: api_reference/kpis/definitions/comparison.md
+        - Custom: api_reference/kpis/definitions/custom.md
+
   - Visualization Modules:
       - api_reference/visualization/index.md
       - TimeSeriesDashboard: api_reference/visualization/time_series_dashboard.md

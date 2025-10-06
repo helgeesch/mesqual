@@ -193,6 +193,87 @@ class Units(metaclass=_IterableUnitsMeta):
         return quantity.to(units[-1])
 
     @classmethod
+    def get_common_pretty_unit_for_quantities(cls, quantities: list[Quantity]) -> Unit:
+        """
+        Find common "pretty" unit for a collection of quantities.
+
+        Strategy:
+        1. Verify all quantities have same dimensionality
+        2. Find median order of magnitude
+        3. Select unit closest to median OOM
+        4. Ensure most values fit well (< 10,000 in magnitude)
+
+        Args:
+            quantities: List of quantities with same dimensionality
+
+        Returns:
+            Pretty unit that works well for the collection
+
+        Raises:
+            ValueError: If quantities have different dimensionalities or list is empty
+
+        Examples:
+            >>> quantities = [1_000_000 * Units.EUR, 5_000_000 * Units.EUR]
+            >>> Units.get_common_pretty_unit_for_quantities(quantities)
+            Units.MEUR
+        """
+        if not quantities:
+            raise ValueError("Cannot find common unit for empty list of quantities")
+
+        # Verify all quantities have same dimensionality
+        base_unit = cls.get_base_unit_for_unit(quantities[0].units)
+        for q in quantities[1:]:
+            if not cls.units_have_same_base(q.units, base_unit):
+                raise ValueError(
+                    f"All quantities must have same dimensionality. "
+                    f"Found {q.units} which differs from {base_unit}"
+                )
+
+        # Convert all to base unit and get magnitudes
+        magnitudes = [abs(q.to(base_unit).magnitude) for q in quantities]
+
+        # Filter out zeros for median calculation
+        non_zero_magnitudes = [m for m in magnitudes if m > 0]
+        if not non_zero_magnitudes:
+            # All values are zero, return base unit
+            return base_unit
+
+        # Find median order of magnitude
+        median_magnitude = np.median(non_zero_magnitudes)
+
+        # Get all available units with same base
+        available_units = cls.get_all_units_with_equal_base(base_unit)
+        if not available_units:
+            return base_unit
+
+        # Sort by order of magnitude (largest first)
+        sorted_units = sorted(
+            available_units,
+            key=lambda x: cls.get_oom_of_unit(x),
+            reverse=True
+        )
+
+        # Find unit where most values will be < 10,000
+        # Start with unit closest to median, then adjust if needed
+        best_unit = cls.get_closest_unit_for_oom(base_unit, median_magnitude)
+
+        # Verify that most values (>= 80%) fit well in this unit (< 10,000)
+        values_in_unit = [abs(q.to(best_unit).magnitude) for q in quantities]
+        non_zero_values = [v for v in values_in_unit if v > 0]
+
+        if non_zero_values:
+            fit_count = sum(1 for v in non_zero_values if v < 10_000)
+            fit_ratio = fit_count / len(non_zero_values)
+
+            # If less than 80% fit, try larger unit
+            if fit_ratio < 0.8:
+                unit_index = sorted_units.index(best_unit)
+                if unit_index > 0:  # There's a larger unit available
+                    best_unit = sorted_units[unit_index - 1]
+
+        return best_unit
+
+    @classmethod
     def get_all_units_with_equal_base(cls, unit: Unit) -> list[Unit]:
         return [u for u in Units if cls.units_have_same_base(unit, u)]
 
