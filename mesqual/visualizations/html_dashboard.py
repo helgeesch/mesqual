@@ -509,6 +509,68 @@ class HTMLDashboard:
         display(IFrame(src=str(html_path.resolve()), width=width, height=height))
 
 
+class _TabTreeRenderer:
+    """Renders a nested tab tree (any depth) into HTML. Level 0 uses the top-level
+    tab styling, every deeper level reuses the sub-tab styling inside a sub-tab group."""
+
+    def __init__(self, dashboard: HTMLDashboard, tab_tree: OrderedDict):
+        self._dashboard = dashboard
+        self._tab_tree = tab_tree
+        self._counter = 0
+        self._plotly_js_included = False
+
+    def render(self) -> str:
+        return '\n'.join(self._render_group(self._tab_tree, level=0, group_id='tabgroup_top'))
+
+    def _next_id(self, prefix: str) -> str:
+        self._counter += 1
+        return f'{prefix}_{self._counter}'
+
+    def _render_group(self, node: OrderedDict, level: int, group_id: str) -> list:
+        is_top = level == 0
+        bar_class = 'dashboard-tabs' if is_top else 'dashboard-subtabs'
+        content_class = 'dashboard-tab-content' if is_top else 'dashboard-subtab-content'
+        group_class = '' if is_top else ' class="dashboard-subtabgroup"'
+        id_prefix = 'tab' if is_top else 'subtab'
+
+        children = OrderedDict((k, v) for k, v in node.items() if k != '_elements')
+        direct_elements = node['_elements'] if not is_top else []
+        entries = []
+        if direct_elements:
+            entries.append((self._dashboard.DEFAULT_TAB, OrderedDict(_elements=direct_elements)))
+        entries.extend(children.items())
+
+        parts = [f'<div id="{group_id}"{group_class}>', f'<div class="{bar_class}">']
+        tab_ids = [self._next_id(id_prefix) for _ in entries]
+        for i, ((label, _), tid) in enumerate(zip(entries, tab_ids)):
+            active = 'active' if i == 0 else ''
+            parts.append(
+                f'<button class="{active}" onclick="switchTab(\'{group_id}\', \'{tid}\')">{label}</button>'
+            )
+        parts.append('</div>')
+
+        for i, ((_, child), tid) in enumerate(zip(entries, tab_ids)):
+            active = ' active' if i == 0 else ''
+            parts.append(f'<div id="{tid}" class="{content_class}{active}">')
+            parts.extend(self._render_node_content(child, level + 1))
+            parts.append('</div>')
+
+        parts.append('</div>')
+        return parts
+
+    def _render_node_content(self, node: OrderedDict, level: int) -> list:
+        has_children = any(k != '_elements' for k in node)
+        if has_children:
+            return self._render_group(node, level, self._next_id('subtabgroup'))
+        parts = []
+        for key in node['_elements']:
+            el = self._dashboard.content[key]
+            parts.append(self._dashboard._element_to_html(el, self._plotly_js_included))
+            if isinstance(el.element, go.Figure):
+                self._plotly_js_included = True
+        return parts
+
+
 if __name__ == '__main__':
     from mesqual.visualizations.html_table import HTMLTable
     import plotly.express as px
@@ -602,65 +664,3 @@ if __name__ == '__main__':
         element_type = "Plotly Figure" if isinstance(element.element, go.Figure) else "HTML Content"
         tab_info = f" (tab: {element.tab})" if element.tab else ""
         print(f"  - {name}: {element_type}{tab_info}")
-
-
-class _TabTreeRenderer:
-    """Renders a nested tab tree (any depth) into HTML. Level 0 uses the top-level
-    tab styling, every deeper level reuses the sub-tab styling inside a sub-tab group."""
-
-    def __init__(self, dashboard: HTMLDashboard, tab_tree: OrderedDict):
-        self._dashboard = dashboard
-        self._tab_tree = tab_tree
-        self._counter = 0
-        self._plotly_js_included = False
-
-    def render(self) -> str:
-        return '\n'.join(self._render_group(self._tab_tree, level=0, group_id='tabgroup_top'))
-
-    def _next_id(self, prefix: str) -> str:
-        self._counter += 1
-        return f'{prefix}_{self._counter}'
-
-    def _render_group(self, node: OrderedDict, level: int, group_id: str) -> list:
-        is_top = level == 0
-        bar_class = 'dashboard-tabs' if is_top else 'dashboard-subtabs'
-        content_class = 'dashboard-tab-content' if is_top else 'dashboard-subtab-content'
-        group_class = '' if is_top else ' class="dashboard-subtabgroup"'
-        id_prefix = 'tab' if is_top else 'subtab'
-
-        children = OrderedDict((k, v) for k, v in node.items() if k != '_elements')
-        direct_elements = node['_elements'] if not is_top else []
-        entries = []
-        if direct_elements:
-            entries.append((self._dashboard.DEFAULT_TAB, OrderedDict(_elements=direct_elements)))
-        entries.extend(children.items())
-
-        parts = [f'<div id="{group_id}"{group_class}>', f'<div class="{bar_class}">']
-        tab_ids = [self._next_id(id_prefix) for _ in entries]
-        for i, ((label, _), tid) in enumerate(zip(entries, tab_ids)):
-            active = 'active' if i == 0 else ''
-            parts.append(
-                f'<button class="{active}" onclick="switchTab(\'{group_id}\', \'{tid}\')">{label}</button>'
-            )
-        parts.append('</div>')
-
-        for i, ((_, child), tid) in enumerate(zip(entries, tab_ids)):
-            active = ' active' if i == 0 else ''
-            parts.append(f'<div id="{tid}" class="{content_class}{active}">')
-            parts.extend(self._render_node_content(child, level + 1))
-            parts.append('</div>')
-
-        parts.append('</div>')
-        return parts
-
-    def _render_node_content(self, node: OrderedDict, level: int) -> list:
-        has_children = any(k != '_elements' for k in node)
-        if has_children:
-            return self._render_group(node, level, self._next_id('subtabgroup'))
-        parts = []
-        for key in node['_elements']:
-            el = self._dashboard.content[key]
-            parts.append(self._dashboard._element_to_html(el, self._plotly_js_included))
-            if isinstance(el.element, go.Figure):
-                self._plotly_js_included = True
-        return parts
