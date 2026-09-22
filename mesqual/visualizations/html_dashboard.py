@@ -24,8 +24,8 @@ class HTMLDashboardElement:
         height: CSS height specification for the element. Defaults to '100%'.
         name: Unique identifier for the element. If None, auto-generates using object id.
         tab: Optional tab path. A string places the element in a top-level tab.
-            A tuple of two strings places it in a nested sub-tab, e.g.
-            ``("Market Results", "Volumes")``. If None, the element is ungrouped
+            A tuple of strings places it in nested sub-tabs of arbitrary depth,
+            e.g. ``("Market Results", "Volumes", "Import")``. If None, the element is ungrouped
             (rendered at the top level in scroll mode, or placed in a default tab
             in tabbed mode).
 
@@ -40,7 +40,7 @@ class HTMLDashboardElement:
             element: Union[go.Figure, str],
             height: str = '100%',
             name: str = None,
-            tab: Union[str, Tuple[str, str], None] = None,
+            tab: Union[str, Tuple[str, ...], None] = None,
             force_height: bool = False,
     ):
         self.element = element
@@ -54,8 +54,8 @@ class HTMLDashboardElement:
         if isinstance(tab, str):
             self.tab = (tab,)
         elif isinstance(tab, tuple):
-            if len(tab) not in (1, 2):
-                raise ValueError(f"tab tuple must have 1 or 2 elements, got {len(tab)}")
+            if len(tab) == 0:
+                raise ValueError("tab tuple must have at least one element")
             self.tab = tab
         else:
             self.tab = None
@@ -97,7 +97,7 @@ class HTMLDashboard:
             fig: go.Figure,
             height: str = '100%',
             name: str = None,
-            tab: Union[str, Tuple[str, str], None] = None,
+            tab: Union[str, Tuple[str, ...], None] = None,
             force_height: bool = False,
     ):
         """Add a Plotly figure to the dashboard.
@@ -127,7 +127,7 @@ class HTMLDashboard:
         element = HTMLDashboardElement(fig, height, name, tab=tab, force_height=force_height)
         self.content[element.name] = element
 
-    def add_html(self, html_string: str, name: str = None, tab: Union[str, Tuple[str, str], None] = None):
+    def add_html(self, html_string: str, name: str = None, tab: Union[str, Tuple[str, ...], None] = None):
         """Add custom HTML content to the dashboard.
 
         Args:
@@ -147,7 +147,7 @@ class HTMLDashboard:
             self,
             folium_map: 'folium.Map',
             name: str = None,
-            tab: Union[str, Tuple[str, str], None] = None,
+            tab: Union[str, Tuple[str, ...], None] = None,
     ):
         """Add a Folium map to the dashboard.
 
@@ -182,7 +182,7 @@ class HTMLDashboard:
             table: 'HTMLTable',
             name: str = None,
             include_dependencies: bool = True,
-            tab: Union[str, Tuple[str, str], None] = None,
+            tab: Union[str, Tuple[str, ...], None] = None,
     ) -> str:
         """Add an HTML table to the dashboard.
 
@@ -225,7 +225,7 @@ class HTMLDashboard:
             title: str,
             subtitle: str = None,
             name: str = None,
-            tab: Union[str, Tuple[str, str], None] = None,
+            tab: Union[str, Tuple[str, ...], None] = None,
             background_color: str = "#f9f9f9",
             title_color: str = "#333",
             subtitle_color: str = "#666",
@@ -333,7 +333,7 @@ class HTMLDashboard:
     DEFAULT_TAB = '.'
 
     def _build_tab_structure(self, content_order):
-        """Return an OrderedDict representing the tab tree.
+        """Return an OrderedDict representing the tab tree of arbitrary depth.
 
         Structure::
 
@@ -342,6 +342,9 @@ class HTMLDashboard:
                     "_elements": [...],      # elements directly in this tab
                     "Volumes": {             # sub-tab
                         "_elements": [...],
+                        "Import": {          # sub-sub-tab
+                            "_elements": [...],
+                        },
                     },
                 },
                 ...
@@ -352,18 +355,12 @@ class HTMLDashboard:
         for key in content_order:
             el = self.content[key]
             path = el.tab if el.tab is not None else (self.DEFAULT_TAB,)
-
-            top = path[0]
-            if top not in tabs:
-                tabs[top] = OrderedDict(_elements=[])
-
-            if len(path) == 2:
-                sub = path[1]
-                if sub not in tabs[top]:
-                    tabs[top][sub] = OrderedDict(_elements=[])
-                tabs[top][sub]['_elements'].append(key)
-            else:
-                tabs[top]['_elements'].append(key)
+            node = tabs
+            for label in path:
+                if label not in node:
+                    node[label] = OrderedDict(_elements=[])
+                node = node[label]
+            node['_elements'].append(key)
 
         return tabs
 
@@ -392,6 +389,7 @@ class HTMLDashboard:
         .dashboard-subtabs button:hover { background: #e9ecef; }
         .dashboard-subtabs button.active { background: #fff; color: #212529; border-color: #e9ecef; font-weight: 600; position: relative; }
         .dashboard-subtabs button.active::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 1px; background: #fff; }
+        .dashboard-subtabgroup .dashboard-subtabgroup .dashboard-subtabs button { font-size: 12px; padding: 4px 12px; }
         .dashboard-subtab-content { display: none; flex: 1 1 0; min-height: 0; overflow: auto; padding: 0; }
         .dashboard-subtabgroup { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
         .dashboard-subtab-content.active { display: flex; flex-direction: column; }
@@ -409,7 +407,7 @@ class HTMLDashboard:
             group.querySelectorAll(':scope > .dashboard-tab-content, :scope > .dashboard-subtab-content').forEach(function(el) {
                 el.classList.remove('active');
             });
-            var tabs = group.querySelector('.dashboard-tabs') || group.querySelector('.dashboard-subtabs');
+            var tabs = group.querySelector(':scope > .dashboard-tabs, :scope > .dashboard-subtabs');
             tabs.querySelectorAll('button').forEach(function(btn) { btn.classList.remove('active'); });
             document.getElementById(tabId).classList.add('active');
             document.querySelector('[onclick*=\"\\'' + tabId + '\\'\"]').classList.add('active');
@@ -422,116 +420,9 @@ class HTMLDashboard:
         """
 
     def _render_tabbed(self, content_order) -> str:
-        plotly_js_included = False
         tab_tree = self._build_tab_structure(content_order)
-        parts = []
-        counter = 0
-
-        def next_id(prefix='tab'):
-            nonlocal counter
-            counter += 1
-            return f'{prefix}_{counter}'
-
-        # Top-level tab bar
-        group_id = 'tabgroup_top'
-        parts.append(f'<div id="{group_id}">')
-        parts.append('<div class="dashboard-tabs">')
-
-        tab_ids = {}
-        first_top = True
-        for tab_label in tab_tree:
-            tid = next_id('tab')
-            tab_ids[tab_label] = tid
-            active = ' active' if first_top else ''
-            parts.append(
-                f"<button class=\"{active.strip()}\" onclick=\"switchTab('{group_id}', '{tid}')\">{tab_label}</button>"
-            )
-            first_top = False
-        parts.append('</div>')
-
-        # Top-level tab contents
-        first_top = True
-        for tab_label, tab_data in tab_tree.items():
-            tid = tab_ids[tab_label]
-            active = ' active' if first_top else ''
-            parts.append(f'<div id="{tid}" class="dashboard-tab-content{active}">')
-
-            # Direct elements in this tab
-            sub_tabs = OrderedDict(
-                (k, v) for k, v in tab_data.items() if k != '_elements'
-            )
-
-            if sub_tabs:
-                # Render sub-tab bar
-                sub_group_id = next_id('subtabgroup')
-                parts.append(f'<div id="{sub_group_id}" class="dashboard-subtabgroup">')
-                parts.append('<div class="dashboard-subtabs">')
-
-                # If there are direct elements, they go in a "General" sub-tab
-                direct_elements = tab_data['_elements']
-                sub_tab_ids = {}
-                first_sub = True
-
-                if direct_elements:
-                    stid = next_id('subtab')
-                    sub_tab_ids['_direct'] = stid
-                    active_s = ' active' if first_sub else ''
-                    parts.append(
-                        f"<button class=\"{active_s.strip()}\" onclick=\"switchTab('{sub_group_id}', '{stid}')\">{self.DEFAULT_TAB}</button>"
-                    )
-                    first_sub = False
-
-                for sub_label in sub_tabs:
-                    stid = next_id('subtab')
-                    sub_tab_ids[sub_label] = stid
-                    active_s = ' active' if first_sub else ''
-                    parts.append(
-                        f"<button class=\"{active_s.strip()}\" onclick=\"switchTab('{sub_group_id}', '{stid}')\">{sub_label}</button>"
-                    )
-                    first_sub = False
-
-                parts.append('</div>')
-
-                # Sub-tab contents
-                first_sub = True
-                if direct_elements:
-                    stid = sub_tab_ids['_direct']
-                    active_s = ' active' if first_sub else ''
-                    parts.append(f'<div id="{stid}" class="dashboard-subtab-content{active_s}">')
-                    for key in direct_elements:
-                        el = self.content[key]
-                        parts.append(self._element_to_html(el, plotly_js_included))
-                        if isinstance(el.element, go.Figure):
-                            plotly_js_included = True
-                    parts.append('</div>')
-                    first_sub = False
-
-                for sub_label, sub_data in sub_tabs.items():
-                    stid = sub_tab_ids[sub_label]
-                    active_s = ' active' if first_sub else ''
-                    parts.append(f'<div id="{stid}" class="dashboard-subtab-content{active_s}">')
-                    for key in sub_data['_elements']:
-                        el = self.content[key]
-                        parts.append(self._element_to_html(el, plotly_js_included))
-                        if isinstance(el.element, go.Figure):
-                            plotly_js_included = True
-                    parts.append('</div>')
-                    first_sub = False
-
-                parts.append('</div>')  # close sub_group_id
-            else:
-                # No sub-tabs — just render direct elements
-                for key in tab_data['_elements']:
-                    el = self.content[key]
-                    parts.append(self._element_to_html(el, plotly_js_included))
-                    if isinstance(el.element, go.Figure):
-                        plotly_js_included = True
-
-            parts.append('</div>')  # close tab content
-            first_top = False
-
-        parts.append('</div>')  # close tabgroup_top
-        return '\n'.join(parts)
+        renderer = _TabTreeRenderer(self, tab_tree)
+        return renderer.render()
 
     # -- public API ----------------------------------------------------
 
@@ -711,3 +602,65 @@ if __name__ == '__main__':
         element_type = "Plotly Figure" if isinstance(element.element, go.Figure) else "HTML Content"
         tab_info = f" (tab: {element.tab})" if element.tab else ""
         print(f"  - {name}: {element_type}{tab_info}")
+
+
+class _TabTreeRenderer:
+    """Renders a nested tab tree (any depth) into HTML. Level 0 uses the top-level
+    tab styling, every deeper level reuses the sub-tab styling inside a sub-tab group."""
+
+    def __init__(self, dashboard: HTMLDashboard, tab_tree: OrderedDict):
+        self._dashboard = dashboard
+        self._tab_tree = tab_tree
+        self._counter = 0
+        self._plotly_js_included = False
+
+    def render(self) -> str:
+        return '\n'.join(self._render_group(self._tab_tree, level=0, group_id='tabgroup_top'))
+
+    def _next_id(self, prefix: str) -> str:
+        self._counter += 1
+        return f'{prefix}_{self._counter}'
+
+    def _render_group(self, node: OrderedDict, level: int, group_id: str) -> list:
+        is_top = level == 0
+        bar_class = 'dashboard-tabs' if is_top else 'dashboard-subtabs'
+        content_class = 'dashboard-tab-content' if is_top else 'dashboard-subtab-content'
+        group_class = '' if is_top else ' class="dashboard-subtabgroup"'
+        id_prefix = 'tab' if is_top else 'subtab'
+
+        children = OrderedDict((k, v) for k, v in node.items() if k != '_elements')
+        direct_elements = node['_elements'] if not is_top else []
+        entries = []
+        if direct_elements:
+            entries.append((self._dashboard.DEFAULT_TAB, OrderedDict(_elements=direct_elements)))
+        entries.extend(children.items())
+
+        parts = [f'<div id="{group_id}"{group_class}>', f'<div class="{bar_class}">']
+        tab_ids = [self._next_id(id_prefix) for _ in entries]
+        for i, ((label, _), tid) in enumerate(zip(entries, tab_ids)):
+            active = 'active' if i == 0 else ''
+            parts.append(
+                f'<button class="{active}" onclick="switchTab(\'{group_id}\', \'{tid}\')">{label}</button>'
+            )
+        parts.append('</div>')
+
+        for i, ((_, child), tid) in enumerate(zip(entries, tab_ids)):
+            active = ' active' if i == 0 else ''
+            parts.append(f'<div id="{tid}" class="{content_class}{active}">')
+            parts.extend(self._render_node_content(child, level + 1))
+            parts.append('</div>')
+
+        parts.append('</div>')
+        return parts
+
+    def _render_node_content(self, node: OrderedDict, level: int) -> list:
+        has_children = any(k != '_elements' for k in node)
+        if has_children:
+            return self._render_group(node, level, self._next_id('subtabgroup'))
+        parts = []
+        for key in node['_elements']:
+            el = self._dashboard.content[key]
+            parts.append(self._dashboard._element_to_html(el, self._plotly_js_included))
+            if isinstance(el.element, go.Figure):
+                self._plotly_js_included = True
+        return parts
