@@ -1,0 +1,95 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 650" width="900" height="650" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <title>The fetch path: collections, Dataset.fetch, cache, interpreters</title>
+  <style>
+    .bg { fill: #ffffff; }
+    .box { fill: #f6f8fa; stroke: #57606a; stroke-width: 1.2; }
+    .fetch { fill: #eef4fb; stroke: #4a77b4; stroke-width: 1.2; }
+    .store { fill: #fdf6e7; stroke: #b7862b; stroke-width: 1.2; }
+    .layer { fill: #eaf5ea; stroke: #4f8f4f; stroke-width: 1.2; }
+    .t { fill: #24292f; }
+    .m { fill: #57606a; }
+    .h { font-weight: bold; }
+    .a { stroke: #24292f; stroke-width: 1.3; fill: none; }
+    .ah { fill: #24292f; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; }
+      .box { fill: #161b22; stroke: #8b949e; }
+      .fetch { fill: #132339; stroke: #6e9fd8; }
+      .store { fill: #2b2111; stroke: #d4a446; }
+      .layer { fill: #13261a; stroke: #6fbf73; }
+      .t { fill: #e6edf3; }
+      .m { fill: #8b949e; }
+      .a { stroke: #e6edf3; }
+      .ah { fill: #e6edf3; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="900" height="650"/>
+
+  <!-- collections -->
+  <rect class="box" x="30" y="20" width="840" height="72" rx="6"/>
+  <text class="t h" x="45" y="43">Collections and StudyManager (scen, comp, scen_comp)</text>
+  <text class="m" x="45" y="63">fetch from the children that accept the flag and on which it is not unavailable;</text>
+  <text class="m" x="45" y="80">pass the effective config and the given parameters; concat, merge, sum or compare the results</text>
+  <line class="a" x1="290" y1="92" x2="290" y2="126" marker-end="url(#arrow)"/>
+  <text class="m" x="300" y="114">child.fetch(flag, config, **params)</text>
+
+  <!-- Dataset.fetch -->
+  <rect class="fetch" x="30" y="130" width="520" height="270" rx="6"/>
+  <text class="t h" x="45" y="154">Dataset.fetch(flag, config=None, **params)</text>
+  <text class="t" x="45" y="182">1  spec of the flag; the dataset accepts it; it is available</text>
+  <text class="t" x="45" y="208">2  effective config: class configs, instance config, fetch-time config</text>
+  <text class="t" x="45" y="234">3  resolve flag and dataset parameters (call, param_defaults, default)</text>
+  <text class="t" x="45" y="260">4  open a frame in the fetch context: a FetchRecord</text>
+  <text class="t" x="45" y="286">5  use_cache: an up-to-date entry gives a copy of its value</text>
+  <text class="t" x="45" y="312">6  else _fetch, post-process, store the result with its record</text>
+  <text class="t" x="45" y="338">7  outermost call only: time index filter, then granularity</text>
+  <text class="t" x="45" y="364">8  return a copy</text>
+  <text class="m" x="45" y="388">the record of the call goes to the frame of the enclosing fetch</text>
+
+  <!-- cache -->
+  <rect class="store" x="600" y="200" width="270" height="140" rx="6"/>
+  <text class="t h" x="615" y="223">Cache, e.g. PickleCache</text>
+  <text class="m" x="615" y="247">key: CacheKey (dataset class, name,</text>
+  <text class="m" x="615" y="265">flag, resolved parameters)</text>
+  <text class="m" x="615" y="289">entry: value and FetchRecord</text>
+  <text class="m" x="615" y="313">check: version identity,</text>
+  <text class="m" x="615" y="331">config reads, files, dependencies</text>
+  <line class="a" x1="550" y1="281" x2="598" y2="281" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text class="m" x="556" y="274">entry</text>
+  <line class="a" x1="550" y1="308" x2="598" y2="308" marker-end="url(#arrow)"/>
+  <text class="m" x="563" y="325">set</text>
+
+  <!-- platform routing -->
+  <line class="a" x1="290" y1="400" x2="290" y2="434" marker-end="url(#arrow)"/>
+  <text class="m" x="300" y="422">_fetch on a miss</text>
+  <rect class="box" x="30" y="438" width="520" height="62" rx="6"/>
+  <text class="t h" x="45" y="461">PlatformDataset._fetch: route to the answering interpreter</text>
+  <text class="m" x="45" y="484">interpreter chain: the original, then each override along the class hierarchy</text>
+  <line class="a" x1="155" y1="500" x2="155" y2="534" marker-end="url(#arrow)"/>
+  <line class="a" x1="425" y1="500" x2="425" y2="534" marker-end="url(#arrow)"/>
+
+  <!-- interpreters -->
+  <rect class="box" x="30" y="538" width="250" height="92" rx="6"/>
+  <text class="t h" x="45" y="561">Interpreter._fetch</text>
+  <text class="m" x="45" y="584">reads the source and records</text>
+  <text class="m" x="45" y="602">each file (record_file_read);</text>
+  <text class="m" x="45" y="620">derived: parent_dataset.fetch</text>
+  <rect class="layer" x="300" y="538" width="250" height="92" rx="6"/>
+  <text class="t h" x="315" y="561">Area / BorderFlagInterpreter</text>
+  <text class="m" x="315" y="584">fetches the base flag and the</text>
+  <text class="m" x="315" y="602">model: parent_dataset.fetch;</text>
+  <text class="m" x="315" y="620">calls the aggregation</text>
+
+  <!-- nested fetch loop -->
+  <path class="a" d="M550,584 L575,584 L575,418 L520,418 L520,403" marker-end="url(#arrow)"/>
+  <text class="m" x="590" y="420">nested fetch through</text>
+  <text class="m" x="590" y="438">parent_dataset.fetch(flag,</text>
+  <text class="m" x="590" y="456">effective_config): the same</text>
+  <text class="m" x="590" y="474">path, recorded as a dependency</text>
+  <text class="m" x="590" y="492">of the enclosing fetch</text>
+</svg>

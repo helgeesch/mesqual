@@ -1,3 +1,3 @@
-# MESQUAL HTML Table
+# HTML Table
 
 ::: mesqual.visualizations.html_table.HTMLTable
