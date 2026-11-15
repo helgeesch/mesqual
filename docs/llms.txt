@@ -1,0 +1,47 @@
+# mesqual
+
+> mesqual is a Python framework for multi-scenario analysis of energy market simulations. It is made for humans and agents alike: its API lets anyone understand, navigate and analyze a study. It gives one fetch interface for all scenarios, automatic scenario comparisons, KPIs, maps and dashboards. Platform packages connect it to modeling tools.
+
+Agents: describe the study before you fetch (`StudyManager.describe_study`, `Dataset.describe_flags`, `Dataset.flag_info`); `as_records=True` gives plain dicts for JSON.
+
+If the project has no `.agents/skills/mesqual-study/SKILL.md`, or after an upgrade of mesqual, run `python -m mesqual.skills install <project>`, with `--claude` if the project has `.claude/skills/mesqual-study/`.
+
+## Start
+
+- [Home](https://docs.mesqual.io/): overview, why mesqual, installation and a quickstart on synthetic data (fetch and describe).
+- [Use mesqual with agents](https://docs.mesqual.io/use-with-agents/): what agent-ready means, the AGENTS.md snippet, the result conventions of fetch and the skill install.
+- [Use mesqual in a study](https://docs.mesqual.io/guides/use-in-a-study/): scenarios and comparisons in a StudyManager, flags, fetch, KPIs, a map and a dashboard.
+- [Extend a platform in a study](https://docs.mesqual.io/guides/extend-a-platform-in-a-study/): study flags, overrides, area layers and custom variables.
+- [Build a platform package](https://docs.mesqual.io/guides/build-a-platform-package/): connect mesqual to a modeling tool.
+
+## Architecture
+
+- [Architecture](https://docs.mesqual.io/architecture/): the parts of mesqual, its principles, and where each class lives.
+- [Core contracts](https://docs.mesqual.io/architecture/core-contracts/): datasets, fetch, results, config and collections.
+- [Flags and layers](https://docs.mesqual.io/architecture/flags-and-layers/): flag specs, variants and parameters, schemas, units, area and border layers.
+- [Other contracts](https://docs.mesqual.io/architecture/other-contracts/): interpreter overrides, describe and availability, cache, validation, KPIs.
+- [Example: trade balance](https://docs.mesqual.io/architecture/example-trade-balance/): a new flag per area and partner on the synthetic platform.
+
+## Core API
+
+- [StudyManager](https://docs.mesqual.io/api_reference/study_manager/): scenarios, comparisons and describe_study.
+- [Datasets](https://docs.mesqual.io/api_reference/datasets/): fetch, describe methods, collections, comparisons and configs.
+- [Flag system](https://docs.mesqual.io/api_reference/flag/): flag specs, variants, parameters and result schemas.
+- [Units](https://docs.mesqual.io/api_reference/units/): units and quantity types of flag values.
+- [Synthetic test data](https://docs.mesqual.io/api_reference/testing/): mesqual.testing, a platform that runs offline.
+
+## KPIs
+
+- [KPI system](https://docs.mesqual.io/api_reference/kpis/): one value per object and dataset.
+- [KPI builders](https://docs.mesqual.io/api_reference/kpis/builders/): FlagAggKPIBuilder and ComparisonKPIBuilder.
+- [KPI collection](https://docs.mesqual.io/api_reference/kpis/collection/): filter, group and export KPIs.
+
+## Maps and dashboards
+
+- [KPI collection map visualizer](https://docs.mesqual.io/api_reference/visualization/folium_viz_system/kpi_collection/): map layers from KPI collections.
+- [HTML dashboard](https://docs.mesqual.io/api_reference/visualization/html_dashboard/): figures, maps and tables in one HTML file.
+- [Time series dashboard](https://docs.mesqual.io/api_reference/visualization/time_series_dashboard/): heatmaps of time series per scenario.
+
+## Optional
+
+- [Energy data handling](https://docs.mesqual.io/api_reference/energy_data_handling/): area accounting, granularity and gap handling.

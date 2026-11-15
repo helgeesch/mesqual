@@ -2,7 +2,6 @@ site_name: 'MESQUAL Package Documentation'
 site_url: 'https://docs.mesqual.io/'
 repo_url: 'https://github.com/helgeesch/mesqual/'
 
-
 theme:
   name: material
   logo: assets/logo-white.svg
@@ -20,6 +19,9 @@ markdown_extensions:
       toc_depth: 5
   - pymdownx.highlight
   - pymdownx.superfences
+  - pymdownx.snippets:
+      base_path: !relative $config_dir
+      check_paths: true
 
 plugins:
   - search
@@ -27,6 +29,7 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
+          paths: [src]
           options:
             heading_level: 2
             show_root_heading: true
@@ -44,14 +47,39 @@ plugins:
             separate_signature: true
             merge_init_into_class: false
 
+validation:
+  nav:
+    omitted_files: warn
+  anchors: warn
+
+watch:
+  - README.md
+  - src/mesqual/skills/mesqual-study/SKILL.md
+
 nav:
+  - Home: index.md
+  - Guides:
+    - Use mesqual in a study: guides/use-in-a-study.md
+    - Extend a platform in a study: guides/extend-a-platform-in-a-study.md
+    - Build a platform package: guides/build-a-platform-package.md
+  - Agents: use-with-agents.md
+  - Architecture:
+    - architecture/index.md
+    - Core Contracts: architecture/core-contracts.md
+    - Flags and Layers: architecture/flags-and-layers.md
+    - Other Contracts: architecture/other-contracts.md
+    - Example Trade Balance: architecture/example-trade-balance.md
   - Core:
-    - about_mesqual.md
     - StudyManager: api_reference/study_manager.md
     - Datasets: api_reference/datasets.md
+    - Cache: api_reference/cache.md
     - Flag System: api_reference/flag.md
+    - Layer Flags: api_reference/layer_flags.md
     - Units: api_reference/units.md
+    - Enums: api_reference/enums.md
+    - Type Variables: api_reference/typevars.md
     - Validation: api_reference/validation.md
+    - Synthetic Test Data: api_reference/testing.md
 
   - KPIs:
       - api_reference/kpis/index.md
@@ -86,7 +114,9 @@ nav:
           - Abstract System: api_reference/visualization/folium_viz_system/system.md
           - Data Item: api_reference/visualization/folium_viz_system/data_item.md
         - KPI Collection Visualizer: api_reference/visualization/folium_viz_system/kpi_collection.md
+        - Custom KPI Group Generator: api_reference/visualization/folium_viz_system/custom_kpi_group.md
         - Legends: api_reference/visualization/folium_viz_system/legends.md
+      - Value Mapping: api_reference/visualization/value_mapping.md
       - HTML Table: api_reference/visualization/html_table.md
       - HTML Dashboard: api_reference/visualization/html_dashboard.md
 
@@ -96,7 +126,6 @@ nav:
         - api_reference/energy_data_handling/area_accounting/index.md
         - Area / Border Model Generators: api_reference/energy_data_handling/area_accounting/model_gen.md
         - Area Variables: api_reference/energy_data_handling/area_accounting/area_variables.md
-        - Border Variables: api_reference/energy_data_handling/area_accounting/border_variables.md
       - Model Membership Handling:
         - api_reference/energy_data_handling/model_handling/index.md
         - Property Enricher: api_reference/energy_data_handling/model_handling/property_enricher.md
@@ -121,7 +150,8 @@ nav:
         - Sort MultiIndex: api_reference/utils/pandas_utils/sort_multiindex.md
         - Merge MultiIndex Levels: api_reference/utils/pandas_utils/merge_multi_index_levels.md
         - Set New Column in MultiIndex: api_reference/utils/pandas_utils/set_new_column.md
-        - Combine DFs: api_reference/utils/pandas_utils/combine_dfs.md
+        - Combine DFs: api_reference/utils/pandas_utils/combine_df.md
+        - Other Pandas Utils: api_reference/utils/pandas_utils/other.md
       - plotly_utils:
         - api_reference/utils/plotly_utils/index.md
         - PlotlyTheme: api_reference/utils/plotly_utils/plotly_theme.md
@@ -130,3 +160,6 @@ nav:
       - folium_utils:
         - api_reference/utils/folium_utils/index.md
         - Screenshotter: api_reference/utils/folium_utils/screenshotter.md
+      - Geo Utils: api_reference/utils/geo_utils.md
+      - Logging: api_reference/utils/logging.md
+      - Other Utilities: api_reference/utils/other.md

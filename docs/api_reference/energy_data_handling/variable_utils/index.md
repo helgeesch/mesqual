@@ -1,5 +1,6 @@
-# MESQUAL Energy Variable Utils
+# Energy Variable Utils
+
 ::: mesqual.energy_data_handling.variable_utils
     options:
-      members: []
-      
+        members: []
+        show_root_heading: false

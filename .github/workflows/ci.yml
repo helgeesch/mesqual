@@ -1,0 +1,105 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    # Pushes and pull requests run CI only in helgeesch/mesqual; any other repo (a fork, a private copy) runs it by manual dispatch only.
+    if: &run-ci github.repository == 'helgeesch/mesqual' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: '3.12'
+          activate-environment: true
+
+      - name: Install
+        run: uv pip install -e ".[dev]"
+
+      - name: Ruff
+        run: ruff check
+
+      - name: Ruff format
+        run: ruff format --check
+
+  test:
+    if: *run-ci
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12', '3.13', '3.14']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: ${{ matrix.python-version }}
+          activate-environment: true
+
+      - name: Install
+        run: uv pip install -e ".[dev,color]"
+
+      - name: Pytest
+        run: pytest
+
+  docs:
+    if: *run-ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: '3.12'
+          activate-environment: true
+
+      - name: Install
+        run: uv pip install -e ".[docs]"
+
+      - name: Build the docs
+        run: mkdocs build --strict
+
+  package:
+    if: *run-ci
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: astral-sh/setup-uv@v10.3.3
+        with:
+          python-version: '3.12'
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Check the metadata
+        run: uvx twine check dist/*
+
+      - name: Install the wheel in a fresh env and import mesqual
+        run: >-
+          uv run --isolated --no-project --with dist/*.whl python -c
+          "import importlib.resources, mesqual;
+          assert importlib.resources.files('mesqual').joinpath('data/countries.geojson').is_file();
+          print(mesqual.__file__, mesqual.__version__)"

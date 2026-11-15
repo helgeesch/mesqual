@@ -1,0 +1,2 @@
+# setuptools adds tests/test*.py to the sdist by default. The sdist holds the package, README, licenses and pyproject.toml only.
+prune tests

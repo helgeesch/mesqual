@@ -1,44 +1,108 @@
 [build-system]
-requires = ["setuptools>=61.0", "wheel"]
+requires = ["setuptools>=77.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "mesqual"
-version = "0.1.0"
+version = "2.0.0"
 description = "Modular Energy Scenario Comparison and Analysis Library"
 readme = "README.md"
-license = {file = "LICENSES/LGPL-3.0-or-later.txt"}
+requires-python = ">=3.11"
+license = "LGPL-3.0-or-later"
+license-files = ["LICENSES/*"]
 authors = [
     {name = "Helge Esch"}
 ]
 maintainers = [
     {name = "Helge Esch"}
 ]
+keywords = [
+    "energy",
+    "energy markets",
+    "power systems",
+    "scenario analysis",
+    "scenario comparison",
+    "simulation",
+    "kpi",
+    "dashboards",
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+]
 dependencies = [
-    "pandas",
+    "pandas>=2.1",
     "geopandas",
+    "pyproj",
     "shapely",
     "plotly",
     "folium",
     "branca",
     "jinja2",
-    "numpy",
+    "numpy>=1.23.2",
+    "matplotlib>=3.6",
     "networkx",
-    "pint",
-    "colorlog",
+    "pint>=0.24.4",
     "tqdm",
     "python-polylabel",
     "captain-arro",
+]
+
+[project.optional-dependencies]
+color = [
+    "colorlog",
+]
+dev = [
+    "pytest",
+    "ruff>=0.17,<0.18",
+]
+docs = [
+    "mkdocs",
+    "mkdocs-material",
+    "mkdocs-section-index",
+    "mkdocstrings[python]",
+]
+screenshot = [
+    "pillow",
+    "selenium",
 ]
 
 [project.urls]
 Homepage = "https://mesqual.io"
 Repository = "https://github.com/helgeesch/mesqual"
 Documentation = "https://docs.mesqual.io"
+Issues = "https://github.com/helgeesch/mesqual/issues"
+Changelog = "https://github.com/helgeesch/mesqual/blob/main/CHANGELOG.md"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
-where = ["."]
+where = ["src"]
 include = ["mesqual", "mesqual.*"]
 
 [tool.setuptools.package-data]
-mesqual = ["data/*.geojson"]
+mesqual = ["data/*.geojson", "skills/*/SKILL.md"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = ["error"]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["E9", "F63", "F7", "F82", "F401"]
+
+[tool.ruff.format]
+quote-style = "single"
+exclude = ["*.md"]

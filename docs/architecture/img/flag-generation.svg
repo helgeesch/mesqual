@@ -1,0 +1,115 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1020 620" width="1020" height="620" font-family="Helvetica, Arial, sans-serif" font-size="12">
+  <title>Base specs, layer specs and the flags they give</title>
+  <style>
+    .bg { fill: #ffffff; }
+    .base { fill: #eef4fb; stroke: #4a77b4; stroke-width: 1.2; }
+    .area { fill: #fdf6e7; stroke: #b7862b; stroke-width: 1.2; }
+    .border { fill: #f3eefb; stroke: #7a5bb4; stroke-width: 1.2; }
+    .plain { fill: #f6f8fa; stroke: #8c959f; stroke-width: 1.2; }
+    .t { fill: #24292f; }
+    .m { fill: #57606a; }
+    .h { font-weight: bold; }
+    .a { stroke: #24292f; stroke-width: 1.2; fill: none; }
+    .ah { fill: #24292f; }
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0d1117; }
+      .base { fill: #132339; stroke: #6e9fd8; }
+      .area { fill: #2b2111; stroke: #d4a446; }
+      .border { fill: #221a33; stroke: #a58bd8; }
+      .plain { fill: #161b22; stroke: #8b949e; }
+      .t { fill: #e6edf3; }
+      .m { fill: #8b949e; }
+      .a { stroke: #e6edf3; }
+      .ah { fill: #e6edf3; }
+    }
+  </style>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="ah" d="M0,0 L10,5 L0,10 z"/>
+    </marker>
+  </defs>
+  <rect class="bg" x="0" y="0" width="1020" height="620"/>
+  <text class="t h" x="20" y="30" font-size="15">Specs</text>
+  <text class="t h" x="368" y="30" font-size="15">Flags: one per variant value and layer</text>
+
+  <!-- node supply base spec -->
+  <rect class="base" x="20" y="45" width="310" height="100" rx="6"/>
+  <text class="t h" x="32" y="66">TimeSeriesFlagSpec (base)</text>
+  <text class="t" x="32" y="86">name: Node.Results.supply_{fuel_type}</text>
+  <text class="t" x="32" y="103">model_flag: Node.Model, unit: MW</text>
+  <text class="t" x="32" y="120">variants: fuel_type (res, coal, gas)</text>
+  <text class="m" x="32" y="137">own logic in an interpreter, no aggregation</text>
+
+  <!-- area spec -->
+  <line class="a" x1="170" y1="145" x2="170" y2="163" marker-end="url(#arrow)"/>
+  <rect class="area" x="20" y="165" width="310" height="84" rx="6"/>
+  <text class="t h" x="32" y="186">AreaFlagSpec (layer spec)</text>
+  <text class="t" x="32" y="206">name: {area_layer}.Results.supply_{fuel_type}</text>
+  <text class="t" x="32" y="223">base: the node supply spec</text>
+  <text class="t" x="32" y="240">aggregation: Sum()</text>
+
+  <!-- line flow base spec -->
+  <rect class="base" x="20" y="275" width="310" height="84" rx="6"/>
+  <text class="t h" x="32" y="296">TimeSeriesFlagSpec (base)</text>
+  <text class="t" x="32" y="316">name: Line.Results.flow_{direction}</text>
+  <text class="t" x="32" y="333">model_flag: Line.Model, unit: MW</text>
+  <text class="t" x="32" y="350">variants: direction (up, down, net)</text>
+
+  <!-- border spec -->
+  <line class="a" x1="170" y1="359" x2="170" y2="377" marker-end="url(#arrow)"/>
+  <rect class="border" x="20" y="379" width="310" height="84" rx="6"/>
+  <text class="t h" x="32" y="400">BorderFlagSpec (layer spec)</text>
+  <text class="t" x="32" y="420">name: {border_layer}.Results.flow_{direction}</text>
+  <text class="t" x="32" y="437">base: the line flow spec</text>
+  <text class="t" x="32" y="454">aggregation: BorderFlowSum()</text>
+
+  <!-- layers -->
+  <rect class="plain" x="20" y="489" width="310" height="110" rx="6"/>
+  <text class="t h" x="32" y="510">Layers, registered by the platform</text>
+  <text class="t" x="32" y="530">AreaLayer Country: Node.Model to</text>
+  <text class="t" x="32" y="547">Country.Model (membership country)</text>
+  <text class="t" x="32" y="567">BorderLayer CountryBorder: Country,</text>
+  <text class="t" x="32" y="584">edges of Line.Model (edge_ends)</text>
+
+  <!-- flag rows -->
+  <text class="t h" x="368" y="72">Node</text>
+  <rect class="base" x="470" y="55" width="170" height="26" rx="4"/>
+  <text class="t" x="477" y="72" font-size="10.5">Node.Results.supply_res</text>
+  <rect class="base" x="655" y="55" width="170" height="26" rx="4"/>
+  <text class="t" x="662" y="72" font-size="10.5">Node.Results.supply_coal</text>
+  <rect class="base" x="840" y="55" width="170" height="26" rx="4"/>
+  <text class="t" x="847" y="72" font-size="10.5">Node.Results.supply_gas</text>
+
+  <text class="t h" x="368" y="197">Country</text>
+  <rect class="area" x="470" y="180" width="170" height="26" rx="4"/>
+  <text class="t" x="477" y="197" font-size="10.5">Country.Results.supply_res</text>
+  <rect class="area" x="655" y="180" width="170" height="26" rx="4"/>
+  <text class="t" x="662" y="197" font-size="10.5">Country.Results.supply_coal</text>
+  <rect class="area" x="840" y="180" width="170" height="26" rx="4"/>
+  <text class="t" x="847" y="197" font-size="10.5">Country.Results.supply_gas</text>
+
+  <text class="t h" x="368" y="307">Line</text>
+  <rect class="base" x="470" y="290" width="170" height="26" rx="4"/>
+  <text class="t" x="477" y="307" font-size="10.5">Line.Results.flow_up</text>
+  <rect class="base" x="655" y="290" width="170" height="26" rx="4"/>
+  <text class="t" x="662" y="307" font-size="10.5">Line.Results.flow_down</text>
+  <rect class="base" x="840" y="290" width="170" height="26" rx="4"/>
+  <text class="t" x="847" y="307" font-size="10.5">Line.Results.flow_net</text>
+
+  <text class="t h" x="368" y="411">CountryBorder</text>
+  <rect class="border" x="470" y="394" width="170" height="26" rx="4"/>
+  <text class="t" x="477" y="411" font-size="10">CountryBorder.Results.flow_up</text>
+  <rect class="border" x="655" y="394" width="170" height="26" rx="4"/>
+  <text class="t" x="662" y="411" font-size="10">CountryBorder.Results.flow_down</text>
+  <rect class="border" x="840" y="394" width="170" height="26" rx="4"/>
+  <text class="t" x="847" y="411" font-size="10">CountryBorder.Results.flow_net</text>
+
+  <line class="a" x1="330" y1="95" x2="362" y2="70" marker-end="url(#arrow)"/>
+  <line class="a" x1="330" y1="207" x2="362" y2="194" marker-end="url(#arrow)"/>
+  <line class="a" x1="330" y1="317" x2="362" y2="304" marker-end="url(#arrow)"/>
+  <line class="a" x1="330" y1="421" x2="362" y2="408" marker-end="url(#arrow)"/>
+
+  <text class="m" x="470" y="233">The layer is the first variant of a layer spec, resolved per dataset;</text>
+  <text class="m" x="470" y="250">a second area layer, for example Macroregion, adds three flags.</text>
+
+</svg>
